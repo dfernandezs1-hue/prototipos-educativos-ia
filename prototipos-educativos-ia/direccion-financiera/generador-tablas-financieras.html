@@ -1,0 +1,1438 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Generador Interactivo de Tablas Financieras Razonadas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────  TOKENS  ───────────────────────── */
+:root{
+  --bg:#f4f1ea;
+  --paper:#fbf9f3;
+  --surface:#ffffff;
+  --ink:#16202b;
+  --ink-2:#384654;
+  --muted:#6d7787;
+  --line:#e3ddcf;
+  --line-2:#efeadd;
+  --primary:#1a3a52;
+  --primary-soft:#e8edf2;
+  --ok:#3f7256;
+  --ok-soft:#e7efe9;
+  --warn:#a76a1f;
+  --warn-soft:#f5ebda;
+  --err:#a4423a;
+  --err-soft:#f3e3e1;
+  --gold:#8a6d1f;
+  --serif:"Newsreader",Georgia,serif;
+  --sans:"Inter",system-ui,-apple-system,Segoe UI,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --shadow:0 1px 0 rgba(22,32,43,.04), 0 8px 28px -18px rgba(22,32,43,.18);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--sans);
+  font-size:14px;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #ece6d5 0%, transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, #ece9df 0%, transparent 55%),
+    var(--bg);
+  min-height:100vh;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ─────────────────────────  LAYOUT  ───────────────────────── */
+.shell{max-width:1360px;margin:0 auto;padding:28px 28px 80px}
+
+/* HEADER */
+.topbar{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+  padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:22px;
+}
+.brand{display:flex;flex-direction:column;gap:6px;min-width:0}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted);
+}
+.brand h1{
+  font-family:var(--serif);font-weight:500;font-size:30px;line-height:1.1;
+  margin:0;color:var(--ink);letter-spacing:-.01em;
+}
+.brand h1 em{font-style:italic;color:var(--primary);font-weight:500}
+.brand p{margin:4px 0 0;color:var(--ink-2);max-width:62ch;font-size:13.5px}
+
+.controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.select-wrap{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--surface);border:1px solid var(--line);
+  padding:8px 10px 8px 14px;border-radius:8px;
+}
+.select-wrap label{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.select-wrap select{
+  border:0;background:transparent;font:500 13px var(--sans);color:var(--ink);
+  outline:none;padding:2px 4px;cursor:pointer;
+}
+button{font-family:var(--sans);cursor:pointer}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid var(--line);background:var(--surface);
+  padding:10px 14px;border-radius:8px;font-weight:500;font-size:13px;color:var(--ink);
+  transition:transform .08s ease, background .15s ease, border-color .15s ease;
+}
+.btn:hover{background:#fbf6e9;border-color:#d6cdb6}
+.btn:active{transform:translateY(1px)}
+.btn-primary{
+  background:var(--primary);border-color:var(--primary);color:#fbf9f3;
+}
+.btn-primary:hover{background:#13314a;border-color:#13314a}
+.btn-ghost{background:transparent}
+.btn .dot{width:6px;height:6px;border-radius:50%;background:#d8c474}
+
+/* CASE PANEL */
+.case{
+  display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:0;
+  background:var(--paper);border:1px solid var(--line);border-radius:12px;
+  padding:18px 22px;margin-bottom:18px;box-shadow:var(--shadow);
+}
+.case > div{padding:0 18px;border-left:1px solid var(--line-2)}
+.case > div:first-child{border-left:0;padding-left:0}
+.case h3{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 6px;font-weight:500;
+}
+.case .case-title{
+  font-family:var(--serif);font-size:18px;line-height:1.25;margin:0 0 4px;color:var(--ink);
+}
+.case .case-context{color:var(--ink-2);font-size:13px;margin:0}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  font:500 11px var(--mono);letter-spacing:.06em;
+  padding:3px 8px;border-radius:999px;
+  background:var(--primary-soft);color:var(--primary);
+  border:1px solid #d4dde6;
+}
+.chip.warn{background:var(--warn-soft);color:var(--warn);border-color:#e9d6b3}
+.chip.ok{background:var(--ok-soft);color:var(--ok);border-color:#cfe0d4}
+.concept-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.concept-list span{
+  font:500 11.5px var(--sans);padding:3px 9px;border-radius:999px;
+  background:#efeadd;color:var(--ink-2);border:1px solid var(--line);
+}
+
+/* MAIN GRID */
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px}
+
+/* TABLE CARD */
+.table-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.table-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--line);background:var(--paper);
+}
+.table-head h2{
+  font-family:var(--serif);font-weight:500;font-size:17px;margin:0;color:var(--ink);
+}
+.table-head .actions{display:flex;gap:8px}
+.table-head .actions .btn{padding:7px 11px;font-size:12.5px}
+
+.fin-table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
+.fin-table thead th{
+  font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);background:#fbf9f3;border-bottom:1px solid var(--line);
+  padding:10px 14px;text-align:left;
+}
+.fin-table thead th.num{text-align:right}
+.fin-table tbody td{
+  padding:9px 14px;border-bottom:1px solid var(--line-2);vertical-align:middle;
+}
+.fin-table tbody tr:last-child td{border-bottom:0}
+.fin-table .label{color:var(--ink);font-weight:500}
+.fin-table .label .sub{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:1px}
+.fin-table .num{
+  font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;
+  white-space:nowrap;font-size:13px;color:var(--ink);min-width:130px;
+}
+.fin-table tr.section td{
+  background:#f4efe0;color:var(--ink-2);
+  font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  padding:8px 14px;
+}
+.fin-table tr.subtotal td{
+  background:#fbf6e9;font-weight:600;border-top:1px solid var(--line);
+}
+.fin-table tr.total td{
+  background:#1a3a52;color:#fbf9f3;font-weight:600;
+}
+.fin-table tr.total td .num,.fin-table tr.total .num{color:#fbf9f3}
+.fin-table tr.total .label{color:#fbf9f3}
+.fin-table tr.total .formula-hint{color:#cfd9e3}
+
+.formula-hint{
+  font:400 11.5px var(--mono);color:var(--muted);
+  display:inline-block;margin-left:8px;
+}
+
+/* CELL INPUTS */
+.cell-input{
+  display:inline-flex;align-items:center;justify-content:flex-end;gap:6px;
+  background:#fffdf4;border:1px dashed #d6cdb6;border-radius:6px;
+  padding:4px 8px;min-width:120px;transition:all .15s ease;
+}
+.cell-input input{
+  width:96px;border:0;background:transparent;outline:none;
+  font:500 13px var(--mono);text-align:right;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.cell-input .unit{font:500 11px var(--mono);color:var(--muted)}
+.cell-input.ok{background:var(--ok-soft);border-color:#a9c7b3;border-style:solid}
+.cell-input.err{background:var(--err-soft);border-color:#dba8a3;border-style:solid}
+.cell-input.ok .unit,.cell-input.err .unit{color:inherit}
+.row-feedback{
+  display:flex;gap:6px;align-items:center;margin-top:6px;
+  font-size:12px;color:var(--muted);
+}
+.row-feedback.ok{color:var(--ok)}
+.row-feedback.err{color:var(--err)}
+.row-feedback .why{color:var(--muted);font-style:italic}
+
+.hint-btn{
+  font:500 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;
+  background:transparent;border:1px solid var(--line);color:var(--muted);
+  padding:3px 7px;border-radius:5px;
+}
+.hint-btn:hover{color:var(--ink);border-color:var(--ink-2)}
+.hint-box{
+  margin-top:6px;padding:8px 11px;background:var(--warn-soft);
+  border-left:3px solid var(--warn);border-radius:0 6px 6px 0;
+  font-size:12.5px;color:#5a430f;
+}
+.hint-box b{color:var(--warn)}
+
+.cell-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.cell-meta-row{display:flex;gap:6px;align-items:center;justify-content:flex-end}
+
+/* INLINE QUESTION ROW */
+tr.qrow td{background:#fbf6e9;border-top:1px solid var(--line)}
+.qbox{display:flex;flex-direction:column;gap:8px}
+.qbox .qhead{
+  display:flex;align-items:center;gap:8px;
+  font:500 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);
+}
+.qbox p{margin:0;font-size:13.5px;color:var(--ink);max-width:78ch}
+.qopts{display:flex;flex-wrap:wrap;gap:8px}
+.qopt{
+  font-size:12.5px;background:var(--surface);border:1px solid var(--line);
+  padding:7px 11px;border-radius:7px;color:var(--ink);
+  text-align:left;line-height:1.35;max-width:380px;
+}
+.qopt:hover{border-color:var(--ink-2)}
+.qopt.sel{background:var(--primary);color:#fbf9f3;border-color:var(--primary)}
+.qopt.correct{background:var(--ok-soft);border-color:#a9c7b3;color:var(--ok)}
+.qopt.wrong{background:var(--err-soft);border-color:#dba8a3;color:var(--err)}
+.qexplain{
+  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--primary);
+  padding:8px 11px;font-size:12.5px;color:var(--ink-2);border-radius:0 6px 6px 0;
+  display:none;
+}
+.qexplain.show{display:block}
+
+/* PREDICTION BLOCK */
+.predict{
+  background:linear-gradient(180deg,#fbf6e9 0%,#fbf9f3 100%);
+  border:1px solid #e6dbb6;border-radius:10px;padding:14px 16px;margin-bottom:14px;
+}
+.predict .qhead{color:var(--gold)}
+.predict-result{
+  margin-top:8px;padding:8px 11px;border-radius:7px;font-size:12.5px;
+  display:none;
+}
+.predict-result.show{display:block}
+.predict-result.match{background:var(--ok-soft);color:var(--ok);border:1px solid #cfe0d4}
+.predict-result.miss{background:var(--err-soft);color:var(--err);border:1px solid #dba8a3}
+
+/* SIDEBAR */
+.sidebar{display:flex;flex-direction:column;gap:14px}
+.side-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;box-shadow:var(--shadow);
+}
+.side-card h4{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:500;
+  display:flex;align-items:center;gap:8px;
+}
+.side-card h4::before{
+  content:"";width:6px;height:6px;border-radius:50%;background:var(--primary);
+}
+.side-card.warn h4::before{background:var(--warn)}
+.side-card.ok h4::before{background:var(--ok)}
+.side-card ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.side-card li{
+  font-size:12.5px;color:var(--ink-2);line-height:1.45;
+  padding-left:14px;position:relative;
+}
+.side-card li::before{
+  content:"";position:absolute;left:0;top:8px;width:6px;height:1px;background:var(--muted);
+}
+.formula{
+  font-family:var(--mono);font-size:11.5px;color:var(--ink);
+  background:#fbf6e9;border:1px solid var(--line-2);
+  padding:5px 8px;border-radius:5px;display:inline-block;
+}
+.feedback-stream{display:flex;flex-direction:column;gap:8px;min-height:30px}
+.feedback-stream .empty{color:var(--muted);font-style:italic;font-size:12.5px}
+.feedback-item{
+  font-size:12.5px;padding:8px 10px;border-radius:7px;line-height:1.4;
+  border:1px solid;
+}
+.feedback-item.ok{background:var(--ok-soft);border-color:#cfe0d4;color:var(--ok)}
+.feedback-item.err{background:var(--err-soft);border-color:#dba8a3;color:var(--err)}
+.feedback-item.info{background:var(--primary-soft);border-color:#d4dde6;color:var(--primary)}
+.feedback-item .when{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-right:6px}
+
+/* PROGRESS */
+.progress-card{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.progress-meta{display:flex;flex-direction:column;gap:2px}
+.progress-meta .big{font-family:var(--serif);font-size:22px;color:var(--ink);line-height:1}
+.progress-meta .lbl{font:500 10.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.ring{width:48px;height:48px;border-radius:50%;
+  background:conic-gradient(var(--primary) calc(var(--p,0)*1%), #ece6d5 0);
+  display:grid;place-items:center;
+}
+.ring::after{
+  content:"";width:34px;height:34px;border-radius:50%;background:var(--surface);
+}
+.ring span{
+  position:relative;z-index:1;font:600 11px var(--mono);color:var(--ink);
+}
+
+/* FOOTER */
+.foot{
+  margin-top:28px;padding-top:14px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;color:var(--muted);font-size:12px;
+}
+.foot .mono{font-family:var(--mono);font-size:11px;letter-spacing:.06em}
+
+/* RESPONSIVE */
+@media (max-width:1080px){
+  .workspace{grid-template-columns:1fr}
+  .case{grid-template-columns:1fr 1fr;row-gap:14px}
+  .case > div{border-left:0;padding:0}
+  .case > div + div{border-top:1px solid var(--line-2);padding-top:12px}
+}
+@media (max-width:680px){
+  .shell{padding:18px 14px 60px}
+  .topbar{flex-direction:column;align-items:flex-start;gap:14px}
+  .case{grid-template-columns:1fr}
+  .fin-table .formula-hint{display:none}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ───── HEADER ───── -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="eyebrow">Dirección Financiera · Aprendizaje activo</span>
+      <h1>Generador Interactivo de <em>Tablas Financieras Razonadas</em></h1>
+      <p>Convierte las tablas tradicionales en un ejercicio guiado: predice, completa, razona y descubre por qué los números se comportan como lo hacen.</p>
+    </div>
+    <div class="controls">
+      <div class="select-wrap">
+        <label for="tipo">Tipo</label>
+        <select id="tipo">
+          <option value="resultados">Cuenta de Resultados</option>
+          <option value="balance">Balance y NOF</option>
+          <option value="cashflow">Cash Flow</option>
+          <option value="valoracion">Valoración Básica</option>
+          <option value="integrado">Caso Integrado · Examen</option>
+        </select>
+      </div>
+      <div class="select-wrap">
+        <label for="nivel">Nivel</label>
+        <select id="nivel">
+          <option value="1">Introductorio</option>
+          <option value="2" selected>Intermedio</option>
+          <option value="3">Avanzado</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="gen"><span class="dot"></span> Generar nuevo ejercicio</button>
+    </div>
+  </header>
+
+  <!-- ───── CASE PANEL ───── -->
+  <section class="case" id="case"></section>
+
+  <!-- ───── WORKSPACE ───── -->
+  <section class="workspace">
+    <!-- LEFT: predictions + table -->
+    <div>
+      <div id="predictions"></div>
+
+      <div class="table-card">
+        <div class="table-head">
+          <h2 id="table-title">Tabla financiera</h2>
+          <div class="actions">
+            <button class="btn btn-ghost" id="check">Comprobar bloque</button>
+            <button class="btn btn-ghost" id="reveal">Mostrar solución</button>
+            <button class="btn btn-ghost" id="reset">Reiniciar</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="fin-table" id="table"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: SIDEBAR -->
+    <aside class="sidebar">
+      <div class="side-card progress-card">
+        <div class="progress-meta">
+          <span class="big" id="pct">0%</span>
+          <span class="lbl">Progreso del bloque</span>
+        </div>
+        <div class="ring" id="ring" style="--p:0"><span id="ringTxt">0</span></div>
+      </div>
+
+      <div class="side-card">
+        <h4>Preguntas para pensar</h4>
+        <ul id="thinking"></ul>
+      </div>
+
+      <div class="side-card warn">
+        <h4>Errores frecuentes</h4>
+        <ul id="errors"></ul>
+      </div>
+
+      <div class="side-card">
+        <h4>Fórmulas útiles</h4>
+        <ul id="formulas"></ul>
+      </div>
+
+      <div class="side-card ok">
+        <h4>Interpretación económica</h4>
+        <p id="interp" style="margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.5"></p>
+      </div>
+
+      <div class="side-card">
+        <h4>Feedback dinámico</h4>
+        <div class="feedback-stream" id="feed">
+          <div class="empty">Tus respuestas y errores detectados aparecerán aquí.</div>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <footer class="foot">
+    <span>Proyecto Fin de Grado · IA aplicada a la enseñanza universitaria</span>
+    <span class="mono" id="exid">EX-000000</span>
+  </footer>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   CONFIGURACIÓN — DATOS EDITABLES DEL GENERADOR
+   ────────────────────────────────────────────────────────────
+   Aquí está centralizada la "pila de datos fija" del prototipo:
+   la lista de empresas que aparecen en los enunciados. Para
+   añadir, quitar o cambiar empresas se edita SOLO CONFIG.companies.
+
+   Mapa de datos editables:
+     • CONFIG.companies ... empresas de los enunciados (datos fijos)  [aquí]
+     • Coeficientes aleatorios .... están DENTRO de cada generador
+       (genResultados, genBalance, genCashflow, genValoracion,
+       genIntegrado), porque cada coeficiente es un RATIO CONTABLE
+       ligado a su fórmula y se entiende mejor en su sitio. Patrón:
+         ventas * (BASE + Math.random()*RANGO)
+       p. ej. round(ventas*(0.45 + Math.random()*0.18)) = CMV entre
+       el 45% y el 63% de las ventas. Para cambiar un supuesto se
+       editan ahí el BASE y el RANGO. El nivel de ventas base de
+       cada tabla es rnd(min,max)*100 al principio de cada generador.
+   Los parámetros que el usuario elige en pantalla (nivel, tipo de
+   tabla) no están aquí: se controlan desde la interfaz.
+   ════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  // DATOS FIJOS: empresas usadas en los enunciados
+  companies: [
+    {name:"Olivar Andaluz S.L.", sector:"Aceites y conservas", note:"PYME familiar en expansión nacional."},
+    {name:"NorteFrío S.A.", sector:"Logística refrigerada", note:"Empresa con CAPEX elevado y deuda bancaria."},
+    {name:"Lúmina Diseño", sector:"Iluminación arquitectónica", note:"Negocio en crecimiento con NOF crecientes."},
+    {name:"Bodegas Marvel", sector:"Vino y enoturismo", note:"Existencias altas y ciclo de cobro largo."},
+    {name:"Tecnal Componentes", sector:"Componentes industriales", note:"Margen ajustado y rotación elevada."},
+    {name:"Casa Riera", sector:"Distribución hortofrutícola", note:"Negocio con cobro rápido y proveedores largos."},
+    {name:"Aerolínea Mistral", sector:"Aviación regional", note:"CAPEX intensivo y amortizaciones relevantes."},
+    {name:"Vega Software", sector:"SaaS B2B", note:"Crecimiento rápido y caja sensible a cobros."}
+  ]
+};
+
+/* ════════════════════════════════════════════════════════════
+   UTILS
+   ════════════════════════════════════════════════════════════ */
+const $ = sel => document.querySelector(sel);
+const $$ = sel => [...document.querySelectorAll(sel)];
+const fmt = n => (n==null||isNaN(n)) ? "—" :
+  new Intl.NumberFormat("es-ES",{maximumFractionDigits:0}).format(Math.round(n));
+const rnd = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const round = (n,d=0) => { const k=10**d; return Math.round(n*k)/k };
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const near = (a,b,tol=1) => Math.abs(a-b) <= Math.max(tol, Math.abs(b)*0.01);
+
+const COMPANIES = CONFIG.companies; // ver CONFIG.companies para editarlas
+
+/* ════════════════════════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════════════════════════ */
+const state = {
+  tipo:"resultados",
+  nivel:2,
+  ex:null,        // current exercise
+  inputs:{},      // id -> string
+  ok:{},          // id -> bool
+  hints:{},       // id -> level shown
+  qsel:{},        // qId -> selected option index
+  predOk:{},      // predId -> bool
+};
+
+/* ════════════════════════════════════════════════════════════
+   EXERCISE GENERATORS
+   Each returns: {title,context,company,difficulty,concepts,
+                  rows:[...], questions:[...], predictions:[...],
+                  thinking:[...], errors:[...], formulas:[...], interp}
+   row: {id,kind:'section'|'data'|'compute'|'subtotal'|'total'|'question',
+         label, sub, value, formula, hint:{c,o,a}, explain}
+   ════════════════════════════════════════════════════════════ */
+
+function genResultados(level){
+  const co = pick(COMPANIES);
+  const ventas = rnd(80,260)*100;     // 8.000 – 26.000
+  const cmv = round(ventas * (0.45 + Math.random()*0.18));
+  const mb = ventas - cmv;
+  const cop = round(mb * (0.40 + Math.random()*0.25));
+  const ebitda = mb - cop;
+  const amort = round(ventas * (0.04 + Math.random()*0.05));
+  const ebit = ebitda - amort;
+  const intereses = round(ventas * (0.015 + Math.random()*0.02));
+  const bai = ebit - intereses;
+  const tax = 0.25;
+  const imp = round(Math.max(0,bai)*tax);
+  const neto = bai - imp;
+
+  // pick which to compute based on level
+  const computeSet = level===1 ? ["mb","ebitda","neto"]
+                   : level===2 ? ["mb","ebitda","ebit","neto"]
+                   :              ["mb","ebitda","ebit","bai","neto"];
+
+  const row = (id,label,val,opts={}) => ({
+    id, kind: computeSet.includes(id) ? "compute" :
+              opts.kind || (["mb","ebitda","ebit","bai","neto"].includes(id) ? "subtotal" : "data"),
+    label, value:val, ...opts
+  });
+
+  const rows = [
+    {kind:"section", label:"Operativa del ejercicio"},
+    row("ventas","Ventas netas", ventas, {sub:"Ingresos por ventas del año"}),
+    row("cmv","Coste de mercaderías vendidas (CMV)", -cmv),
+    row("mb","= Margen Bruto", mb, {
+      kind: computeSet.includes("mb") ? "compute" : "subtotal",
+      formula:"Ventas − CMV",
+      hint:{c:"Es lo que queda tras descontar el coste directo de lo vendido.",
+            o:"Resta el CMV (en valor absoluto) a las Ventas.",
+            a:`${fmt(ventas)} − ${fmt(cmv)} = ${fmt(mb)}`},
+      explain:"El margen bruto mide la rentabilidad del producto antes de la estructura."
+    }),
+    row("cop","Costes operativos (estructura)", -cop),
+    row("ebitda","= EBITDA", ebitda, {
+      kind: computeSet.includes("ebitda") ? "compute" : "subtotal",
+      formula:"Margen Bruto − Costes operativos",
+      hint:{c:"Beneficio antes de amortizar, pagar intereses e impuestos.",
+            o:"Resta los costes operativos al Margen Bruto.",
+            a:`${fmt(mb)} − ${fmt(cop)} = ${fmt(ebitda)}`},
+      explain:"EBITDA es proxy de la caja operativa, pero no es la caja."
+    }),
+    row("amort","Amortización", -amort, {sub:"Gasto no monetario"}),
+    row("ebit","= EBIT", ebit, {
+      kind: computeSet.includes("ebit") ? "compute" : "subtotal",
+      formula:"EBITDA − Amortización",
+      hint:{c:"Beneficio operativo tras reflejar el desgaste del activo fijo.",
+            o:"Resta la amortización al EBITDA.",
+            a:`${fmt(ebitda)} − ${fmt(amort)} = ${fmt(ebit)}`}
+    }),
+    row("intereses","Gastos financieros", -intereses),
+    row("bai","= BAI", bai, {
+      kind: computeSet.includes("bai") ? "compute" : "subtotal",
+      formula:"EBIT − Intereses",
+      hint:{c:"Beneficio antes de impuestos.",
+            o:"Resta los intereses al EBIT.",
+            a:`${fmt(ebit)} − ${fmt(intereses)} = ${fmt(bai)}`}
+    }),
+    row("imp",`Impuesto de sociedades (${(tax*100)|0}%)`, -imp),
+    row("neto","= Resultado Neto", neto, {
+      kind:"total",
+      formula:"BAI − Impuestos",
+      hint:{c:"Lo que queda para el accionista tras pagar a Hacienda.",
+            o:"Resta el impuesto al BAI.",
+            a:`${fmt(bai)} − ${fmt(imp)} = ${fmt(neto)}`}
+    }),
+  ];
+
+  if(level===3){
+    rows.push({kind:"section", label:"Análisis (nivel avanzado)"});
+    rows.push(row("margenNeto","Margen neto sobre ventas (%)", round(neto/ventas*100), {kind:"compute",
+      formula:"Resultado Neto / Ventas × 100",
+      hint:{c:"Rentabilidad final por cada euro vendido.",
+            o:"Divide el Resultado Neto entre las Ventas y multiplica por 100.",
+            a:`${fmt(neto)} / ${fmt(ventas)} × 100 = ${round(neto/ventas*100)}%`}}));
+  }
+
+  const questions = [
+    {id:"q1", anchorAfter:"ebitda",
+     q:"El EBITDA es positivo pero la caja generada en el año fue inferior. ¿Cuál es la explicación financiera más probable?",
+     opts:[
+       "El EBITDA ya descuenta la amortización, por eso difiere de la caja.",
+       "El EBITDA no recoge ni la variación de NOF ni el CAPEX, que sí consumen caja.",
+       "Los impuestos son siempre mayores que el EBITDA generado.",
+       "Es un error: EBITDA y caja del ejercicio deben coincidir."
+     ], ok:1,
+     why:"EBITDA es resultado operativo antes de amortizar; la caja además depende de NOF, CAPEX y deuda."},
+    {id:"q2", anchorAfter:"ebit",
+     q:"Si la dirección decide acortar la vida útil del inmovilizado, ¿qué ocurre con EBIT y EBITDA del año?",
+     opts:[
+       "EBITDA baja, EBIT no cambia.",
+       "EBITDA no cambia, EBIT baja.",
+       "Ambos suben porque mejora la depreciación.",
+       "No tiene impacto contable significativo."
+     ], ok:1,
+     why:"La amortización no afecta a EBITDA (es posterior), pero sí reduce el EBIT."}
+  ];
+
+  const predictions = [
+    {id:"p1",
+     q:`Antes de calcular el Resultado Neto: con un margen bruto en torno al ${Math.round(mb/ventas*100)}% y los costes mostrados, ¿cómo esperas que sea el Resultado Neto?`,
+     opts:[
+       {t:"Claramente positivo, >5% sobre ventas", ok: neto/ventas > 0.05},
+       {t:"Ligeramente positivo o cercano a cero", ok: neto/ventas>=0 && neto/ventas<=0.05},
+       {t:"Negativo", ok: neto<0}
+     ],
+     explain: `El Resultado Neto del caso es ${fmt(neto)} (${(neto/ventas*100).toFixed(1)}% sobre ventas).`
+    }
+  ];
+
+  return {
+    type:"resultados",
+    title:"Cuenta de Resultados",
+    company:co,
+    context:`${co.name} (${co.sector}). ${co.note} Analiza la estructura operativa del ejercicio y completa los subtotales.`,
+    difficulty:level,
+    concepts:["Margen Bruto","EBITDA","EBIT","BAI","Resultado Neto"],
+    rows, questions, predictions,
+    thinking:[
+      "¿En qué se diferencia EBITDA de la caja operativa real?",
+      "¿Qué pasaría con el EBIT si subiera la amortización?",
+      "¿Es sostenible este nivel de costes operativos si las ventas no crecen?"
+    ],
+    errors:[
+      "Confundir EBITDA con EBIT (olvidar restar amortización).",
+      "Sumar los costes en lugar de restarlos.",
+      "Aplicar el impuesto sobre el EBIT en vez de sobre el BAI.",
+      "Pensar que un margen bruto alto garantiza beneficio neto."
+    ],
+    formulas:[
+      "Margen Bruto = Ventas − CMV",
+      "EBITDA = Margen Bruto − Costes operativos",
+      "EBIT = EBITDA − Amortización",
+      "BAI = EBIT − Intereses",
+      "Resultado Neto = BAI − Impuestos"
+    ],
+    interp:`Una cuenta de resultados sana no es la que tiene el mayor beneficio, sino la que muestra una estructura coherente: margen bruto suficiente para soportar la estructura, EBITDA que cubre amortización y financieros, y un neto consistente con el sector.`
+  };
+}
+
+function genBalance(level){
+  const co = pick(COMPANIES);
+  const ventas = rnd(80,260)*100;
+  // NOF components
+  const clientes = round(ventas * (0.10 + Math.random()*0.08));
+  const exist = round(ventas * (0.08 + Math.random()*0.08));
+  const prov = round(ventas * (0.07 + Math.random()*0.07));
+  const nof = clientes + exist - prov;
+  const activoFijo = round(ventas * (0.4 + Math.random()*0.3));
+  const caja = round(ventas * (0.04 + Math.random()*0.04));
+  const activoTotal = caja + nof + activoFijo;
+  const deuda = round(activoTotal * (0.35 + Math.random()*0.2));
+  const rp = activoTotal - deuda;
+
+  const computeSet = level===1 ? ["nof","activoTotal","rp"]
+                   : level===2 ? ["nof","activoTotal","pasivoTotal","rp"]
+                   :              ["nof","activoTotal","pasivoTotal","rp"];
+
+  const row = (id,label,val,opts={}) => ({
+    id, kind: computeSet.includes(id) ? "compute" :
+              opts.kind || "data",
+    label, value:val, ...opts
+  });
+
+  const rows = [
+    {kind:"section", label:"Activo"},
+    row("caja","Caja y equivalentes", caja),
+    row("clientes","Clientes (cobros pendientes)", clientes),
+    row("exist","Existencias", exist),
+    row("prov","Proveedores (pagos pendientes)", -prov, {sub:"Se resta en NOF"}),
+    row("nof","= NOF (Necesidades Operativas de Fondos)", nof, {
+      kind: computeSet.includes("nof") ? "compute" : "subtotal",
+      formula:"Clientes + Existencias − Proveedores",
+      hint:{c:"Capital atrapado en el ciclo de explotación.",
+            o:"Suma clientes y existencias; resta proveedores.",
+            a:`${fmt(clientes)} + ${fmt(exist)} − ${fmt(prov)} = ${fmt(nof)}`}
+    }),
+    row("activoFijo","Activo fijo neto", activoFijo),
+    row("activoTotal","= Activo Total", activoTotal, {
+      kind: computeSet.includes("activoTotal") ? "compute" : "total",
+      formula:"Caja + NOF + Activo Fijo",
+      hint:{c:"Total de recursos que la empresa controla.",
+            o:"Suma Caja, NOF y Activo Fijo.",
+            a:`${fmt(caja)} + ${fmt(nof)} + ${fmt(activoFijo)} = ${fmt(activoTotal)}`}
+    }),
+    {kind:"section", label:"Pasivo y Patrimonio Neto"},
+    row("deuda","Deuda financiera", deuda),
+    row("rp","Recursos Propios", rp, {
+      kind: computeSet.includes("rp") ? "compute" : "data",
+      formula:"Activo Total − Deuda",
+      hint:{c:"Fondos aportados por los accionistas + reservas.",
+            o:"Resta la deuda al Activo Total.",
+            a:`${fmt(activoTotal)} − ${fmt(deuda)} = ${fmt(rp)}`}
+    }),
+    row("pasivoTotal","= Pasivo Total", activoTotal, {
+      kind:"total",
+      formula:"Deuda + Recursos Propios",
+      hint:{c:"Debe cuadrar con el Activo Total.",
+            o:"Suma deuda y recursos propios.",
+            a:`${fmt(deuda)} + ${fmt(rp)} = ${fmt(activoTotal)}`}
+    })
+  ];
+
+  if(level===3){
+    rows.push({kind:"section", label:"Análisis (nivel avanzado)"});
+    rows.push(row("endeud","Ratio de endeudamiento (%)", round(deuda/activoTotal*100), {kind:"compute",
+      formula:"Deuda / Activo Total × 100",
+      hint:{c:"Proporción del activo financiada con deuda.",
+            o:"Divide la Deuda entre el Activo Total y multiplica por 100.",
+            a:`${fmt(deuda)} / ${fmt(activoTotal)} × 100 = ${round(deuda/activoTotal*100)}%`}}));
+  }
+
+  const questions = [
+    {id:"q1", anchorAfter:"nof",
+     q:"Si las NOF crecen rápidamente sin que crezcan los recursos propios ni la deuda, ¿qué le ocurre a la caja?",
+     opts:[
+       "La caja aumenta porque hay más activo.",
+       "La caja se reduce: el crecimiento operativo absorbe tesorería.",
+       "La caja no se ve afectada por las NOF.",
+       "Solo se ve afectada la deuda."
+     ], ok:1,
+     why:"NOF crecientes consumen caja; es el efecto 'crecer ahoga'."},
+    {id:"q2", anchorAfter:"pasivoTotal",
+     q:"¿Por qué Activo Total debe coincidir necesariamente con Pasivo + Recursos Propios?",
+     opts:[
+       "Por convención fiscal del impuesto de sociedades.",
+       "Porque todo recurso que la empresa usa tiene un origen de financiación.",
+       "Porque la deuda siempre iguala al activo fijo.",
+       "Porque lo exige el auditor."
+     ], ok:1,
+     why:"Identidad fundamental: usos = orígenes de fondos."}
+  ];
+
+  const predictions = [
+    {id:"p1",
+     q:"Con clientes y existencias por encima de proveedores, ¿esperas que las NOF sean positivas o negativas?",
+     opts:[
+       {t:"Positivas (la operativa consume caja)", ok: nof>0},
+       {t:"Negativas (la operativa libera caja)", ok: nof<0},
+       {t:"Cercanas a cero", ok: Math.abs(nof) < ventas*0.02}
+     ],
+     explain:`Las NOF del caso son ${fmt(nof)}. Positivas implican que el ciclo de explotación necesita financiación.`
+    }
+  ];
+
+  return {
+    type:"balance", title:"Balance y NOF", company:co,
+    context:`${co.name} (${co.sector}). ${co.note} Analiza la estructura patrimonial y la financiación operativa.`,
+    difficulty:level,
+    concepts:["NOF","Activo Total","Recursos Propios","Equilibrio patrimonial"],
+    rows, questions, predictions,
+    thinking:[
+      "¿Qué partida representa el principal 'atrapamiento' de caja?",
+      "¿La deuda actual está financiando NOF o activo fijo?",
+      "¿Qué pasaría con el balance si las ventas creciesen un 30%?"
+    ],
+    errors:[
+      "Sumar proveedores en las NOF (en lugar de restarlos).",
+      "Olvidar que Activo Total = Pasivo Total + RP.",
+      "Confundir caja con NOF.",
+      "Pensar que más activo fijo siempre mejora el negocio."
+    ],
+    formulas:[
+      "NOF = Clientes + Existencias − Proveedores",
+      "Activo Total = Caja + NOF + Activo Fijo",
+      "Pasivo Total = Deuda + Recursos Propios",
+      "Equilibrio: Activo Total = Pasivo Total"
+    ],
+    interp:`El balance no se 'lee', se interpreta: muestra dónde está el dinero (activo) y de quién es (pasivo + RP). Un crecimiento sano exige que el aumento de NOF y CAPEX esté financiado con recursos estables.`
+  };
+}
+
+function genCashflow(level){
+  const co = pick(COMPANIES);
+  const ventas = rnd(80,260)*100;
+  const neto = round(ventas*(0.04+Math.random()*0.06));
+  const amort = round(ventas*(0.05+Math.random()*0.04));
+  const dNOF = round(ventas*(0.03+Math.random()*0.05)); // increase
+  const capex = round(ventas*(0.06+Math.random()*0.06));
+  const dDeuda = round(ventas*(-0.02 + Math.random()*0.08));
+  const cf = neto + amort - dNOF - capex + dDeuda;
+
+  const computeSet = level===1 ? ["cf"]
+                   : level===2 ? ["cf"]
+                   :              ["cf"];
+
+  const row = (id,label,val,opts={}) => ({
+    id, kind: computeSet.includes(id) ? "compute" : (opts.kind || "data"),
+    label, value:val, ...opts
+  });
+
+  const rows = [
+    {kind:"section", label:"Conciliación beneficio → caja"},
+    row("neto","Resultado Neto del ejercicio", neto),
+    row("amort","(+) Amortización", amort, {sub:"Se suma: no es salida de caja"}),
+    row("dnof","(−) Variación de NOF", -dNOF, {sub:"Si NOF crecen, consumen caja"}),
+    row("capex","(−) CAPEX (inversión)", -capex),
+    row("ddeuda",`(${dDeuda>=0?"+":"−"}) Variación de deuda`, dDeuda),
+    row("cf","= Cash Flow del ejercicio (Δ Caja)", cf, {
+      kind:"total",
+      formula:"Resultado Neto + Amort − ΔNOF − CAPEX + ΔDeuda",
+      hint:{c:"La caja real del año = beneficio + ajustes − inversiones + financiación neta.",
+            o:"Suma neto y amortización; resta variación NOF y CAPEX; ajusta variación de deuda.",
+            a:`${fmt(neto)} + ${fmt(amort)} − ${fmt(dNOF)} − ${fmt(capex)} ${dDeuda>=0?"+":"−"} ${fmt(Math.abs(dDeuda))} = ${fmt(cf)}`}
+    })
+  ];
+
+  if(level===3){
+    rows.push({kind:"section", label:"Análisis (nivel avanzado)"});
+    rows.push(row("conv","Conversión de beneficio en caja (%)", round(cf/neto*100), {kind:"compute",
+      formula:"Cash Flow / Resultado Neto × 100",
+      hint:{c:"Qué parte del beneficio se transforma en caja real.",
+            o:"Divide el Cash Flow entre el Resultado Neto y multiplica por 100.",
+            a:`${fmt(cf)} / ${fmt(neto)} × 100 = ${round(cf/neto*100)}%`}}));
+  }
+
+  const questions = [
+    {id:"q1", anchorAfter:"amort",
+     q:"¿Por qué la amortización se suma de nuevo aquí si en la cuenta de resultados ya se ha restado?",
+     opts:[
+       "Es un error de planteamiento; no debe sumarse.",
+       "Porque la amortización es un gasto contable que NO supone salida de caja.",
+       "Porque la amortización se cobra de los clientes.",
+       "Porque la legislación fiscal lo obliga."
+     ], ok:1,
+     why:"Se resta del beneficio pero no implica pago; el cash flow lo recupera para reflejar caja real."},
+    {id:"q2", anchorAfter:"cf",
+     q:"La empresa tiene beneficio positivo pero cash flow negativo. ¿Cuál es la causa más probable?",
+     opts:[
+       "El CAPEX es muy bajo.",
+       "La empresa está creciendo: las NOF y/o el CAPEX consumen más caja que la que genera la operativa.",
+       "Los impuestos son demasiado altos.",
+       "La amortización se ha calculado mal."
+     ], ok:1,
+     why:"Es el típico 'crecer ahoga': beneficio contable positivo, caja negativa por inversiones y NOF crecientes."}
+  ];
+
+  const predictions = [
+    {id:"p1",
+     q:"Mirando los componentes (Neto, Amort, ΔNOF, CAPEX, ΔDeuda) sin calcular: ¿esperas que el cash flow sea mayor o menor que el beneficio neto?",
+     opts:[
+       {t:"Mayor que el beneficio", ok: cf > neto},
+       {t:"Menor que el beneficio", ok: cf < neto},
+       {t:"Aproximadamente igual", ok: Math.abs(cf-neto) < ventas*0.01}
+     ],
+     explain: `Cash Flow = ${fmt(cf)} vs Resultado Neto = ${fmt(neto)}. La diferencia la explican amortización, NOF, CAPEX y deuda.`
+    }
+  ];
+
+  return {
+    type:"cashflow", title:"Cash Flow", company:co,
+    context:`${co.name} (${co.sector}). ${co.note} Reconcilia beneficio contable y caja real del ejercicio.`,
+    difficulty:level,
+    concepts:["Resultado Neto","Amortización","ΔNOF","CAPEX","ΔDeuda","Δ Caja"],
+    rows, questions, predictions,
+    thinking:[
+      "¿Qué partida consume más caja en este caso?",
+      "¿Cómo cambiaría el cash flow si se aplazara el CAPEX un año?",
+      "¿Está la empresa financiando crecimiento con deuda?"
+    ],
+    errors:[
+      "Restar la amortización en vez de sumarla al beneficio.",
+      "Sumar el CAPEX en vez de restarlo.",
+      "Ignorar la variación de NOF.",
+      "Confundir cash flow con EBITDA."
+    ],
+    formulas:[
+      "Cash Flow = Resultado Neto + Amort − ΔNOF − CAPEX + ΔDeuda",
+      "ΔNOF = NOFₜ − NOFₜ₋₁",
+      "Free Cash Flow ≈ EBIT(1−t) + Amort − ΔNOF − CAPEX"
+    ],
+    interp:`El cash flow es la prueba de verdad del negocio. Una empresa con beneficio sostenido y cash flow negativo durante años acabará dependiendo de la deuda o de nueva financiación.`
+  };
+}
+
+function genValoracion(level){
+  const co = pick(COMPANIES);
+  const fcf = rnd(50,200)*10;          // 500 – 2.000
+  const g = round((0.01 + Math.random()*0.03),3);  // 1% – 4%
+  const wacc = round((0.07 + Math.random()*0.04),3); // 7% – 11%
+  const vt = round(fcf*(1+g)/(wacc-g));
+  const vp = round(vt/(1+wacc));
+
+  const row = (id,label,val,opts={}) => ({
+    id, kind:opts.kind || "data", label, value:val, ...opts
+  });
+
+  const rows = [
+    {kind:"section", label:"Datos de partida"},
+    row("fcf","Free Cash Flow año 1 (FCF₁)", fcf),
+    row("g",`Tasa de crecimiento perpetuo (g)`, g*100, {kind:"data", sub:"En % anual"}),
+    row("wacc","Coste medio del capital (WACC)", wacc*100, {kind:"data", sub:"En % anual"}),
+    {kind:"section", label:"Valoración por perpetuidad"},
+    row("vt","Valor Terminal (perpetuidad creciente)", vt, {
+      kind:"compute",
+      formula:"FCF × (1+g) / (WACC − g)",
+      hint:{c:"Valor del negocio asumiendo crecimiento perpetuo a tasa g.",
+            o:"Multiplica FCF por (1+g) y divide por (WACC−g).",
+            a:`${fmt(fcf)} × (1+${(g*100).toFixed(1)}%) / (${(wacc*100).toFixed(1)}%−${(g*100).toFixed(1)}%) = ${fmt(vt)}`}
+    }),
+    row("vp","Valor actual del negocio (V₀)", vp, {
+      kind:"total",
+      formula:"Valor Terminal / (1 + WACC)",
+      hint:{c:"Descuento del valor terminal a hoy.",
+            o:"Divide el valor terminal entre (1 + WACC).",
+            a:`${fmt(vt)} / (1+${(wacc*100).toFixed(1)}%) = ${fmt(vp)}`}
+    })
+  ];
+
+  const questions = [
+    {id:"q1", anchorAfter:"vt",
+     q:"Si el WACC sube mientras g se mantiene constante, ¿qué le ocurre al valor del negocio?",
+     opts:[
+       "Aumenta: más rentabilidad exigida, más valor.",
+       "Disminuye: descontar a mayor tasa reduce el valor presente.",
+       "No cambia: solo importa g.",
+       "Depende del sector."
+     ], ok:1,
+     why:"Una tasa de descuento mayor reduce el valor presente; el denominador (WACC−g) crece."},
+    {id:"q2", anchorAfter:"vp",
+     q:"Una empresa con FCF idéntico pero g más alto vale más. ¿Cuál es el riesgo de asumir una g demasiado alta?",
+     opts:[
+       "Subestimar el valor del negocio.",
+       "Sobrestimar el valor: crecer a tasas superiores a la economía es insostenible.",
+       "Ningún riesgo, g es un dato libre.",
+       "Reducir el WACC."
+     ], ok:1,
+     why:"Una g cercana al WACC dispara el valor; g debe ser plausible a largo plazo (≤ crecimiento de la economía)."}
+  ];
+
+  const predictions = [
+    {id:"p1",
+     q:`Con un WACC del ${(wacc*100).toFixed(1)}% y g del ${(g*100).toFixed(1)}%, ¿qué orden de magnitud esperas para el valor del negocio respecto al FCF?`,
+     opts:[
+       {t:"Entre 5x y 10x el FCF anual", ok: vp/fcf >= 5 && vp/fcf < 10},
+       {t:"Entre 10x y 20x el FCF anual", ok: vp/fcf >= 10 && vp/fcf < 20},
+       {t:"Más de 20x el FCF anual", ok: vp/fcf >= 20}
+     ],
+     explain:`V₀ ≈ ${fmt(vp)} ≈ ${(vp/fcf).toFixed(1)}× FCF. El multiplicador depende fuertemente del diferencial (WACC−g).`
+    }
+  ];
+
+  return {
+    type:"valoracion", title:"Valoración Básica · Perpetuidad", company:co,
+    context:`${co.name} (${co.sector}). ${co.note} Estima el valor del negocio a partir del flujo de caja libre.`,
+    difficulty:level,
+    concepts:["FCF","Perpetuidad","WACC","Descuento","Valor presente"],
+    rows, questions, predictions,
+    thinking:[
+      "¿Por qué descontamos los flujos futuros?",
+      "¿Qué supuestos económicos hay detrás de g?",
+      "¿Qué pasa con el valor si el negocio deja de crecer?"
+    ],
+    errors:[
+      "Olvidar multiplicar el FCF por (1+g).",
+      "Usar el FCF en lugar del FCF perpetuo.",
+      "Confundir WACC con coste de la deuda.",
+      "Tomar g ≥ WACC (valor infinito, no tiene sentido)."
+    ],
+    formulas:[
+      "Valor Terminal = FCF × (1+g) / (WACC − g)",
+      "V₀ = VT / (1 + WACC)",
+      "WACC = E/(E+D)·Kₑ + D/(E+D)·Kd·(1−t)"
+    ],
+    interp:`La valoración por perpetuidad es una simplificación: asume un negocio estable creciendo a tasa g para siempre. Es útil para entender la sensibilidad del valor a hipótesis de crecimiento y riesgo.`
+  };
+}
+
+function genIntegrado(level){
+  const co = pick(COMPANIES);
+  const ventas = rnd(120,240)*100;
+  const cmv = round(ventas*0.55), mb = ventas-cmv;
+  const cop = round(mb*0.55), ebitda = mb-cop;
+  const amort = round(ventas*0.06), ebit = ebitda-amort;
+  const intereses = round(ventas*0.02), bai = ebit-intereses;
+  const imp = round(Math.max(0,bai)*0.25), neto = bai-imp;
+  const dNOF = round(ventas*0.04);
+  const capex = round(ventas*0.07);
+  const dDeuda = round(ventas*0.02);
+  const cf = neto + amort - dNOF - capex + dDeuda;
+  const fcf = round(ebit*0.75 + amort - dNOF - capex);
+  const wacc = 0.09, g = 0.025;
+  const vp = round((fcf*(1+g)/(wacc-g))/(1+wacc));
+
+  const row = (id,label,val,opts={}) => ({
+    id, kind:opts.kind || "data", label, value:val, ...opts
+  });
+
+  const rows = [
+    {kind:"section", label:"1. Cuenta de Resultados"},
+    row("ventas","Ventas", ventas),
+    row("cmv","CMV", -cmv),
+    row("ebitda","EBITDA", ebitda, {kind:"compute", formula:"Ventas − CMV − Costes Op.",
+      hint:{c:"Beneficio operativo antes de amortizar.",
+            o:"Margen Bruto menos costes operativos.",
+            a:`${fmt(mb)} − ${fmt(cop)} = ${fmt(ebitda)}`}}),
+    row("ebit","EBIT", ebit, {kind:"compute", formula:"EBITDA − Amortización",
+      hint:{c:"Beneficio operativo.",o:"Resta amortización al EBITDA.",
+            a:`${fmt(ebitda)} − ${fmt(amort)} = ${fmt(ebit)}`}}),
+    row("neto","Resultado Neto", neto, {kind:"compute", formula:"(EBIT − Intereses) × (1 − t)",
+      hint:{c:"Beneficio del accionista.",
+            o:"Resta intereses al EBIT, aplica impuesto.",
+            a:`(${fmt(ebit)} − ${fmt(intereses)}) × 0,75 = ${fmt(neto)}`}}),
+    {kind:"section", label:"2. Cash Flow del ejercicio"},
+    row("dnof","ΔNOF", -dNOF),
+    row("capex","CAPEX", -capex),
+    row("ddeuda","ΔDeuda", dDeuda),
+    row("cf","Cash Flow del año", cf, {
+      kind:"total", formula:"Neto + Amort − ΔNOF − CAPEX + ΔDeuda",
+      hint:{c:"Caja real generada en el año.",
+            o:"Aplica la conciliación completa.",
+            a:`${fmt(neto)} + ${fmt(amort)} − ${fmt(dNOF)} − ${fmt(capex)} + ${fmt(dDeuda)} = ${fmt(cf)}`}}),
+    {kind:"section", label:"3. Valoración"},
+    row("fcf","Free Cash Flow año 1", fcf),
+    row("vp","Valor del negocio (V₀)", vp, {
+      kind:"compute", formula:"FCF(1+g)/(WACC−g) / (1+WACC)",
+      hint:{c:`g=${(g*100)}%, WACC=${(wacc*100)}%`,
+            o:"Perpetuidad creciente descontada un año.",
+            a:`${fmt(fcf)}·(1+${(g*100)}%)/(${(wacc*100)}%−${(g*100)}%)/(1+${(wacc*100)}%) ≈ ${fmt(vp)}`}})
+  ];
+
+  const questions = [
+    {id:"q1", anchorAfter:"neto",
+     q:"En este caso integrado, ¿qué partidas explicarían un cash flow inferior al beneficio neto?",
+     opts:[
+       "Amortización más alta de lo previsto.",
+       "CAPEX y crecimiento de NOF.",
+       "Reducción del impuesto de sociedades.",
+       "Aumento del margen bruto."
+     ], ok:1,
+     why:"Cuando una empresa invierte (CAPEX) y crece (NOF), la caja queda por debajo del beneficio."},
+    {id:"q2", anchorAfter:"cf",
+     q:"¿Qué nos dice el valor V₀ obtenido respecto al FCF anual?",
+     opts:[
+       "El múltiplo (V₀/FCF) refleja crecimiento esperado y riesgo (WACC).",
+       "Solo depende del sector.",
+       "Es el precio mínimo de venta exigido por Hacienda.",
+       "Equivale al valor en libros del balance."
+     ], ok:0,
+     why:"V₀/FCF crece con g y baja con WACC; resume crecimiento y riesgo en un único multiplicador."}
+  ];
+
+  const predictions = [
+    {id:"p1",
+     q:"Antes de calcular: ¿esperas que esta empresa tenga el cash flow del año superior, igual o inferior al beneficio neto?",
+     opts:[
+       {t:"Superior", ok: cf > neto},
+       {t:"Inferior", ok: cf < neto},
+       {t:"Aproximadamente igual", ok: Math.abs(cf-neto) < ventas*0.01}
+     ],
+     explain:`Cash flow del año = ${fmt(cf)}; Neto = ${fmt(neto)}. CAPEX y NOF marcan la diferencia.`
+    },
+    {id:"p2",
+     q:`Con g=${(g*100)}% y WACC=${(wacc*100)}%, ¿el valor V₀ será un múltiplo alto o bajo del FCF?`,
+     opts:[
+       {t:"Bajo (<10× FCF)", ok: vp/fcf < 10},
+       {t:"Medio (10×–18× FCF)", ok: vp/fcf >= 10 && vp/fcf < 18},
+       {t:"Alto (>18× FCF)", ok: vp/fcf >= 18}
+     ],
+     explain:`V₀/FCF = ${(vp/fcf).toFixed(1)}×.`
+    }
+  ];
+
+  return {
+    type:"integrado", title:"Caso Integrado · Examen", company:co,
+    context:`${co.name} (${co.sector}). ${co.note} Conecta la cuenta de resultados, el cash flow del año y la valoración del negocio.`,
+    difficulty:level,
+    concepts:["P&G","Cash Flow","FCF","Perpetuidad","WACC"],
+    rows, questions, predictions,
+    thinking:[
+      "¿Es coherente que tenga beneficio positivo y cash flow negativo?",
+      "¿La estructura financiera soporta el plan de CAPEX?",
+      "¿El valor V₀ es razonable dado el sector y el FCF?"
+    ],
+    errors:[
+      "Calcular el FCF a partir del Resultado Neto sin reajustar.",
+      "Olvidar restar CAPEX.",
+      "Aplicar el WACC sobre el EBITDA en vez de sobre el FCF.",
+      "Doble contabilización de la amortización."
+    ],
+    formulas:[
+      "EBITDA = MB − Costes Op.",
+      "Cash Flow = Neto + Amort − ΔNOF − CAPEX + ΔDeuda",
+      "FCF = EBIT(1−t) + Amort − ΔNOF − CAPEX",
+      "V₀ = FCF(1+g)/(WACC−g) / (1+WACC)"
+    ],
+    interp:`Un caso integrado se defiende cuando los tres bloques cuentan una misma historia: la cuenta de resultados explica de dónde viene la rentabilidad; el cash flow muestra si esa rentabilidad llega a caja; y la valoración traduce todo en un valor económico.`
+  };
+}
+
+const GENERATORS = {
+  resultados:genResultados,
+  balance:genBalance,
+  cashflow:genCashflow,
+  valoracion:genValoracion,
+  integrado:genIntegrado
+};
+
+/* ════════════════════════════════════════════════════════════
+   RENDERING
+   ════════════════════════════════════════════════════════════ */
+function renderCase(){
+  const ex = state.ex;
+  const diffLabel = ex.difficulty===1?"Introductorio":ex.difficulty===2?"Intermedio":"Avanzado";
+  const diffChip = ex.difficulty===1?"ok":ex.difficulty===3?"warn":"";
+  $("#case").innerHTML = `
+    <div>
+      <h3>Caso de estudio</h3>
+      <div class="case-title">${ex.title} · ${ex.company.name}</div>
+      <p class="case-context">${ex.context}</p>
+    </div>
+    <div>
+      <h3>Qué vamos a aprender</h3>
+      <div class="concept-list">${ex.concepts.map(c=>`<span>${c}</span>`).join("")}</div>
+    </div>
+    <div>
+      <h3>Dificultad</h3>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+        <span class="chip ${diffChip}">${diffLabel}</span>
+        <span class="chip">${ex.rows.filter(r=>r.kind==="compute").length} huecos</span>
+        <span class="chip">${ex.questions.length} preguntas</span>
+      </div>
+    </div>
+  `;
+  $("#table-title").textContent = ex.title;
+}
+
+function renderPredictions(){
+  const wrap = $("#predictions");
+  wrap.innerHTML = state.ex.predictions.map(p=>`
+    <div class="predict" data-pid="${p.id}">
+      <div class="qhead">▷ Predicción · antes de calcular</div>
+      <p>${p.q}</p>
+      <div class="qopts">
+        ${p.opts.map((o,i)=>`<button class="qopt" data-i="${i}">${o.t}</button>`).join("")}
+      </div>
+      <div class="predict-result"></div>
+    </div>
+  `).join("");
+}
+
+function renderTable(){
+  const ex = state.ex;
+  let html = `
+    <thead><tr>
+      <th>Concepto</th>
+      <th style="text-align:left">Fórmula / razonamiento</th>
+      <th class="num">Importe (€)</th>
+    </tr></thead><tbody>`;
+
+  ex.rows.forEach(r => {
+    if(r.kind==="section"){
+      html += `<tr class="section"><td colspan="3">${r.label}</td></tr>`;
+      return;
+    }
+    const rowClass = r.kind==="total"?"total":r.kind==="subtotal"?"subtotal":"";
+    const labelHtml = `<div class="label">${r.label}${r.sub?`<span class="sub">${r.sub}</span>`:""}</div>`;
+    const formulaHtml = r.formula ? `<span class="formula-hint">${r.formula}</span>` : "";
+
+    if(r.kind==="compute"){
+      const inp = state.inputs[r.id] ?? "";
+      const status = state.ok[r.id]===true ? "ok" : state.ok[r.id]===false ? "err" : "";
+      const hintLevel = state.hints[r.id] || 0;
+      const hintText = hintLevel>0 ? (
+        hintLevel===1 ? `<div class="hint-box"><b>Conceptual:</b> ${r.hint.c}</div>` :
+        hintLevel===2 ? `<div class="hint-box"><b>Operativa:</b> ${r.hint.o}</div>` :
+                        `<div class="hint-box"><b>Casi solución:</b> ${r.hint.a}</div>`
+      ) : "";
+      html += `<tr class="${rowClass}" data-id="${r.id}">
+        <td>${labelHtml}</td>
+        <td>${formulaHtml}</td>
+        <td class="num">
+          <div class="cell-meta">
+            <div class="cell-meta-row">
+              <div class="cell-input ${status}">
+                <input type="text" inputmode="numeric" data-id="${r.id}" value="${inp}" placeholder="—" />
+                <span class="unit">€</span>
+              </div>
+              <button class="hint-btn" data-hint="${r.id}">Pista</button>
+            </div>
+            ${hintText}
+            ${state.ok[r.id]===false && r.hint?`<div class="row-feedback err">Revisa: <span class="why">${r.hint.c}</span></div>`:""}
+            ${state.ok[r.id]===true ? `<div class="row-feedback ok">Correcto · ${r.explain || "bien interpretado."}</div>` : ""}
+          </div>
+        </td>
+      </tr>`;
+    } else {
+      html += `<tr class="${rowClass}">
+        <td>${labelHtml}</td>
+        <td>${formulaHtml}</td>
+        <td class="num">${fmt(r.value)}</td>
+      </tr>`;
+    }
+
+    // inline questions anchored after a row
+    const inlineQs = ex.questions.filter(q => q.anchorAfter === r.id);
+    inlineQs.forEach(q => {
+      const sel = state.qsel[q.id];
+      html += `<tr class="qrow" data-qid="${q.id}"><td colspan="3">
+        <div class="qbox">
+          <div class="qhead">? Pregunta integrada</div>
+          <p>${q.q}</p>
+          <div class="qopts">
+            ${q.opts.map((o,i)=>{
+              let cls = "qopt";
+              if(sel!=null){
+                if(i===q.ok) cls+=" correct";
+                else if(i===sel) cls+=" wrong";
+              }
+              if(sel===i && sel!==q.ok) cls += " sel";
+              return `<button class="qopt-btn ${cls}" data-qid="${q.id}" data-i="${i}">${o}</button>`;
+            }).join("")}
+          </div>
+          <div class="qexplain ${sel!=null?'show':''}">${sel!=null?`<b>${sel===q.ok?'Correcto.':'No exactamente.'}</b> ${q.why}`:""}</div>
+        </div>
+      </td></tr>`;
+    });
+  });
+
+  html += "</tbody>";
+  $("#table").innerHTML = html;
+}
+
+function renderSidebar(){
+  const ex = state.ex;
+  $("#thinking").innerHTML = ex.thinking.map(t=>`<li>${t}</li>`).join("");
+  $("#errors").innerHTML = ex.errors.map(t=>`<li>${t}</li>`).join("");
+  $("#formulas").innerHTML = ex.formulas.map(f=>`<li><span class="formula">${f}</span></li>`).join("");
+  $("#interp").textContent = ex.interp;
+}
+
+function renderProgress(){
+  const computes = state.ex.rows.filter(r=>r.kind==="compute");
+  const okCount = computes.filter(r=>state.ok[r.id]===true).length;
+  const pct = computes.length ? Math.round(okCount/computes.length*100) : 0;
+  $("#pct").textContent = pct + "%";
+  $("#ring").style.setProperty("--p", pct);
+  $("#ringTxt").textContent = okCount + "/" + computes.length;
+}
+
+function pushFeedback(kind, text){
+  const stream = $("#feed");
+  if(stream.querySelector(".empty")) stream.innerHTML = "";
+  const t = new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
+  const item = document.createElement("div");
+  item.className = "feedback-item " + kind;
+  item.innerHTML = `<span class="when">${t}</span>${text}`;
+  stream.prepend(item);
+  while(stream.children.length > 6) stream.lastChild.remove();
+}
+
+/* ════════════════════════════════════════════════════════════
+   INTERACTIONS
+   ════════════════════════════════════════════════════════════ */
+function parseInput(s){
+  if(s==null) return NaN;
+  s = String(s).trim().replace(/\./g,"").replace(/,/g,".").replace(/[^0-9.\-]/g,"");
+  if(s==="" || s==="-" || s===".") return NaN;
+  return parseFloat(s);
+}
+
+function checkCell(id){
+  const row = state.ex.rows.find(r=>r.id===id);
+  if(!row) return;
+  const v = parseInput(state.inputs[id]);
+  if(isNaN(v)) { state.ok[id] = null; return; }
+  const correct = near(v, row.value, Math.max(1, Math.abs(row.value)*0.005));
+  state.ok[id] = correct;
+
+  if(correct){
+    pushFeedback("ok", `<b>${row.label.replace(/^=\s*/,"")}</b> — correcto.`);
+    detectInsight(id);
+  } else {
+    const err = detectError(id, v, row.value);
+    pushFeedback("err", `<b>${row.label.replace(/^=\s*/,"")}</b> — ${err}`);
+  }
+}
+
+function detectError(id, v, expected){
+  // common errors per-id
+  const ex = state.ex, rowVal = id => ex.rows.find(r=>r.id===id)?.value;
+
+  if(id==="ebitda"){
+    const guessAsEbit = (rowVal("mb") - rowVal("cop") - Math.abs(rowVal("amort")));
+    if(near(v, guessAsEbit, 5)) return "parece que has restado la amortización — eso ya es el EBIT, no el EBITDA.";
+  }
+  if(id==="ebit"){
+    if(near(v, rowVal("ebitda"), 5)) return "has dejado el EBITDA: recuerda restar la amortización.";
+  }
+  if(id==="cf"){
+    const wrongCapex = rowVal("neto") + Math.abs(rowVal("amort")) - Math.abs(rowVal("dnof")) + Math.abs(rowVal("capex")) + rowVal("ddeuda");
+    if(near(v, wrongCapex, 5)) return "parece que has sumado el CAPEX en vez de restarlo.";
+    const noNOF = rowVal("neto") + Math.abs(rowVal("amort")) - Math.abs(rowVal("capex")) + rowVal("ddeuda");
+    if(near(v, noNOF, 5)) return "te has olvidado la variación de NOF.";
+  }
+  if(id==="nof"){
+    const sumAll = Math.abs(rowVal("clientes")) + Math.abs(rowVal("exist")) + Math.abs(rowVal("prov"));
+    if(near(v, sumAll, 5)) return "has sumado proveedores en vez de restarlos.";
+  }
+  if(id==="activoTotal" || id==="pasivoTotal"){
+    if(!near(v, expected, 5)) return "el activo debe cuadrar con el pasivo + recursos propios.";
+  }
+  return `el resultado no coincide. Esperado ≈ ${fmt(expected)}.`;
+}
+
+function detectInsight(id){
+  // Trigger conceptual reinforcement
+  if(id==="ebitda") pushFeedback("info","Recuerda: EBITDA ≠ caja generada. Faltan NOF, CAPEX y deuda.");
+  if(id==="cf"){
+    const cf = state.ex.rows.find(r=>r.id==="cf").value;
+    const neto = state.ex.rows.find(r=>r.id==="neto")?.value;
+    if(neto!=null && cf<0 && neto>0) pushFeedback("info","Caso clásico: beneficio positivo y cash flow negativo. ¿Crecimiento que ahoga?");
+  }
+  if(id==="nof"){
+    const nof = state.ex.rows.find(r=>r.id==="nof").value;
+    if(nof>0) pushFeedback("info","NOF positivas: la operativa absorbe caja al crecer.");
+  }
+}
+
+function checkAll(){
+  state.ex.rows.filter(r=>r.kind==="compute").forEach(r=>{
+    if(state.inputs[r.id]!=null && state.inputs[r.id]!=="") checkCell(r.id);
+  });
+  renderTable(); renderProgress();
+}
+
+function revealAll(){
+  state.ex.rows.filter(r=>r.kind==="compute").forEach(r=>{
+    state.inputs[r.id] = String(r.value);
+    state.ok[r.id] = true;
+  });
+  pushFeedback("info","Solución mostrada — revisa cada paso y entiende la lógica antes de generar otro caso.");
+  renderTable(); renderProgress();
+}
+
+function resetExercise(){
+  state.inputs = {}; state.ok = {}; state.hints = {}; state.qsel = {}; state.predOk = {};
+  $("#feed").innerHTML = `<div class="empty">Tus respuestas y errores detectados aparecerán aquí.</div>`;
+  renderPredictions(); renderTable(); renderProgress();
+}
+
+function newExercise(){
+  state.tipo = $("#tipo").value;
+  state.nivel = parseInt($("#nivel").value,10);
+  state.ex = GENERATORS[state.tipo](state.nivel);
+  resetExercise();
+  renderCase(); renderSidebar(); renderPredictions(); renderTable(); renderProgress();
+  $("#exid").textContent = "EX-" + Math.random().toString(36).slice(2,8).toUpperCase();
+  pushFeedback("info", `Nuevo caso · <b>${state.ex.title}</b> · ${state.ex.company.name}.`);
+}
+
+/* DOM events (delegation) */
+document.addEventListener("input", e=>{
+  const id = e.target?.dataset?.id;
+  if(id && e.target.matches(".cell-input input")){
+    state.inputs[id] = e.target.value;
+    state.ok[id] = null;
+  }
+});
+document.addEventListener("change", e=>{
+  const id = e.target?.dataset?.id;
+  if(id && e.target.matches(".cell-input input")){
+    checkCell(id); renderTable(); renderProgress();
+    // refocus next empty compute
+  }
+});
+document.addEventListener("click", e=>{
+  // hint button
+  const hId = e.target?.dataset?.hint;
+  if(hId){
+    state.hints[hId] = Math.min(3, (state.hints[hId]||0) + 1);
+    renderTable();
+    return;
+  }
+  // inline question option
+  if(e.target.matches(".qopt-btn")){
+    const qid = e.target.dataset.qid;
+    const i = parseInt(e.target.dataset.i,10);
+    state.qsel[qid] = i;
+    const q = state.ex.questions.find(x=>x.id===qid);
+    if(i===q.ok) pushFeedback("ok", `Pregunta integrada — correcto. ${q.why}`);
+    else pushFeedback("err", `Pregunta integrada — incorrecto. ${q.why}`);
+    renderTable();
+    return;
+  }
+  // prediction option
+  const predEl = e.target.closest(".predict");
+  if(predEl && e.target.matches(".qopt")){
+    const pid = predEl.dataset.pid;
+    const i = parseInt(e.target.dataset.i,10);
+    const p = state.ex.predictions.find(x=>x.id===pid);
+    const ok = p.opts[i].ok;
+    state.predOk[pid] = ok;
+    [...predEl.querySelectorAll(".qopt")].forEach((b,bi)=>{
+      b.classList.remove("sel","correct","wrong");
+      if(p.opts[bi].ok) b.classList.add("correct");
+      if(bi===i && !ok) b.classList.add("wrong");
+    });
+    const result = predEl.querySelector(".predict-result");
+    result.classList.add("show", ok?"match":"miss");
+    result.innerHTML = `<b>${ok?"Buena intuición.":"Veremos por qué."}</b> ${p.explain}`;
+    pushFeedback(ok?"ok":"info", `Predicción ${ok?"acertada":"contrastada"}: ${p.explain}`);
+    return;
+  }
+});
+
+$("#gen").addEventListener("click", newExercise);
+$("#check").addEventListener("click", checkAll);
+$("#reveal").addEventListener("click", revealAll);
+$("#reset").addEventListener("click", resetExercise);
+$("#tipo").addEventListener("change", newExercise);
+$("#nivel").addEventListener("change", newExercise);
+
+/* boot */
+newExercise();
+</script>
+</body>
+</html>

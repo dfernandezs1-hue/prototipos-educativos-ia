@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrenador Visual del Método Simplex</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,Segoe UI,Arial,sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.5;padding:16px;max-width:1080px;margin:0 auto}
+header{text-align:center;margin-bottom:16px}
+h1{font-size:1.5rem;color:#60a5fa}
+.sub{color:#94a3b8;font-size:.92rem;margin-top:2px}
+.card{background:#1e293b;border-radius:12px;padding:16px;margin-bottom:16px}
+.card h3{font-size:1rem;color:#93c5fd;margin-bottom:10px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+label{font-size:.85rem;color:#cbd5e1}
+select,button,input{font-family:inherit;font-size:.88rem;padding:8px 11px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#e2e8f0}
+input{width:60px;text-align:center}
+button{cursor:pointer}
+button:hover{background:#334155}
+button.primary{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:600}
+button.primary:hover{background:#1d4ed8}
+button:disabled{opacity:.4;cursor:not-allowed}
+.stmt{font-size:1.05rem;color:#f1f5f9;background:#0f172a;padding:12px 14px;border-radius:8px;border-left:4px solid #2563eb}
+.stmt b{color:#93c5fd}
+table{border-collapse:collapse;width:100%;text-align:center;font-size:1rem;margin-top:6px}
+th,td{border:1px solid #334155;padding:11px 8px;min-width:46px;position:relative}
+thead th{background:#0f172a;color:#93c5fd;font-weight:700}
+.base{background:#0f172a;font-weight:700;color:#cbd5e1}
+.zrow td,.zrow th{background:#3b0764;color:#f5d0fe;font-weight:700}
+.col-in{background:#1d4ed8 !important;color:#fff}
+.row-out{background:#c2410c !important;color:#fff}
+.pivot{background:#7e22ce !important;color:#fff;font-weight:800}
+.tag{position:absolute;font-size:.62rem;font-weight:800;letter-spacing:.5px}
+.tag-top{top:-9px;left:50%;transform:translateX(-50%);color:#60a5fa}
+.tag-left{left:-4px;top:50%;transform:translateY(-50%) rotate(-90deg);color:#fb923c}
+.guess-ok{outline:3px solid #22c55e;outline-offset:-3px}
+.guess-bad{outline:3px solid #ef4444;outline-offset:-3px}
+.clickable{cursor:pointer}
+.clickable:hover{outline:2px solid #64748b;outline-offset:-2px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.74rem;margin-top:12px;color:#94a3b8}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:13px;height:13px;border-radius:3px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+.explain{font-size:.95rem;color:#e2e8f0;background:#0f172a;padding:12px 14px;border-radius:8px;border-left:4px solid #475569;min-height:54px}
+.explain.ok{border-left-color:#22c55e}.explain.warn{border-left-color:#eab308}.explain.star{border-left-color:#a855f7}.explain.bad{border-left-color:#ef4444}
+.selftest{font-size:.85rem;margin-top:8px;color:#cbd5e1}
+.selftest b{color:#fde68a}
+#ratios table{font-size:.86rem}
+.invalid{color:#fca5a5}
+ol.steps{padding-left:22px;font-size:.86rem;color:#cbd5e1}
+ol.steps li{margin:3px 0}
+ol.steps li.active{color:#fde68a;font-weight:700}
+#history{font-size:.84rem;color:#cbd5e1;list-style:none}
+#history li{padding:5px 0;border-bottom:1px solid #334155}
+#history li b{color:#93c5fd}
+.sol{font-size:.95rem;background:#052e16;color:#bbf7d0;padding:14px;border-radius:8px;white-space:pre-line;display:none}
+.sol.show{display:block}
+.sol b{color:#86efac}
+small{color:#64748b;display:block;margin-top:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.constraintRow{display:flex;gap:6px;align-items:center;margin:5px 0;flex-wrap:wrap}
+.constraintRow .le{color:#93c5fd;font-weight:700;padding:0 4px}
+.editor{display:none}
+.editor.show{display:block}
+</style>
+</head>
+<body>
+<header>
+<h1>Entrenador Visual del Método Simplex</h1>
+<div class="sub">Función objetivo · restricciones · iteración y pivote paso a paso · solución final</div>
+</header>
+
+<div class="card">
+<div class="row">
+<label>Ejemplo:
+<select id="exSel">
+<option value="basico">1 · Básico (2 iteraciones)</option>
+<option value="entrante">2 · Empate en variable entrante</option>
+<option value="saliente">3 · Empate saliente + degeneración</option>
+<option value="noacotado">4 · Problema no acotado</option>
+<option value="examen">5 · Tipo examen</option>
+<option value="minimo">6 · Minimización (≥, Big-M)</option>
+<option value="mixto">7 · Mixto (= y ≤)</option>
+</select>
+</label>
+<button id="bEdit">✏️ Editar / crear problema</button>
+</div>
+
+<div class="editor" id="editor">
+<small>Resuelve por el método Símplex con <b>Big-M</b>: <b>maximización o minimización</b> y restricciones <b>≤, ≥ o =</b>. Las restricciones ≥ y = añaden variables artificiales (columnas <b>a</b>) penalizadas con un valor M grande; por eso la fila Z muestra números grandes hasta que esas artificiales salen de la base. Los términos independientes deben ser ≥ 0.</small>
+<div class="row" style="margin-top:8px">
+<label>Nº variables: <select id="nVars"><option>2</option><option>3</option></select></label>
+<label>Nº restricciones: <select id="nCons"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+</div>
+<div id="objLine" class="constraintRow"></div>
+<div id="consLines"></div>
+<div class="row" style="margin-top:10px">
+<button class="primary" id="bBuild">Construir y empezar</button>
+</div>
+</div>
+</div>
+
+<div class="card">
+<div id="stmt" class="stmt"></div>
+</div>
+
+<div class="grid2">
+<div>
+<div class="card">
+<h3>Tabla Simplex — Iteración <span id="iterN">0</span></h3>
+<div id="tableWrap"></div>
+<div class="legend">
+<span><i class="dot" style="background:#1d4ed8"></i>↑ Columna entrante</span>
+<span><i class="dot" style="background:#c2410c"></i>← Fila saliente</span>
+<span><i class="dot" style="background:#7e22ce"></i>◆ Pivote</span>
+</div>
+<small id="hintClick"></small>
+<div class="controls">
+<button class="primary" id="bNext">Analizar fila Z</button>
+<button id="bAuto">⏩ Resolver todo</button>
+<button id="bReset">↺ Reiniciar</button>
+</div>
+<div class="selftest" id="selftest"></div>
+</div>
+
+<div class="card" id="ratiosCard" style="display:none">
+<h3>Cocientes (RHS ÷ columna entrante)</h3>
+<div id="ratios"></div>
+</div>
+</div>
+
+<div>
+<div class="card">
+<h3>¿Qué hago en este paso?</h3>
+<div class="explain" id="explain">Pulsa <b>Analizar fila Z</b> para empezar.</div>
+</div>
+<div class="card">
+<h3>Pasos del método</h3>
+<ol class="steps" id="steps">
+<li data-s="0">Mirar la fila Z y decidir si es óptima.</li>
+<li data-s="1">Elegir variable entrante (coef. más negativo).</li>
+<li data-s="2">Calcular cocientes RHS ÷ columna entrante.</li>
+<li data-s="3">Elegir saliente (menor cociente) y pivote.</li>
+<li data-s="p">Pivotear y repetir hasta el óptimo.</li>
+</ol>
+</div>
+<div class="card">
+<h3>Historial de iteraciones</h3>
+<ul id="history"><li><small>Aún sin iteraciones.</small></li></ul>
+</div>
+</div>
+</div>
+
+<div class="card">
+<h3>Solución</h3>
+<div class="sol" id="sol"></div>
+<small id="solHint">La solución aparecerá al alcanzar el óptimo (o al detectar que no está acotado).</small>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN — DATOS EDITABLES
+   ------------------------------------------------------------
+   Pila de datos del prototipo: los problemas de ejemplo. Se editan
+   en un solo sitio sin tocar el algoritmo Simplex ni la interfaz.
+   Cada problema es de maximización con restricciones ≤ y formato:
+     { c:[coef. del objetivo], A:[[coef. de las restricciones]], b:[términos independientes] }
+   El problema personalizado lo introduce el usuario en pantalla.
+   ============================================================ */
+const CONFIG = {
+  // DATOS FIJOS: problemas de ejemplo (maximización, restricciones ≤)
+  ejemplos: {
+    basico:    {c:[3,5],A:[[2,1],[1,2]],b:[8,8]},
+    entrante:  {c:[4,4],A:[[2,1],[1,2]],b:[8,8]},
+    saliente:  {c:[2,3],A:[[1,1],[2,2]],b:[6,12]},
+    noacotado: {c:[1,3],A:[[1,-1],[2,-1]],b:[4,6]},
+    examen:    {c:[5,4],A:[[6,4],[1,2]],b:[24,6]},
+    minimo:    {sense:'min', c:[4,3], A:[[2,1],[1,3]], b:[10,15], ops:['>=','>=']},
+    mixto:     {c:[3,2], A:[[1,1],[1,3]], b:[8,18], ops:['=','<=']}
+  }
+};
+
+/* ===== Ejemplos (problemas reales de maximización, restricciones ≤) ===== */
+const EX = CONFIG.ejemplos; // ver CONFIG.ejemplos para editarlos
+
+/* ===== Estado ===== */
+let P=null;        // problema {c,A,b}
+let S=null;        // tabla {cols,base,rows,z,n,m}
+let phase=0;       // 0..3
+let iter=0;
+let finished=false;
+let cur=null;      // análisis actual cacheado
+
+/* ===== Utilidades ===== */
+const EPS=1e-9;
+function fmt(x){if(Math.abs(x)<EPS)x=0;let v=Math.round(x*1000)/1000;return Number.isInteger(v)?String(v):String(v);}
+const BIGM=1e5; // M numérica SOLO para decidir entrante/óptimo; en pantalla la M se muestra simbólica
+function fmtM(m,k){ if(Math.abs(m)<EPS) return fmt(k); const am=Math.abs(m), ms=(Math.abs(am-1)<EPS?'':fmt(am))+'M'; let str=(m<0?'-':'')+ms; if(Math.abs(k)>=EPS) str+=(k<0?' - ':' + ')+fmt(Math.abs(k)); return str; }
+function $(id){return document.getElementById(id);}
+
+/* ===== Construcción de tabla ===== */
+function buildTableau(p){
+ const n=p.c.length, mc=p.b.length;
+ const ops=p.ops||p.b.map(()=>'<=');             // signo por restricción
+ const sense=p.sense||'max';
+ const cmax=p.c.map(v=> sense==='min' ? -v : v); // minimizar Z = maximizar (-Z)
+ // objetivo por columna en forma  objM·M + objK  (la M solo aparece en las artificiales)
+ const cols=[], objM=[], objK=[];
+ for(let j=0;j<n;j++){cols.push("x"+(j+1));objM.push(0);objK.push(cmax[j]);}
+ const meta=ops.map(op=>({op}));
+ let sC=0,eC=0,aC=0;
+ meta.forEach(mi=>{
+  if(mi.op==='<='){mi.slackCol=cols.length;cols.push("s"+(++sC));objM.push(0);objK.push(0);}
+  else if(mi.op==='>='){mi.surCol=cols.length;cols.push("e"+(++eC));objM.push(0);objK.push(0);mi.artCol=cols.length;cols.push("a"+(++aC));objM.push(-1);objK.push(0);}
+  else{mi.artCol=cols.length;cols.push("a"+(++aC));objM.push(-1);objK.push(0);}
+ });
+ const T=cols.length;
+ const rows=[], base=[];
+ meta.forEach((mi,i)=>{
+  const r=new Array(T).fill(0);
+  for(let j=0;j<n;j++)r[j]=p.A[i][j];
+  if(mi.slackCol!=null)r[mi.slackCol]=1;
+  if(mi.surCol!=null)r[mi.surCol]=-1;
+  if(mi.artCol!=null)r[mi.artCol]=1;
+  r.push(p.b[i]);
+  rows.push(r);
+  base.push(mi.slackCol!=null?mi.slackCol:mi.artCol); // base inicial: holgura o artificial
+ });
+ // Fila Z simbólica:  z[k] = Σ obj[base_i]·fila_i[k] − obj[k]   (partes M y constante por separado)
+ const zM=new Array(T+1).fill(0), zK=new Array(T+1).fill(0);
+ for(let k=0;k<=T;k++){
+  let aM=0,aK=0;
+  for(let i=0;i<mc;i++){aM+=objM[base[i]]*rows[i][k];aK+=objK[base[i]]*rows[i][k];}
+  zM[k]=aM-(k<T?objM[k]:0);
+  zK[k]=aK-(k<T?objK[k]:0);
+ }
+ return {cols,base,rows,zM,zK,n,m:T-n,sense};
+}
+
+/* ===== Análisis del paso actual ===== */
+function analyze(){
+ const {zM,zK,rows,n,m}=S,T=n+m,rhs=T;
+ const zc=[];for(let j=0;j<T;j++)zc.push(zM[j]*BIGM+zK[j]);
+ const minZ=Math.min(...zc);
+ const optimal=minZ>=-EPS;
+ const enterCands=[];zc.forEach((v,j)=>{if(v<-EPS&&v<=minZ+EPS)enterCands.push(j);});
+ const entering=enterCands.length?enterCands[0]:null;
+ let ratios=[],leaveCands=[],leaving=null,minRatio=null,unbounded=false;
+ if(entering!=null){
+  ratios=rows.map((r,i)=>{const co=r[entering],val=co>EPS;return{i,co,rhs:r[rhs],ratio:val?r[rhs]/co:null,val};});
+  const v=ratios.filter(x=>x.val);
+  if(!v.length)unbounded=true;else{minRatio=Math.min(...v.map(x=>x.ratio));leaveCands=v.filter(x=>Math.abs(x.ratio-minRatio)<EPS).map(x=>x.i);leaving=leaveCands[0];}
+ }
+ const degenerate=(minRatio!=null&&minRatio<EPS)||rows.some(r=>r[rhs]<EPS);
+ const multiple=optimal&&zc.some((v,j)=>Math.abs(v)<EPS&&!S.base.includes(j)&&!S.cols[j].startsWith('a'));
+ return {optimal,enterCands,entering,ratios,leaveCands,leaving,minRatio,unbounded,
+  tieEnter:enterCands.length>=2,tieLeave:leaveCands.length>=2,degenerate,multiple,
+  pivot:(entering!=null&&leaving!=null)?{r:leaving,c:entering}:null};
+}
+
+/* ===== Pivote (Gauss-Jordan) ===== */
+function pivot(r,c){
+ const rhs=S.n+S.m,W=rhs+1,pr=S.rows[r],pv=pr[c];
+ for(let k=0;k<W;k++)pr[k]/=pv;
+ S.rows.forEach((row,i)=>{if(i===r)return;const f=row[c];for(let k=0;k<W;k++)row[k]-=f*pr[k];});
+ const fM=S.zM[c],fK=S.zK[c];for(let k=0;k<W;k++){S.zM[k]-=fM*pr[k];S.zK[k]-=fK*pr[k];}
+ S.base[r]=c;
+}
+
+/* ===== Render tabla ===== */
+function renderTable(){
+ const {cols,base,rows,zM,zK,n,m}=S,T=n+m;
+ const showCol=(phase>=1&&cur&&cur.entering!=null);
+ const showRow=(phase>=3&&cur&&cur.leaving!=null);
+ const showPiv=(phase>=3&&cur&&cur.pivot);
+ let h="<table><thead><tr><th>Base</th>";
+ for(let j=0;j<T;j++){
+  let cls="";if(showCol&&j===cur.entering)cls=" col-in";
+  let tag=(showCol&&j===cur.entering)?'<span class="tag tag-top">↑</span>':'';
+  const ck=(!finished&&!cur.optimal&&phase<=1)?' clickable':'';
+  h+=`<th class="${cls}${ck}" ${ck?`onclick="testCol(${j})"`:''}>${cols[j]}${tag}</th>`;
+ }
+ h+="<th>RHS</th></tr></thead><tbody>";
+ rows.forEach((r,i)=>{
+  let rcls="base";if(showRow&&i===cur.leaving)rcls+=" row-out";
+  let tag=(showRow&&i===cur.leaving)?'<span class="tag tag-left">←</span>':'';
+  const ck=(showCol&&!finished&&!cur.unbounded&&phase===2)?' clickable':'';
+  h+=`<tr><th class="${rcls}${ck}" ${ck?`onclick="testRow(${i})"`:''}>${cols[base[i]]}${tag}</th>`;
+  for(let j=0;j<T;j++){
+   let cls="";if(showCol&&j===cur.entering)cls=" col-in";
+   if(showPiv&&i===cur.pivot.r&&j===cur.pivot.c)cls=" pivot";
+   h+=`<td class="${cls}">${fmt(r[j])}</td>`;
+  }
+  h+=`<td>${fmt(r[T])}</td></tr>`;
+ });
+ h+='<tr class="zrow"><th>Z</th>';
+ for(let j=0;j<T;j++){let cls=(showCol&&j===cur.entering)?' style="background:#1d4ed8;color:#fff"':'';h+=`<td${cls}>${fmtM(zM[j],zK[j])}</td>`;}
+ h+=`<td>${fmtM(zM[T],zK[T])}</td></tr></tbody></table>`;
+ $("tableWrap").innerHTML=h;
+ $("iterN").textContent=iter;
+}
+
+/* ===== Autocomprobación (el alumno prueba antes de avanzar) ===== */
+function testCol(j){
+ if(cur.optimal){setSelf("La tabla ya es óptima: no entra ninguna variable.");return;}
+ if(cur.enterCands.includes(j))setSelf("✅ ¡Bien! "+S.cols[j]+" es variable entrante (coef. más negativo"+(cur.tieEnter?", empate":"")+").",j,"col",true);
+ else setSelf("❌ No. Busca el coeficiente más negativo de la fila Z.",j,"col",false);
+}
+function testRow(i){
+ const r=cur.ratios[i];
+ if(!r.val){setSelf("⚠️ Esa fila tiene cociente no válido (coeficiente ≤ 0).",i,"row",false);return;}
+ if(cur.leaveCands.includes(i))setSelf("✅ ¡Bien! Sale "+S.cols[S.base[i]]+" (menor cociente positivo"+(cur.tieLeave?", empate":"")+").",i,"row",true);
+ else setSelf("❌ No. La saliente es la del menor cociente positivo.",i,"row",false);
+}
+let guess=null;
+function setSelf(msg,idx,type,ok){
+ $("selftest").innerHTML="<b>Tu comprobación:</b> "+msg;
+ guess=(idx!=null)?{idx,type,ok}:null;
+ renderTable();applyGuess();
+}
+function applyGuess(){
+ if(!guess)return;
+ const t=$("tableWrap");
+ if(guess.type==="col"){const ths=t.querySelectorAll("thead th");if(ths[guess.idx+1])ths[guess.idx+1].classList.add(guess.ok?"guess-ok":"guess-bad");}
+ else{const trs=t.querySelectorAll("tbody tr");if(trs[guess.idx])trs[guess.idx].querySelector("th").classList.add(guess.ok?"guess-ok":"guess-bad");}
+}
+
+/* ===== Flujo guiado ===== */
+function setExplain(msg,cls){const e=$("explain");e.innerHTML=msg;e.className="explain"+(cls?" "+cls:"");}
+function highlightStep(s){document.querySelectorAll("#steps li").forEach(li=>li.classList.toggle("active",li.dataset.s===String(s)));}
+
+function next(){
+ if(finished)return;
+ cur=analyze();
+ if(phase===0){
+  if(cur.optimal){finish();return;}
+  phase=1;guess=null;$("selftest").innerHTML="";
+  let m=`Entra <b>${S.cols[cur.entering]}</b> porque tiene el coeficiente más negativo de la fila Z (${fmtM(S.zM[cur.entering],S.zK[cur.entering])}).`;
+  if(cur.tieEnter)m+=` ⭐ <b>Empate</b>: ${cur.enterCands.map(j=>S.cols[j]).join(" y ")} son igual de negativas; cualquiera vale.`;
+  setExplain(m,cur.tieEnter?"star":"");
+  $("bNext").textContent="Mostrar cocientes";highlightStep(1);
+ }else if(phase===1){
+  phase=2;
+  if(cur.unbounded){
+   renderTable();renderRatios();
+   setExplain(`⭐ La columna de <b>${S.cols[cur.entering]}</b> no tiene coeficientes positivos: no hay restricción que la frene. El problema es <b>NO ACOTADO</b>.`,"star");
+   finishUnbounded();return;
+  }
+  renderRatios();
+  setExplain("Calculamos RHS ÷ coeficiente de la columna entrante (solo coeficientes positivos). El <b>menor cociente positivo</b> marca la restricción que se agota primero.");
+  $("bNext").textContent="Elegir variable saliente";highlightStep(2);
+  $("hintClick").textContent="💡 Puedes hacer clic en una fila para comprobar tu elección de saliente.";
+ }else if(phase===2){
+  phase=3;guess=null;$("selftest").innerHTML="";$("hintClick").textContent="";
+  let m=`Sale <b>${S.cols[S.base[cur.leaving]]}</b> (menor cociente positivo = ${fmt(cur.minRatio)}). El <b>pivote</b> es ${fmt(S.rows[cur.leaving][cur.entering])}, en el cruce de ${S.cols[cur.entering]} y ${S.cols[S.base[cur.leaving]]}.`;
+  if(cur.tieLeave)m+=" ⭐ <b>Empate de cocientes</b>: tras pivotear aparecerá degeneración.";
+  if(cur.degenerate&&!cur.tieLeave)m+=" ⭐ Cociente mínimo 0 → <b>degeneración</b>.";
+  m+=" Pulsa <b>Pivotear</b>.";
+  setExplain(m,(cur.tieLeave||cur.degenerate)?"star":"");
+  $("bNext").textContent="Pivotear";highlightStep(3);
+ }else if(phase===3){
+  addHistory(iter+1,S.cols[cur.entering],S.cols[S.base[cur.leaving]],S.rows[cur.leaving][cur.entering]);
+  pivot(cur.pivot.r,cur.pivot.c);
+  iter++;phase=0;cur=analyze();
+  setExplain("Tabla actualizada tras el pivote. Observa de nuevo la fila Z: si quedan negativos, hay otra iteración.");
+  $("bNext").textContent="Analizar fila Z";highlightStep(0);
+  $("ratiosCard").style.display="none";$("hintClick").textContent="💡 Puedes hacer clic en una columna para comprobar tu elección de entrante.";
+ }
+ renderTable();
+}
+
+function renderRatios(){
+ let h=`<small>Columna entrante: <b>${S.cols[cur.entering]}</b></small><table><thead><tr><th>Fila</th><th>RHS</th><th>Coef.</th><th>Cociente</th><th>Válido</th></tr></thead><tbody>`;
+ cur.ratios.forEach(r=>{const win=cur.leaveCands.includes(r.i);
+  h+=`<tr${win?' style="background:#14532d"':''}><td>${S.cols[S.base[r.i]]}</td><td>${fmt(r.rhs)}</td><td>${fmt(r.co)}</td><td class="${r.val?'':'invalid'}">${r.val?fmt(r.ratio):"—"}</td><td class="${r.val?'':'invalid'}">${r.val?"Sí":"No"}</td></tr>`;});
+ h+="</tbody></table>";
+ $("ratios").innerHTML=h;$("ratiosCard").style.display="block";
+}
+
+function addHistory(k,inV,outV,piv){
+ const ul=$("history");if(ul.querySelector("small"))ul.innerHTML="";
+ const li=document.createElement("li");
+ li.innerHTML=`<b>Iteración ${k}:</b> entra ${inV}, sale ${outV}, pivote = ${fmt(piv)}`;
+ ul.appendChild(li);
+}
+
+function finish(){
+ finished=true;highlightStep(0);
+ const {n,m}=S,rhs=n+m;
+ // Infactibilidad (Big-M): artificial aún básica con valor > 0
+ const infeasible=S.base.some((c,i)=>S.cols[c].startsWith('a')&&S.rows[i][rhs]>1e-6);
+ if(infeasible){
+  const sol=$("sol");sol.textContent="\u26d4 PROBLEMA INFACTIBLE.\n\nEn el \u00f3ptimo del m\u00e9todo Big-M queda una variable artificial en la base con valor positivo: no existe ninguna soluci\u00f3n que cumpla todas las restricciones.";
+  sol.classList.add("show");$("solHint").style.display="none";
+  setExplain("\u26d4 <b>Infactible</b>: queda una variable artificial b\u00e1sica con valor positivo, as\u00ed que el sistema de restricciones no tiene soluci\u00f3n.","star");
+  $("bNext").disabled=true;$("bAuto").disabled=true;return;
+ }
+ const vals=[];for(let j=0;j<n;j++){const r=S.base.indexOf(j);vals.push("x"+(j+1)+" = "+fmt(r>=0?S.rows[r][rhs]:0));}
+ const Z=fmt(S.sense==='min' ? -S.zK[rhs] : S.zK[rhs]);
+ let txt=`✅ Solución ÓPTIMA alcanzada en ${iter} iteración(es).\n\n`+vals.join("    ")+`\n\nValor óptimo:  Z = ${Z}`;
+ if(cur.multiple)txt+="\n\n⭐ Hay un coste reducido 0 en una variable no básica → SOLUCIONES ÓPTIMAS MÚLTIPLES.";
+ if(S.rows.some(r=>r[rhs]<EPS))txt+="\n\n⭐ Alguna variable básica vale 0 → solución DEGENERADA.";
+ const sol=$("sol");sol.textContent=txt;sol.classList.add("show");$("solHint").style.display="none";
+ setExplain(`✅ <b>Óptimo</b>: todos los coeficientes de la fila Z son ≥ 0. No mejora más. Z = ${Z}.`,"ok");
+ $("bNext").disabled=true;$("bAuto").disabled=true;
+}
+function finishUnbounded(){
+ finished=true;
+ const sol=$("sol");sol.textContent=`⭐ PROBLEMA NO ACOTADO.\n\nLa variable ${S.cols[cur.entering]} puede crecer indefinidamente sin violar ninguna restricción, así que Z → +∞ y no existe solución óptima finita.`;
+ sol.classList.add("show");$("solHint").style.display="none";
+ $("bNext").disabled=true;$("bAuto").disabled=true;
+ renderTable();
+}
+
+/* ===== Resolver todo de golpe ===== */
+function auto(){
+ let g=0;
+ while(!finished&&g++<50){
+  cur=analyze();
+  if(cur.optimal){finish();break;}
+  if(cur.unbounded){phase=2;finishUnbounded();break;}
+  addHistory(iter+1,S.cols[cur.entering],S.cols[S.base[cur.leaving]],S.rows[cur.leaving][cur.entering]);
+  pivot(cur.pivot.r,cur.pivot.c);iter++;
+ }
+ phase=0;cur=analyze();$("ratiosCard").style.display="none";renderTable();
+}
+
+/* ===== Carga / reinicio ===== */
+function start(p){
+ P={c:p.c.slice(),A:p.A.map(r=>r.slice()),b:p.b.slice(),ops:(p.ops||p.b.map(()=>'<=')).slice(),sense:p.sense||'max'};
+ S=buildTableau(P);phase=0;iter=0;finished=false;cur=analyze();guess=null;
+ $("history").innerHTML="<li><small>Aún sin iteraciones.</small></li>";
+ $("sol").classList.remove("show");$("solHint").style.display="block";
+ $("ratiosCard").style.display="none";$("selftest").innerHTML="";
+ $("bNext").disabled=false;$("bAuto").disabled=false;$("bNext").textContent="Analizar fila Z";
+ $("hintClick").textContent="💡 Puedes hacer clic en una columna para comprobar tu elección de entrante.";
+ setExplain("Observa la fila Z: si todos sus coeficientes son ≥ 0, la solución es óptima; si hay negativos, entra la del más negativo. En minimización se maximiza −Z; las restricciones ≥ o = añaden variables artificiales con penalización M.");
+ highlightStep(0);renderStmt();renderTable();
+}
+function renderStmt(){
+ const sym={'<=':'≤','>=':'≥','=':'='};
+ const t=P.c.map((v,j)=>`${fmt(v)}·x${j+1}`).join(" + ");
+ let h=`<b>${P.sense==='min'?'Minimizar':'Maximizar'}</b>  Z = ${t}<br><b>sujeto a:</b><br>`;
+ P.A.forEach((r,i)=>{h+="&nbsp;&nbsp;"+r.map((v,j)=>`${fmt(v)}·x${j+1}`).join(" + ")+` ${sym[P.ops[i]]||'≤'} ${fmt(P.b[i])}<br>`;});
+ h+="&nbsp;&nbsp;x<sub>j</sub> ≥ 0";
+ $("stmt").innerHTML=h;
+}
+
+/* ===== Editor de problema personalizado ===== */
+function renderEditor(){
+ const n=+$("nVars").value,m=+$("nCons").value;
+ const se=P.sense||'max';
+ let o=`<select id="sense"><option value="max"${se==='max'?' selected':''}>Max</option><option value="min"${se==='min'?' selected':''}>Min</option></select> <b>Z =</b> `;
+ for(let j=0;j<n;j++)o+=`<input id="oc${j}" value="${j<P.c.length?fmt(P.c[j]):1}"> x${j+1} ${j<n-1?"+":""} `;
+ $("objLine").innerHTML=o;
+ let c="";
+ for(let i=0;i<m;i++){c+='<div class="constraintRow">';
+  for(let j=0;j<n;j++)c+=`<input id="a${i}_${j}" value="${(P.A[i]&&P.A[i][j]!=null)?fmt(P.A[i][j]):1}"> x${j+1} ${j<n-1?"+":""} `;
+  const op=(P.ops&&P.ops[i])||'<=';
+  c+=`<select id="op${i}"><option value="<="${op==='<='?' selected':''}>≤</option><option value=">="${op==='>='?' selected':''}>≥</option><option value="="${op==='='?' selected':''}>=</option></select> <input id="b${i}" value="${P.b[i]!=null?fmt(P.b[i]):10}">`;
+  c+="</div>";}
+ $("consLines").innerHTML=c;
+}
+function buildCustom(){
+ const n=+$("nVars").value,m=+$("nCons").value;
+ const sense=$("sense").value;
+ const c=[],A=[],b=[],ops=[];
+ for(let j=0;j<n;j++)c.push(parseFloat($("oc"+j).value)||0);
+ for(let i=0;i<m;i++){const row=[];for(let j=0;j<n;j++)row.push(parseFloat($("a"+i+"_"+j).value)||0);A.push(row);const bv=parseFloat($("b"+i).value);if(bv<0){alert("Los términos independientes (RHS) deben ser ≥ 0. Reescribe la restricción para que su RHS no sea negativo.");return;}b.push(bv||0);ops.push($("op"+i).value);}
+ if(c.every(v=>Math.abs(v)<EPS)){alert("La función objetivo no puede ser toda ceros.");return;}
+ $("editor").classList.remove("show");
+ start({c,A,b,ops,sense});
+}
+
+/* ===== Eventos ===== */
+$("bNext").onclick=next;
+$("bAuto").onclick=auto;
+$("bReset").onclick=()=>start(P);
+$("exSel").onchange=e=>start(EX[e.target.value]);
+$("bEdit").onclick=()=>{const ed=$("editor");ed.classList.toggle("show");if(ed.classList.contains("show"))renderEditor();};
+$("nVars").onchange=renderEditor;
+$("nCons").onchange=renderEditor;
+$("bBuild").onclick=buildCustom;
+
+/* ===== Init ===== */
+start(EX.basico);
+</script>
+</body>
+</html>

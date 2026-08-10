@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Constructor de Modelos de Programación Lineal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f2ed; --surface:#ffffff; --border:#e2ddd5;
+    --ink:#1a1814; --ink-light:#6b6560; --ink-muted:#a09890;
+    --accent:#2d5be3; --accent-bg:#eef2fd;
+    --green:#1a7a4a; --green-bg:#eaf6ef; --green-bd:#9ed3b5;
+    --red:#b52a2a; --red-bg:#fbecec; --red-bd:#ecaaaa;
+    --grey-bd:#d4cfc8;
+    --r:12px; --shadow-sm:0 1px 4px rgba(0,0,0,.05); --shadow:0 4px 22px rgba(0,0,0,.07);
+    --t:.2s cubic-bezier(.4,0,.2,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);line-height:1.6;min-height:100vh}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  header{background:var(--ink);color:#fff;position:relative;overflow:hidden}
+  .header-bg{position:absolute;inset:0;background:repeating-linear-gradient(-45deg,transparent,transparent 28px,rgba(255,255,255,.025) 28px,rgba(255,255,255,.025) 30px)}
+  .header-inner{max-width:1160px;margin:0 auto;padding:34px 40px 30px;position:relative;z-index:2}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:100px;font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;color:rgba(255,255,255,.8);margin-bottom:12px}
+  .badge-dot{width:6px;height:6px;background:#6be8a0;border-radius:50%;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  h1{font-family:'DM Serif Display',Georgia,serif;font-size:clamp(22px,3vw,32px);font-weight:400;line-height:1.2;letter-spacing:-.01em}
+  h1 em{color:#8fb4ff;font-style:italic}
+  .header-sub{color:rgba(255,255,255,.62);font-size:14px;font-weight:300;margin-top:8px;max-width:580px}
+
+  .main{max-width:1160px;margin:0 auto;padding:30px 40px 80px;display:grid;grid-template-columns:1fr 360px;gap:26px;align-items:start}
+  @media(max-width:900px){.main{grid-template-columns:1fr;padding:24px 18px 60px}}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow-sm);margin-bottom:18px;overflow:hidden}
+  .card-head{display:flex;align-items:center;gap:10px;padding:16px 20px 0}
+  .step-n{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:#fff;background:var(--ink);width:22px;height:22px;border-radius:6px;display:grid;place-items:center;flex-shrink:0}
+  .card-title{font-weight:600;font-size:15px}
+  .card-sub{font-size:12.5px;color:var(--ink-light)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--grey-bd);margin-left:auto;flex-shrink:0;transition:var(--t)}
+  .dot.ok{background:var(--green)} .dot.err{background:var(--red)}
+  .card-body{padding:14px 20px 18px}
+  .field-hint{font-size:12px;color:var(--ink-muted);margin:0 0 10px}
+
+  textarea,input[type=text]{width:100%;font-family:'JetBrains Mono',monospace;font-size:13.5px;color:var(--ink);background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:10px 12px;resize:vertical;transition:var(--t);line-height:1.55}
+  textarea:focus,input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-bg)}
+  .state-ok textarea,.state-ok input{border-color:var(--green-bd);background:var(--green-bg)}
+  .state-err textarea,.state-err input{border-color:var(--red-bd);background:var(--red-bg)}
+
+  /* generador: selectores segmentados */
+  .opt-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px}
+  .opt-group{flex:1;min-width:150px}
+  .opt-label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-light);margin-bottom:6px}
+  .seg{display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+  .seg button{flex:1;font-family:'DM Sans';font-size:13px;font-weight:500;color:var(--ink-light);background:var(--surface);border:none;padding:8px 6px;cursor:pointer;transition:var(--t)}
+  .seg button+button{border-left:1px solid var(--border)}
+  .seg button.on{background:var(--accent);color:#fff}
+  .gen-btn{width:100%;font-family:'DM Sans';font-weight:600;font-size:14px;color:#fff;background:var(--ink);border:none;border-radius:9px;padding:12px;cursor:pointer;transition:var(--t)}
+  .gen-btn:hover{background:#322d27}
+
+  .read-block{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:14px 16px;font-size:14px;line-height:1.65;color:var(--ink)}
+  .given{font-family:'JetBrains Mono',monospace;font-size:13.5px;background:var(--accent-bg);border:1px solid #cdd9f7;color:var(--ink);border-radius:9px;padding:12px 14px;line-height:1.9}
+  .given b{color:var(--accent)}
+
+  /* funcion objetivo */
+  .fo-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .dir-seg{display:flex;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;flex-shrink:0}
+  .dir-seg button{font-family:'JetBrains Mono',monospace;font-weight:500;font-size:14px;color:var(--ink-light);background:var(--surface);border:none;padding:10px 16px;cursor:pointer;transition:var(--t)}
+  .dir-seg button+button{border-left:1.5px solid var(--border)}
+  .dir-seg button.on{background:var(--ink);color:#fff}
+  .zlabel{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--ink-light)}
+  .fo-line input{flex:1;min-width:140px}
+
+  /* restricciones */
+  .res-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+  .res-row input{flex:1}
+  .res-del{border:none;background:none;color:var(--ink-muted);cursor:pointer;font-size:18px;line-height:1;padding:4px 6px;flex-shrink:0;border-radius:6px}
+  .res-del:hover{color:var(--red);background:var(--red-bg)}
+  .add-res{font-family:'DM Sans';font-size:13px;font-weight:500;color:var(--accent);background:none;border:1px dashed var(--accent);border-radius:8px;padding:9px 12px;cursor:pointer;width:100%;transition:var(--t)}
+  .add-res:hover{background:var(--accent-bg)}
+
+  .actions{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+  .btn{font-family:'DM Sans';font-weight:600;font-size:14px;border:none;border-radius:9px;padding:12px 18px;cursor:pointer;transition:var(--t)}
+  .btn-primary{background:var(--accent);color:#fff;flex:1;min-width:140px}
+  .btn-primary:hover{background:#1f47bd}
+  .btn-ghost{background:var(--surface);color:var(--ink-light);border:1px solid var(--border)}
+  .btn-ghost:hover{border-color:var(--ink-light);color:var(--ink)}
+
+  .result{margin-top:14px;font-size:13.5px;font-weight:500;display:none}
+  .result.show{display:block}
+  .result .ok{color:var(--green)} .result .bad{color:var(--red)}
+
+  .sol-block{display:none;margin-top:14px;background:var(--ink);color:#f4f2ed;border-radius:10px;padding:16px 18px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.8;white-space:pre-wrap}
+  .sol-block.show{display:block}
+  .sol-block .sl{font-family:'DM Sans';font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:#8a857f;display:block;margin:10px 0 2px}
+  .sol-block .sl:first-child{margin-top:0}
+  .sol-block .obj{color:#8fb4ff}
+
+  .ficha{position:sticky;top:24px;background:var(--ink);color:#f4f2ed;border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+  .ficha-head{padding:15px 20px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:8px}
+  .ficha-head .ft{font-family:'DM Serif Display',serif;font-size:16px}
+  .ficha-head .fd{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:#8fb4ff}
+  .ficha-body{padding:18px 20px 22px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7}
+  .fsec{margin-bottom:16px}.fsec:last-child{margin-bottom:0}
+  .flabel{font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#8a857f;margin-bottom:4px}
+  .fval{white-space:pre-wrap;color:#f4f2ed;word-break:break-word}
+  .fval.empty{color:#5f5a54;font-style:italic;font-family:'DM Sans',sans-serif;font-size:12px}
+  .fval.obj{color:#8fb4ff;font-weight:500}
+  .fhint{font-size:11px;color:#7c776f;font-family:'DM Sans',sans-serif;padding:0 20px 16px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-bg"></div>
+  <div class="header-inner">
+    <div class="badge"><span class="badge-dot"></span> Investigación Operativa · Programación Lineal</div>
+    <h1>Constructor de <em>Modelos de Programación Lineal</em></h1>
+    <p class="header-sub">Genera un enunciado, plantea el modelo decidiendo el sentido del objetivo y añadiendo las restricciones, y comprueba si tu formulación coincide con la correcta.</p>
+  </div>
+</header>
+
+<div class="main">
+  <div>
+
+    <!-- GENERADOR -->
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Generador de enunciados</div><div class="card-sub">Elige qué quieres practicar o enseñar</div></div></div>
+      <div class="card-body">
+        <div class="opt-row">
+          <div class="opt-group">
+            <div class="opt-label">Objetivo</div>
+            <div class="seg" id="segObj">
+              <button class="on" data-v="max">Maximizar</button>
+              <button data-v="min">Minimizar</button>
+              <button data-v="sorpresa">Sorpresa</button>
+            </div>
+          </div>
+        </div>
+        <div class="opt-row">
+          <div class="opt-group">
+            <div class="opt-label">Nº de restricciones</div>
+            <div class="seg" id="segRes"><button class="on" data-v="2">2</button><button data-v="3">3</button></div>
+          </div>
+          <div class="opt-group">
+            <div class="opt-label">Dificultad</div>
+            <div class="seg" id="segDif"><button class="on" data-v="facil">Fácil</button><button data-v="media">Media</button></div>
+          </div>
+        </div>
+        <button class="gen-btn" onclick="generarUI()">Generar nuevo enunciado</button>
+      </div>
+    </div>
+
+    <!-- ENUNCIADO -->
+    <div class="card">
+      <div class="card-head"><div><div class="card-title">Enunciado</div><div class="card-sub">El problema propuesto</div></div></div>
+      <div class="card-body"><div class="read-block" id="enunBox">Pulsa «Generar» para proponer un enunciado.</div></div>
+    </div>
+
+    <!-- VARIABLES (dadas) -->
+    <div class="card">
+      <div class="card-head"><div class="step-n">1</div><div><div class="card-title">Variables de decisión</div><div class="card-sub">Ya definidas para ti</div></div></div>
+      <div class="card-body"><div class="given" id="varsBox">—</div></div>
+    </div>
+
+    <!-- FUNCIÓN OBJETIVO -->
+    <div class="card" id="card-fo">
+      <div class="card-head"><div class="step-n">2</div><div><div class="card-title">Función objetivo</div><div class="card-sub">Decide el sentido y escribe la expresión</div></div><div class="dot" id="dot-fo"></div></div>
+      <div class="card-body">
+        <p class="field-hint">Tú decides si es <b>Max</b> o <b>Min</b>; después escribe Z en función de las variables.</p>
+        <div class="fo-line">
+          <div class="dir-seg" id="dirSeg"><button data-v="max">Max</button><button data-v="min">Min</button></div>
+          <span class="zlabel">Z =</span>
+          <input type="text" id="inp-fo" placeholder="..." oninput="syncFicha()">
+        </div>
+      </div>
+    </div>
+
+    <!-- RESTRICCIONES -->
+    <div class="card" id="card-res">
+      <div class="card-head"><div class="step-n">3</div><div><div class="card-title">Restricciones</div><div class="card-sub">Añádelas una a una</div></div><div class="dot" id="dot-res"></div></div>
+      <div class="card-body">
+        <p class="field-hint">Cada una: expresión, signo (≤ ≥ =) y término independiente. La no negatividad se añade sola a la ficha.</p>
+        <div id="resList"></div>
+        <button class="add-res" onclick="addRes()">+ Añadir restricción</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" onclick="comprobar()">Comprobar modelo</button>
+      <button class="btn btn-ghost" onclick="toggleSol()">Ver modelo correcto</button>
+      <button class="btn btn-ghost" onclick="limpiarResp()">Limpiar respuestas</button>
+    </div>
+    <div class="result" id="result"></div>
+    <div class="sol-block" id="solBlock"></div>
+
+  </div>
+
+  <!-- FICHA -->
+  <div>
+    <div class="ficha">
+      <div class="ficha-head"><span class="ft">Ficha del modelo</span><span class="fd">P.L.</span></div>
+      <div class="ficha-body">
+        <div class="fsec"><div class="flabel">Variables de decisión</div><div class="fval empty" id="f-vars">—</div></div>
+        <div class="fsec"><div class="flabel">Función objetivo</div><div class="fval obj empty" id="f-fo">Sin definir</div></div>
+        <div class="fsec"><div class="flabel">Sujeto a</div><div class="fval empty" id="f-res">Sin restricciones</div></div>
+      </div>
+      <div class="fhint">La ficha refleja tu modelo y se actualiza mientras escribes. La condición de no negatividad se añade automáticamente.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== MOTOR (verificado en Node: 3000 casos) ===== */
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function pick(a){return a[Math.floor(Math.random()*a.length)];}
+var SUB=['\u2080','\u2081','\u2082','\u2083','\u2084','\u2085','\u2086','\u2087','\u2088','\u2089'];
+function xs(i){return 'x'+SUB[i];}
+/* ============================================================
+   CONFIGURACIÓN — DATOS EDITABLES DEL GENERADOR
+   ------------------------------------------------------------
+   Pila de datos del prototipo. Se edita en un solo sitio sin
+   tocar el motor (parser/verificador) ni la interfaz.
+   Mapa de datos editables:
+     • temas .... contextos de los enunciados (productos / verbo / recursos)
+     • rangos ... magnitudes aleatorias del generador
+   ============================================================ */
+var CONFIG = {
+
+  // DATOS FIJOS: temas de los enunciados (max = maximizar, min = minimizar)
+  // Cuantos más temas y recursos, más variedad de enunciados. Cada tema:
+  //   pr = los dos productos (2 variables) · vb = verbo · res = recursos/restricciones
+  temas: {
+    max: [
+      {pr:["mesas","sillas"],vb:"fabricar",res:["horas de carpintería","horas de acabado","tablones de madera","horas de barnizado"]},
+      {pr:["camisetas","sudaderas"],vb:"producir",res:["horas de corte","horas de confección","metros de tela","horas de estampado"]},
+      {pr:["lotes de pan","lotes de bollería"],vb:"hornear",res:["kg de harina","horas de horno","horas de mano de obra"]},
+      {pr:["bicicletas","patinetes"],vb:"montar",res:["horas de ensamblaje","horas de prueba","ruedas"]},
+      {pr:["mochilas","bolsos"],vb:"coser",res:["horas de costura","metros de lona","cremalleras","horas de acabado"]},
+      {pr:["estanterías","armarios"],vb:"fabricar",res:["horas de máquina","tableros","horas de montaje"]},
+      {pr:["zumos","batidos"],vb:"embotellar",res:["kg de fruta","horas de envasado","botellas"]},
+      {pr:["lámparas","flexos"],vb:"ensamblar",res:["horas de montaje","bombillas","metros de cable","horas de test"]},
+      {pr:["tartas","cajas de galletas"],vb:"elaborar",res:["kg de harina","horas de horno","docenas de huevos","horas de decoración"]},
+      {pr:["macetas","jardineras"],vb:"moldear",res:["kg de arcilla","horas de torno","horas de horno"]},
+      {pr:["tablas de surf","kayaks"],vb:"fabricar",res:["horas de laminado","kg de resina","horas de acabado"]},
+      {pr:["routers","repetidores"],vb:"ensamblar",res:["horas de soldadura","placas base","horas de test"]}
+    ],
+    min: [
+      {pr:["pienso A","pienso B"],vb:"usar",res:["g de proteína","g de fibra","mg de calcio"]},
+      {pr:["suplemento X","suplemento Y"],vb:"incluir",res:["mg de vitamina","mg de hierro","kcal de energía"]},
+      {pr:["fertilizante rojo","fertilizante azul"],vb:"aplicar",res:["kg de nitrógeno","kg de fósforo","kg de potasio"]},
+      {pr:["mezcla A","mezcla B"],vb:"combinar",res:["g de proteína","g de grasa","g de hidratos","mg de sodio"]},
+      {pr:["aditivo 1","aditivo 2"],vb:"dosificar",res:["mg de zinc","mg de magnesio","mg de potasio"]},
+      {pr:["concentrado A","concentrado B"],vb:"preparar",res:["g de vitamina C","g de fibra","kcal de energía"]},
+      {pr:["cemento","cal"],vb:"mezclar",res:["kg de resistencia","kg de adherencia","kg de áridos"]},
+      {pr:["abono líquido","abono sólido"],vb:"aplicar",res:["g de nitrógeno","g de fósforo","g de hierro","g de magnesio"]}
+    ]
+  },
+
+  // PILA DE DATOS ALEATORIOS: rangos del generador  [min, max]
+  rangos: {
+    facil: { coef:[-5,5], obj:[-6,9] },   // dificultad básica:  coef. de restricción / coef. objetivo
+    media: { coef:[-9,9], obj:[-9,12] },   // dificultad media
+    // holgura del término independiente:  rhs = (a+b)*mult + extra
+    rhsMax: { mult:[3,7], extra:[0,4] }, // maximización (≤)
+    rhsMin: { mult:[2,5], extra:[0,3] }  // minimización (≥)
+  }
+
+};
+function generar(objetivo,nRes,dificultad){
+  var dir = objetivo==='sorpresa' ? pick(['max','min']) : objetivo;
+  var hard = dificultad==='media';
+  var R = hard ? CONFIG.rangos.media : CONFIG.rangos.facil; // rangos editables
+  var cR = R.coef, vR = R.obj;
+  var t  = dir==='max'?pick(CONFIG.temas.max):pick(CONFIG.temas.min);
+  var c1,c2; do { c1=rnd(vR[0],vR[1]); c2=rnd(vR[0],vR[1]); } while(c1===0 && c2===0);
+  var resNames = t.res.slice().sort(function(){return Math.random()-0.5;}).slice(0,nRes);
+  var cons=[];
+  var h = dir==='max' ? CONFIG.rangos.rhsMax : CONFIG.rangos.rhsMin; // holgura del término independiente
+  var opsPool = dir==='max' ? ['<=','<=','>=','='] : ['>=','>=','<=','=']; // signos mezclados
+  resNames.forEach(function(rn){
+    var a,b; do { a=rnd(cR[0],cR[1]); b=rnd(cR[0],cR[1]); } while(a===0 && b===0);
+    var rhs = (Math.abs(a)+Math.abs(b))*rnd(h.mult[0],h.mult[1]) + rnd(h.extra[0],h.extra[1]);
+    cons.push({a:a,b:b,op:pick(opsPool),rhs:rhs,label:rn});
+  });
+  var P1=t.pr[0], P2=t.pr[1];
+  var varDefs=[ xs(1)+' = cantidad de '+P1+' a '+t.vb, xs(2)+' = cantidad de '+P2+' a '+t.vb ];
+  function frObj(c,P){ return c>0 ? P+' aporta '+c+' \u20ac por unidad' : c<0 ? P+' resta '+(-c)+' \u20ac por unidad' : P+' no aporta nada al resultado'; }
+  function frCoef(co,P){ return co>0 ? 'cada unidad de '+P+' consume '+co : co<0 ? 'cada unidad de '+P+' genera '+(-co) : 'cada unidad de '+P+' no lo usa'; }
+  function lim(op,rhs){ return op==='<=' ? 'no se pueden superar '+rhs : op==='>=' ? 'se requieren al menos '+rhs : 'deben ser exactamente '+rhs; }
+  var ctx = dir==='max'
+    ? 'Una empresa quiere '+t.vb+' dos productos: '+P1+' y '+P2+'. '
+    : 'Se quiere preparar una mezcla con dos componentes: '+P1+' y '+P2+'. ';
+  var obj1=frObj(c1,P1); obj1=obj1.charAt(0).toUpperCase()+obj1.slice(1);
+  var txt = ctx + obj1+' y '+frObj(c2,P2)+'. ';
+  cons.forEach(function(r){ txt += 'En cuanto a '+r.label+', '+frCoef(r.a,P1)+' y '+frCoef(r.b,P2)+'; '+lim(r.op,r.rhs)+'. '; });
+  txt += dir==='max' ? '\u00bfCu\u00e1ntas unidades de cada producto conviene '+t.vb+' para maximizar el total?'
+                     : '\u00bfQu\u00e9 cantidad de cada componente usar para minimizar el total?';
+  return {dir:dir,obj:{c1:c1,c2:c2},cons:cons,varDefs:varDefs,enunciado:txt};
+}
+function norm(s){
+  s=(''+s).toLowerCase();
+  var sub={'\u2080':'0','\u2081':'1','\u2082':'2','\u2083':'3','\u2084':'4','\u2085':'5','\u2086':'6','\u2087':'7','\u2088':'8','\u2089':'9'};
+  s=s.replace(/[\u2080-\u2089]/g,function(m){return sub[m];});
+  s=s.replace(/(\d)[,](\d)/g,'$1.$2').replace(/[\u2212\u2013]/g,'-').replace(/[ \t]/g,'').replace(/\*/g,'').replace(/_/g,'');
+  return s;
+}
+function parseLinear(expr){
+  var s=norm(expr); var zi=s.indexOf('z='); if(zi>=0) s=s.slice(zi+2);
+  if(s&&s[0]!=='+'&&s[0]!=='-') s='+'+s;
+  var c={x1:0,x2:0}, m, re=/([+-][\d.]*)x([12])/g;
+  while((m=re.exec(s))){ var v=m[1]; if(v==='+')v='1'; else if(v==='-')v='-1'; c['x'+m[2]]+=parseFloat(v); }
+  return c;
+}
+function parseConstraint(str){
+  var s=norm(str).replace(/<=/g,'\u2264').replace(/>=/g,'\u2265'), sym=null;
+  if(s.indexOf('\u2264')>=0)sym='\u2264'; else if(s.indexOf('\u2265')>=0)sym='\u2265';
+  else if(s.indexOf('<')>=0)sym='<'; else if(s.indexOf('>')>=0)sym='>'; else if(s.indexOf('=')>=0)sym='=';
+  if(!sym) return null;
+  var op=(sym==='\u2264'||sym==='<')?'<=':(sym==='\u2265'||sym==='>')?'>=':'=';
+  var p=s.split(sym); if(p.length<2) return null;
+  var l=parseLinear(p[0]); var r=(p[1].match(/-?[\d.]+/)||[null])[0];
+  if(r===null) return null;
+  return {a:l.x1,b:l.x2,op:op,rhs:parseFloat(r)};
+}
+function fam(o){return o==='='?'=':(o==='<='||o==='<')?'<=':'>=';}
+function equiv(A,B){
+  if(fam(A.op)!==fam(B.op)) return false;
+  var pr=[[A.a,B.a],[A.b,B.b],[A.rhs,B.rhs]], k=null;
+  for(var i=0;i<pr.length;i++){var x=pr[i][0],y=pr[i][1];
+    if(Math.abs(y)>1e-9){var kk=x/y; if(kk<=1e-9)return false; if(k===null)k=kk; else if(Math.abs(kk-k)>1e-6*Math.max(1,Math.abs(k)))return false;}
+    else if(Math.abs(x)>1e-9) return false;
+  }
+  return k!==null;
+}
+
+/* ===== ESTADO + UI ===== */
+var MODEL=null, studentDir=null;
+
+function segSetup(id,cb){
+  var seg=document.getElementById(id);
+  seg.querySelectorAll('button').forEach(function(b){
+    b.onclick=function(){ seg.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); if(cb)cb(b.getAttribute('data-v')); };
+  });
+}
+function segVal(id){return document.getElementById(id).querySelector('button.on').getAttribute('data-v');}
+
+function generarUI(){
+  MODEL=generar(segVal('segObj'), parseInt(segVal('segRes'),10), segVal('segDif'));
+  document.getElementById('enunBox').textContent=MODEL.enunciado;
+  document.getElementById('varsBox').innerHTML='<b>'+MODEL.varDefs[0].replace(' = ','</b> = ')+'<br><b>'+MODEL.varDefs[1].replace(' = ','</b> = ');
+  limpiarResp();
+}
+
+function limpiarResp(){
+  studentDir=null;
+  document.getElementById('dirSeg').querySelectorAll('button').forEach(function(b){b.classList.remove('on');});
+  document.getElementById('inp-fo').value='';
+  document.getElementById('resList').innerHTML='';
+  addRes();
+  ['fo','res'].forEach(function(s){applyState('card-'+s,'dot-'+s,'');});
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('solBlock').classList.remove('show');
+  syncFicha();
+}
+
+document.getElementById('dirSeg').querySelectorAll('button').forEach(function(b){
+  b.onclick=function(){ var seg=b.parentNode; seg.querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); studentDir=b.getAttribute('data-v'); syncFicha(); };
+});
+
+function addRes(){
+  var row=document.createElement('div'); row.className='res-row';
+  var expr=document.createElement('input'); expr.type='text'; expr.className='res-expr'; expr.placeholder='p. ej. 2x1 + 3x2'; expr.style.flex='1'; expr.oninput=syncFicha;
+  var sign=document.createElement('select'); sign.className='res-sign'; sign.style.flex='0 0 auto'; sign.style.padding='6px';
+  [['<=','\u2264'],['>=','\u2265'],['=','=']].forEach(function(o){var op=document.createElement('option');op.value=o[0];op.textContent=o[1];sign.appendChild(op);});
+  sign.onchange=syncFicha;
+  var rhs=document.createElement('input'); rhs.type='text'; rhs.className='res-rhs'; rhs.placeholder='tér. indep.'; rhs.inputMode='decimal'; rhs.style.flex='0 0 92px'; rhs.style.width='92px'; rhs.oninput=syncFicha;
+  var del=document.createElement('button'); del.className='res-del'; del.title='Eliminar'; del.innerHTML='&times;';
+  del.onclick=function(){row.remove(); syncFicha();};
+  row.appendChild(expr); row.appendChild(sign); row.appendChild(rhs); row.appendChild(del);
+  document.getElementById('resList').appendChild(row);
+}
+function resRows(){return Array.prototype.slice.call(document.querySelectorAll('#resList .res-row'));}
+function rowExpr(r){return r.querySelector('.res-expr').value.trim();}
+function rowSign(r){return r.querySelector('.res-sign').value;}
+function rowRhs(r){return r.querySelector('.res-rhs').value.trim();}
+function rowStr(r){var e=rowExpr(r),x=rowRhs(r);return (e&&x!=='')?(e+rowSign(r)+x):'';}
+
+function applyState(cardId,dotId,state){
+  var card=document.getElementById(cardId), dot=document.getElementById(dotId);
+  card.classList.remove('state-ok','state-err'); dot.classList.remove('ok','err');
+  if(state==='ok'){card.classList.add('state-ok');dot.classList.add('ok');}
+  else if(state==='err'){card.classList.add('state-err');dot.classList.add('err');}
+}
+
+function comprobar(){
+  if(!MODEL){return;}
+  // función objetivo
+  var foExpr=document.getElementById('inp-fo').value.trim();
+  var dirOk=studentDir===MODEL.dir;
+  var fc=parseLinear(foExpr);
+  var coefOk=Math.abs(fc.x1-MODEL.obj.c1)<1e-6 && Math.abs(fc.x2-MODEL.obj.c2)<1e-6;
+  var foOk=dirOk&&coefOk;
+  applyState('card-fo','dot-fo', (!studentDir&&!foExpr)?'':(foOk?'ok':'err'));
+
+  // restricciones (color por fila)
+  var rows=resRows();
+  var pool=MODEL.cons.map(function(c){return {c:c,used:false};});
+  var anyFilled=false, matched=0, filled=0;
+  rows.forEach(function(row){
+    row.classList.remove('state-ok','state-err');
+    var v=rowStr(row); if(!v){ if(rowExpr(row)||rowRhs(row))anyFilled=true; return; } anyFilled=true; filled++;
+    var pc=parseConstraint(v); var ok=false;
+    if(pc){ for(var i=0;i<pool.length;i++){ if(!pool[i].used&&equiv(pc,pool[i].c)){pool[i].used=true;ok=true;matched++;break;} } }
+    row.classList.add(ok?'state-ok':'state-err');
+  });
+  var resOk = matched===MODEL.cons.length && filled===MODEL.cons.length;
+  applyState('card-res','dot-res', !anyFilled?'':(resOk?'ok':'err'));
+
+  // resumen
+  var r=document.getElementById('result'); r.classList.add('show');
+  var foTxt = foOk ? '<span class="ok">&#10003; Función objetivo correcta</span>'
+                   : '<span class="bad">&#10007; Función objetivo: '+(!studentDir?'elige Max/Min':(!dirOk?'sentido equivocado':'revisa los coeficientes'))+'</span>';
+  var resTxt = '<span class="'+(resOk?'ok':'bad')+'">'+(resOk?'&#10003;':'&#10007;')+' Restricciones: '+matched+' / '+MODEL.cons.length+' correctas</span>';
+  r.innerHTML=foTxt+'<br>'+resTxt;
+  syncFicha();
+}
+
+function toggleSol(){
+  if(!MODEL) return;
+  var b=document.getElementById('solBlock');
+  if(b.classList.contains('show')){b.classList.remove('show');return;}
+  var dirw=MODEL.dir==='max'?'Max':'Min';
+  function opSym(op){ return op==='<=' ? '\u2264' : op==='>=' ? '\u2265' : '='; }
+  function sgnTerm(co,vv,first){ var s=co<0?(first?'-':' - '):(first?'':' + '); return s+Math.abs(co)+vv; }
+  function lin(a,b){ return sgnTerm(a,xs(1),true)+sgnTerm(b,xs(2),false); }
+  var html='<span class="sl">Variables</span>'+MODEL.varDefs.join('\n');
+  html+='<span class="sl">Función objetivo</span><span class="obj">'+dirw+' Z = '+lin(MODEL.obj.c1,MODEL.obj.c2)+'</span>';
+  html+='<span class="sl">Sujeto a</span>'+MODEL.cons.map(function(c){return lin(c.a,c.b)+' '+opSym(c.op)+' '+c.rhs+'   ('+c.label+')';}).join('\n');
+  html+='\n'+xs(1)+', '+xs(2)+' \u2265 0';
+  b.innerHTML=html; b.classList.add('show');
+}
+
+function syncFicha(){
+  // variables
+  fput('f-vars', MODEL?MODEL.varDefs.join('\n'):'', '—');
+  // función objetivo
+  var fo=document.getElementById('inp-fo').value.trim();
+  var dirw = studentDir==='max'?'Max':studentDir==='min'?'Min':'';
+  fput('f-fo', (dirw||fo)?((dirw?dirw+' ':'')+'Z = '+(fo||'…')):'', 'Sin definir');
+  // sujeto a + no negatividad automática
+  var res=resRows().map(function(r){var e=rowExpr(r),x=rowRhs(r);if(!e&&x==='')return '';var sym={'<=':'\u2264','>=':'\u2265','=':'='}[rowSign(r)];return (e||'\u2026')+' '+sym+' '+(x===''?'\u2026':x);}).filter(Boolean);
+  var body='';
+  if(res.length) body=res.join('\n');
+  if(MODEL) body+=(body?'\n':'')+xs(1)+', '+xs(2)+' \u2265 0';
+  fput('f-res', body, 'Sin restricciones');
+}
+function fput(id,text,ph){var el=document.getElementById(id); if(text){el.textContent=text;el.classList.remove('empty');} else {el.textContent=ph;el.classList.add('empty');}}
+
+/* init */
+segSetup('segObj'); segSetup('segRes'); segSetup('segDif');
+generarUI();
+</script>
+</body>
+</html>

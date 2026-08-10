@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador Visual de Ejercicios de Camino Crítico — CPM</title>
+<style>
+  :root{
+    --bg:#f4f5f9; --panel:#ffffff; --ink:#1f2430; --muted:#6b7280; --line:#e3e6ee;
+    --accent:#7c3aed; --accent-d:#5b21b6;
+    --normal:#9ca3af; --normal-fill:#eceef2;
+    --critical:#7c3aed; --critical-fill:#ede9fe;
+    --slack:#f59e0b; --slack-fill:#fef3c7;
+    --ok:#16a34a; --ok-fill:#dcfce7;
+    --err:#dc2626; --err-fill:#fee2e2;
+    --hint:#0ea5e9; --hint-fill:#e0f2fe;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+  header{background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;padding:18px 22px}
+  header h1{margin:0;font-size:20px}
+  header p{margin:4px 0 0;font-size:13px;opacity:.9}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .card h2{margin:0 0 12px;font-size:15px;display:flex;align-items:center;gap:8px}
+  .card h2 .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:12px;color:var(--muted);font-weight:600}
+  select,input[type=number]{padding:8px 10px;border:1px solid var(--line);border-radius:9px;font-size:14px;background:#fff;color:var(--ink)}
+  input[type=number]{width:100%}
+  .btns{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+  button{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 14px;border-radius:9px;font-size:13px;font-weight:600;transition:.15s}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.primary:hover{background:var(--accent-d);color:#fff}
+  button.ghost{background:#f8f7fc}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--muted);margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.12)}
+  .svg-wrap{overflow:auto;border:1px dashed var(--line);border-radius:10px;background:
+     repeating-linear-gradient(0deg,#fafbff,#fafbff 22px,#f1f3fa 22px,#f1f3fa 23px),
+     repeating-linear-gradient(90deg,#fafbff,#fafbff 22px,#f1f3fa 22px,#f1f3fa 23px)}
+  svg{display:block}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{border:1px solid var(--line);padding:5px 6px;text-align:center}
+  th{background:#f6f4fc;font-size:12px;color:#4b3a78}
+  td.act{font-weight:700;background:#faf9ff}
+  tr.crit td.act{background:var(--critical-fill);color:var(--accent-d)}
+  td input{width:54px;padding:5px;text-align:center;border:1px solid var(--line);border-radius:7px;font-size:13px}
+  td input.dur{width:50px}
+  td input.pred{width:78px;text-align:center}
+  td input.ok{background:var(--ok-fill);border-color:var(--ok);color:#14532d}
+  td input.bad{background:var(--err-fill);border-color:var(--err);color:#7f1d1d}
+  td input.hint{background:var(--hint-fill);border-color:var(--hint)}
+  .msg{margin-top:12px;padding:10px 12px;border-radius:9px;font-size:13px;background:#f6f4fc;border:1px solid var(--line);min-height:20px}
+  .msg.ok{background:var(--ok-fill);border-color:var(--ok);color:#14532d}
+  .msg.err{background:var(--err-fill);border-color:var(--err);color:#7f1d1d}
+  .msg.hint{background:var(--hint-fill);border-color:var(--hint);color:#075985}
+  .info{display:flex;flex-wrap:wrap;gap:18px;font-size:14px}
+  .info b{color:var(--accent-d)}
+  .pill{display:inline-block;background:var(--critical-fill);color:var(--accent-d);padding:3px 10px;border-radius:20px;font-weight:700;font-size:13px}
+  .hide{color:var(--muted);font-style:italic}
+  .grp{font-size:12px;color:var(--muted);margin:0 0 8px}
+  .twocol{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:900px){.twocol{grid-template-columns:1fr}}
+  .tablescroll{overflow:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>Generador Visual de Ejercicios de Camino Crítico — CPM</h1>
+  <p>Investigación Operativa · Para alumnos (practicar) y profesores (explicar, generar y mostrar/ocultar soluciones)</p>
+</header>
+
+<div class="wrap">
+
+  <!-- GENERADOR -->
+  <div class="card">
+    <h2><span class="dot"></span>Generador de ejercicios</h2>
+    <div class="controls">
+      <div class="field">
+        <label for="numAct">Número de actividades (4–10)</label>
+        <select id="numAct"></select>
+      </div>
+      <div class="field">
+        <label for="tipo">Tipo de ejercicio</label>
+        <select id="tipo">
+          <option value="basico">Básico</option>
+          <option value="holguras">Con holguras</option>
+          <option value="dos">Dos caminos críticos</option>
+          <option value="examen">Tipo examen</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="dif">Dificultad</label>
+        <select id="dif">
+          <option value="facil">Fácil</option>
+          <option value="media" selected>Media</option>
+          <option value="dificil">Difícil</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="dmin">Duración mínima</label>
+        <input type="number" id="dmin" value="1" min="1" max="40">
+      </div>
+      <div class="field">
+        <label for="dmax">Duración máxima</label>
+        <input type="number" id="dmax" value="6" min="1" max="40">
+      </div>
+    </div>
+    <div class="btns">
+      <button class="primary" onclick="generar()">Generar ejercicio</button>
+      <button onclick="reiniciar()">Reiniciar</button>
+    </div>
+  </div>
+
+  <!-- RED -->
+  <div class="card">
+    <h2><span class="dot"></span>Red de precedencias (CPM)</h2>
+    <p class="grp">Cada caja muestra ES · duración · EF arriba, el nombre en el centro, y LS · holgura · LF abajo. La red se dibuja de izquierda a derecha siguiendo las precedencias.</p>
+    <div class="svg-wrap"><svg id="net" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--normal-fill);border-color:var(--normal)"></span> Normal</span>
+      <span><span class="swatch" style="background:var(--critical-fill);border-color:var(--critical)"></span> Camino crítico</span>
+      <span><span class="swatch" style="background:var(--slack-fill);border-color:var(--slack)"></span> Con holgura</span>
+      <span><span class="swatch" style="background:var(--ok-fill);border-color:var(--ok)"></span> Respuesta correcta</span>
+      <span><span class="swatch" style="background:var(--err-fill);border-color:var(--err)"></span> Error</span>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div class="card">
+    <h2><span class="dot"></span>Enunciado y tabla de trabajo</h2>
+    <p class="grp">Edita <b>Duración</b> y <b>Predecesoras</b> para crear ejercicios personalizados (la red se recalcula sola). Rellena <b>ES, EF, LS, LF, Holgura</b> y marca las actividades críticas; luego comprueba.</p>
+    <div class="tablescroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Act.</th><th>Dur.</th><th>Predec.</th>
+            <th>ES</th><th>EF</th><th>LS</th><th>LF</th><th>Holgura</th><th>¿Crítica?</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="btns">
+      <button onclick="comprobar('tabla')">Comprobar tabla</button>
+      <button onclick="comprobar('tempranos')">Comprobar tiempos tempranos</button>
+      <button onclick="comprobar('tardios')">Comprobar tiempos tardíos</button>
+      <button onclick="comprobar('holguras')">Comprobar holguras</button>
+      <button class="primary" onclick="mostrarSolucion()">Mostrar solución</button>
+      <button onclick="ocultarSolucion()">Ocultar solución</button>
+      <button class="ghost" onclick="pista()">Pista</button>
+    </div>
+    <div class="btns">
+      <button onclick="exportar('enunciado')">Exportar enunciado</button>
+      <button onclick="exportar('solucion')">Exportar solución</button>
+      <button onclick="exportar('rubrica')">Exportar rúbrica</button>
+    </div>
+    <div id="msg" class="msg">Caso inicial cargado. Dibuja la red mentalmente, rellena la tabla y comprueba tus resultados.</div>
+  </div>
+
+  <!-- INFO -->
+  <div class="card">
+    <h2><span class="dot"></span>Resultados</h2>
+    <div class="info">
+      <div>Duración total del proyecto: <b id="infoDur">—</b></div>
+      <div>Camino crítico: <span id="infoPath" class="hide">oculto — pulsa «Mostrar solución»</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN — DATOS EDITABLES
+   ------------------------------------------------------------
+   Pila de datos del prototipo; se edita en un solo sitio sin
+   tocar el algoritmo CPM ni la interfaz.
+   Mapa de datos editables:
+     • proyectoInicial ... proyecto de ejemplo que se carga al abrir (fijo)
+     • generador ......... parámetros de la generación aleatoria
+   Nota: nº de actividades y duraciones (mín/máx) los introduce el
+   usuario en pantalla; aquí solo están sus valores por defecto y
+   límites. Las letras de las actividades están en la constante
+   LETTERS (admite hasta 10: A–J).
+   ============================================================ */
+const CONFIG = {
+
+  // DATOS FIJOS: proyecto de ejemplo cargado al inicio
+  proyectoInicial: [
+    {id:'A', dur:3, preds:[]},
+    {id:'B', dur:2, preds:['A']},
+    {id:'C', dur:4, preds:['A']},
+    {id:'D', dur:2, preds:['B','C']},
+    {id:'E', dur:3, preds:['D']}
+  ],
+
+  // PILA DE DATOS: parámetros del generador aleatorio
+  generador: {
+    numActividades:  [4, 10],   // mínimo y máximo de actividades permitidas
+    duracionDefecto: [1, 6],    // duración por defecto si el campo está vacío
+    // nº máximo de predecesores por actividad según dificultad/tipo
+    maxPred: { facil:1, normal:2, basico:1, examenDificil:3 },
+    intentosHolguras: 40        // reintentos para forzar que aparezcan holguras > 0
+  }
+
+};
+
+/* ============================================================
+   ESTADO
+============================================================ */
+const LETTERS = 'ABCDEFGHIJ';
+const INITIAL = CONFIG.proyectoInicial; // ver CONFIG.proyectoInicial para editarlo
+let activities = clone(INITIAL);
+let solution = null;
+let solutionVisible = false;
+let hintStep = 0;
+
+function clone(x){ return JSON.parse(JSON.stringify(x)); }
+const $ = id => document.getElementById(id);
+
+/* ============================================================
+   ALGORITMO CPM
+============================================================ */
+function computeCPM(acts){
+  const map = {}; acts.forEach(a => map[a.id] = a);
+  const succ = {}; acts.forEach(a => succ[a.id] = []);
+  acts.forEach(a => a.preds.forEach(p => { if(succ[p]) succ[p].push(a.id); }));
+
+  // Orden topológico (Kahn)
+  const indeg = {}; acts.forEach(a => indeg[a.id] = a.preds.filter(p=>map[p]).length);
+  const q = acts.filter(a => indeg[a.id] === 0).map(a => a.id);
+  const order = [];
+  while(q.length){
+    const id = q.shift(); order.push(id);
+    succ[id].forEach(s => { if(--indeg[s] === 0) q.push(s); });
+  }
+  if(order.length !== acts.length) return null; // ciclo
+
+  // Avance: ES, EF
+  const ES={}, EF={};
+  order.forEach(id => {
+    const a = map[id];
+    const valid = a.preds.filter(p=>map[p]);
+    ES[id] = valid.length ? Math.max(...valid.map(p => EF[p])) : 0;
+    EF[id] = ES[id] + a.dur;
+  });
+  const proj = Math.max(...acts.map(a => EF[a.id]));
+
+  // Retroceso: LF, LS
+  const LF={}, LS={};
+  [...order].reverse().forEach(id => {
+    const s = succ[id];
+    LF[id] = s.length ? Math.min(...s.map(x => LS[x])) : proj;
+    LS[id] = LF[id] - map[id].dur;
+  });
+
+  const slack={}, critical={};
+  acts.forEach(a => { slack[a.id] = LS[a.id] - ES[a.id]; critical[a.id] = slack[a.id] === 0; });
+
+  return {ES, EF, LS, LF, slack, critical, proj, order, succ, map};
+}
+
+function criticalPaths(sol, acts){
+  const sources = acts.filter(a => a.preds.filter(p=>sol.map[p]).length === 0 && sol.critical[a.id]).map(a=>a.id);
+  const paths = [];
+  function dfs(id, path){
+    const nexts = sol.succ[id].filter(s => sol.critical[s] && sol.EF[id] === sol.ES[s]);
+    const fin = sol.succ[id].length === 0;
+    if(fin || nexts.length === 0){ paths.push([...path]); return; }
+    nexts.forEach(n => dfs(n, [...path, n]));
+  }
+  sources.forEach(s => dfs(s, [s]));
+  // quedarnos solo con caminos de duración = proyecto
+  const full = paths.filter(p => p.reduce((s,id)=>s+sol.map[id].dur,0) === sol.proj);
+  const uniq = [...new Set((full.length?full:paths).map(p=>p.join(' → ')))];
+  return uniq;
+}
+
+/* ============================================================
+   GENERADOR DE EJERCICIOS
+============================================================ */
+function randInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=randInt(0,i); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+
+function ensureConnectivity(acts){
+  const n = acts.length;
+  const succCount = {}; acts.forEach(a => succCount[a.id]=0);
+  acts.forEach(a => a.preds.forEach(p => { if(succCount[p]!==undefined) succCount[p]++; }));
+  const last = acts[n-1];
+  for(let i=0;i<n-1;i++){
+    if(succCount[acts[i].id] === 0 && !last.preds.includes(acts[i].id))
+      last.preds.push(acts[i].id);
+  }
+  if(last.preds.length === 0) last.preds.push(acts[n-2].id);
+}
+
+function genDAG(n, tipo, dif, dmin, dmax){
+  const acts = [];
+  for(let i=0;i<n;i++){
+    const id = LETTERS[i];
+    let preds = [];
+    if(i > 0){
+      let maxP = dif==='facil' ? CONFIG.generador.maxPred.facil : CONFIG.generador.maxPred.normal;
+      if(tipo==='basico') maxP = CONFIG.generador.maxPred.basico;
+      if(tipo==='examen' && dif==='dificil') maxP = CONFIG.generador.maxPred.examenDificil;
+      const k = randInt(1, Math.min(maxP, i));
+      const cand = []; for(let j=0;j<i;j++) cand.push(j);
+      shuffle(cand);
+      preds = cand.slice(0,k).sort((a,b)=>a-b).map(j => LETTERS[j]);
+    }
+    acts.push({id, dur: randInt(dmin,dmax), preds});
+  }
+  ensureConnectivity(acts);
+
+  if(tipo==='holguras'){
+    let tries=0;
+    while(tries<CONFIG.generador.intentosHolguras){
+      const sol = computeCPM(acts);
+      if(sol && Object.values(sol.slack).some(s=>s>0)) break;
+      acts.forEach(a => a.dur = randInt(dmin,dmax));
+      tries++;
+    }
+  }
+  return acts;
+}
+
+function genTwoCritical(n, dmin, dmax){
+  const acts = [];
+  acts.push({id:LETTERS[0], dur:randInt(dmin,dmax), preds:[]});
+  const mid = n - 2;
+  const c1len = Math.ceil(mid/2), c2len = mid - c1len;
+  let idx = 1;
+  const chain1=[], chain2=[];
+  for(let i=0;i<c1len;i++){ chain1.push(LETTERS[idx++]); }
+  for(let i=0;i<c2len;i++){ chain2.push(LETTERS[idx++]); }
+  const sink = LETTERS[n-1];
+
+  let prev = LETTERS[0];
+  chain1.forEach(id => { acts.push({id, dur:randInt(dmin,dmax), preds:[prev]}); prev = id; });
+  const c1last = prev;
+  prev = LETTERS[0];
+  chain2.forEach(id => { acts.push({id, dur:randInt(dmin,dmax), preds:[prev]}); prev = id; });
+  const c2last = prev;
+
+  acts.push({id:sink, dur:randInt(dmin,dmax), preds:[...new Set([c1last, c2last])]});
+  acts.sort((a,b)=>a.id.localeCompare(b.id));
+
+  // equilibrar para que ambos ramales tengan igual longitud
+  const map={}; acts.forEach(a=>map[a.id]=a);
+  const s1 = chain1.reduce((s,id)=>s+map[id].dur,0);
+  const s2 = chain2.reduce((s,id)=>s+map[id].dur,0);
+  if(s1 !== s2 && chain1.length && chain2.length){
+    const shorter = s1 < s2 ? chain1 : chain2;
+    map[shorter[shorter.length-1]].dur += Math.abs(s1 - s2);
+  }
+  return acts;
+}
+
+function generar(){
+  let n = parseInt($('numAct').value);
+  const tipo = $('tipo').value;
+  const dif = $('dif').value;
+  let dmin = Math.max(1, parseInt($('dmin').value)||CONFIG.generador.duracionDefecto[0]);
+  let dmax = Math.max(1, parseInt($('dmax').value)||CONFIG.generador.duracionDefecto[1]);
+  if(dmin > dmax){ [dmin,dmax]=[dmax,dmin]; $('dmin').value=dmin; $('dmax').value=dmax; }
+  n = Math.min(CONFIG.generador.numActividades[1], Math.max(CONFIG.generador.numActividades[0], n));
+
+  activities = (tipo==='dos') ? genTwoCritical(n,dmin,dmax) : genDAG(n,tipo,dif,dmin,dmax);
+  solutionVisible = false; hintStep = 0;
+  recompute(); buildTable(); render();
+  const tipoTxt = {basico:'básico', holguras:'con holguras', dos:'con dos caminos críticos', examen:'tipo examen'}[tipo];
+  setMsg(`Ejercicio ${tipoTxt} generado con ${n} actividades (dificultad ${dif}). Rellena la tabla y comprueba.`, '');
+}
+
+function reiniciar(){
+  activities = clone(INITIAL);
+  $('numAct').value = 5; $('tipo').value='basico'; $('dif').value='media';
+  $('dmin').value=1; $('dmax').value=6;
+  solutionVisible = false; hintStep = 0;
+  recompute(); buildTable(); render();
+  setMsg('Reiniciado al caso inicial (A–E). Tabla en blanco.', '');
+}
+
+/* ============================================================
+   RECÁLCULO + EDICIÓN DEL ENUNCIADO
+============================================================ */
+function recompute(){ solution = computeCPM(activities); }
+
+function onDurChange(id, val){
+  const a = activities.find(x=>x.id===id);
+  let d = parseInt(val);
+  if(isNaN(d) || d < 0) d = 0;
+  a.dur = d;
+  recompute(); render(); setMsg('Duración actualizada. La red se ha recalculado.', '');
+}
+
+function onPredChange(id, val, inputEl){
+  const a = activities.find(x=>x.id===id);
+  const ids = activities.map(x=>x.id);
+  const parsed = val.toUpperCase().replace(/[^A-Z]/g,'').split('')
+    .filter(c => ids.includes(c) && c !== id);
+  const unique = [...new Set(parsed)];
+  const backup = a.preds;
+  a.preds = unique;
+  if(!computeCPM(activities)){ // ciclo
+    a.preds = backup;
+    inputEl.value = backup.join(',');
+    setMsg('Esa combinación crea un ciclo (no permitido en CPM). Cambio descartado.', 'err');
+    return;
+  }
+  inputEl.value = unique.join(',');
+  recompute(); render(); setMsg('Precedencias actualizadas. La red se ha recalculado.', '');
+}
+
+/* ============================================================
+   TABLA
+============================================================ */
+function buildTable(){
+  const tb = $('tbody');
+  tb.innerHTML = '';
+  activities.forEach(a => {
+    const tr = document.createElement('tr');
+    tr.id = 'row-' + a.id;
+    tr.innerHTML = `
+      <td class="act">${a.id}</td>
+      <td><input class="dur" type="number" min="0" value="${a.dur}"
+            onchange="onDurChange('${a.id}', this.value)"></td>
+      <td><input class="pred" type="text" value="${a.preds.join(',')}"
+            onchange="onPredChange('${a.id}', this.value, this)" placeholder="—"></td>
+      <td><input data-f="ES"  data-id="${a.id}" type="number"></td>
+      <td><input data-f="EF"  data-id="${a.id}" type="number"></td>
+      <td><input data-f="LS"  data-id="${a.id}" type="number"></td>
+      <td><input data-f="LF"  data-id="${a.id}" type="number"></td>
+      <td><input data-f="H"   data-id="${a.id}" type="number"></td>
+      <td><input data-f="C"   data-id="${a.id}" type="checkbox"></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function ansInput(id, f){ return document.querySelector(`#tbody input[data-id="${id}"][data-f="${f}"]`); }
+
+function clearAnswerStyles(){
+  document.querySelectorAll('#tbody input[data-f]').forEach(i => i.classList.remove('ok','bad','hint'));
+}
+function clearAnswers(){
+  document.querySelectorAll('#tbody input[data-f]').forEach(i => {
+    if(i.type==='checkbox') i.checked=false; else i.value='';
+    i.classList.remove('ok','bad','hint');
+  });
+}
+
+/* ============================================================
+   COMPROBACIÓN
+============================================================ */
+function checkOne(input, correct){
+  const isCb = input.type==='checkbox';
+  const val = isCb ? input.checked : (input.value==='' ? null : parseInt(input.value));
+  input.classList.remove('ok','bad','hint');
+  if(val === null){ input.classList.add('bad'); return false; }
+  const good = isCb ? (val === correct) : (val === correct);
+  input.classList.add(good ? 'ok' : 'bad');
+  return good;
+}
+
+function comprobar(modo){
+  if(!solution){ setMsg('El enunciado tiene un ciclo; corrígelo antes de comprobar.', 'err'); return; }
+  let fields;
+  if(modo==='tempranos') fields=['ES','EF'];
+  else if(modo==='tardios') fields=['LS','LF'];
+  else if(modo==='holguras') fields=['H'];
+  else fields=['ES','EF','LS','LF','H','C'];
+
+  let total=0, ok=0;
+  activities.forEach(a => {
+    fields.forEach(f => {
+      const inp = ansInput(a.id, f);
+      let correct;
+      if(f==='H') correct = solution.slack[a.id];
+      else if(f==='C') correct = solution.critical[a.id];
+      else correct = solution[f][a.id];
+      total++; if(checkOne(inp, correct)) ok++;
+    });
+  });
+
+  const nombre = {tabla:'tabla completa', tempranos:'tiempos tempranos (ES/EF)',
+                  tardios:'tiempos tardíos (LS/LF)', holguras:'holguras'}[modo];
+  const allOk = ok === total;
+  setMsg(`${nombre}: ${ok} de ${total} casillas correctas. ${allOk ? '¡Todo correcto! 🎉' : 'Revisa las marcadas en rojo.'}`,
+         allOk ? 'ok' : 'err');
+}
+
+/* ============================================================
+   SOLUCIÓN / PISTA
+============================================================ */
+function mostrarSolucion(){
+  if(!solution){ setMsg('El enunciado tiene un ciclo; corrígelo primero.', 'err'); return; }
+  activities.forEach(a => {
+    ansInput(a.id,'ES').value = solution.ES[a.id];
+    ansInput(a.id,'EF').value = solution.EF[a.id];
+    ansInput(a.id,'LS').value = solution.LS[a.id];
+    ansInput(a.id,'LF').value = solution.LF[a.id];
+    ansInput(a.id,'H').value  = solution.slack[a.id];
+    ansInput(a.id,'C').checked = solution.critical[a.id];
+  });
+  clearAnswerStyles();
+  solutionVisible = true;
+  render();
+  setMsg('Solución mostrada: red coloreada y tabla rellenada.', '');
+}
+
+function ocultarSolucion(){
+  clearAnswers();
+  solutionVisible = false;
+  render();
+  setMsg('Solución oculta. Modo práctica: rellena la tabla de nuevo.', '');
+}
+
+function pista(){
+  if(!solution){ setMsg('El enunciado tiene un ciclo; corrígelo primero.', 'err'); return; }
+  // construir lista ordenada de objetivos
+  const goals = [];
+  solution.order.forEach(id => { goals.push([id,'ES']); goals.push([id,'EF']); });
+  [...solution.order].reverse().forEach(id => { goals.push([id,'LF']); goals.push([id,'LS']); });
+  solution.order.forEach(id => goals.push([id,'H']));
+  solution.order.forEach(id => goals.push([id,'C']));
+
+  const tips = {
+    ES:'ES (inicio temprano) = mayor EF de sus predecesoras (0 si no tiene).',
+    EF:'EF (fin temprano) = ES + duración.',
+    LF:'LF (fin tardío) = menor LS de sus sucesoras (duración total si es final).',
+    LS:'LS (inicio tardío) = LF − duración.',
+    H :'Holgura = LS − ES (= LF − EF). Si es 0, la actividad es crítica.',
+    C :'Es crítica cuando su holgura vale 0.'
+  };
+
+  for(const [id,f] of goals){
+    const inp = ansInput(id,f);
+    let correct, current;
+    if(f==='C'){ correct = solution.critical[id]; current = inp.checked; if(current===correct) continue; }
+    else {
+      correct = (f==='H') ? solution.slack[id] : solution[f][id];
+      current = inp.value==='' ? null : parseInt(inp.value);
+      if(current === correct) continue;
+    }
+    // revelar esta casilla
+    if(f==='C') inp.checked = correct; else inp.value = correct;
+    inp.classList.remove('ok','bad'); inp.classList.add('hint');
+    setMsg(`Pista — actividad ${id}, campo ${f}: ${tips[f]} Valor correcto: ${f==='C'?(correct?'sí, es crítica':'no es crítica'):correct}.`, 'hint');
+    return;
+  }
+  setMsg('No quedan pistas: todas tus respuestas ya son correctas. 🎉', 'ok');
+}
+
+/* ============================================================
+   RENDER SVG
+============================================================ */
+function render(){
+  const svg = $('net');
+  if(!solution){
+    svg.innerHTML = `<text x="20" y="40" fill="#dc2626" font-size="14">El enunciado contiene un ciclo. Corrige las precedencias.</text>`;
+    svg.setAttribute('viewBox','0 0 600 80'); svg.setAttribute('width','600'); svg.setAttribute('height','80');
+    updateInfo(); return;
+  }
+
+  const BW=132, BH=74, COL=200, ROW=104, MX=30, MY=30;
+  // rango (columna) = camino más largo en nº de nodos
+  const rank = {};
+  solution.order.forEach(id => {
+    const a = solution.map[id];
+    const valid = a.preds.filter(p=>solution.map[p]);
+    rank[id] = valid.length ? Math.max(...valid.map(p => rank[p]+1)) : 0;
+  });
+  const cols = {};
+  Object.keys(rank).forEach(id => { (cols[rank[id]] ||= []).push(id); });
+  const maxRank = Math.max(...Object.values(rank));
+  const maxCount = Math.max(...Object.values(cols).map(c=>c.length));
+
+  const pos = {};
+  for(let r=0;r<=maxRank;r++){
+    const list = (cols[r]||[]).sort();
+    const offset = (maxCount - list.length)/2;
+    list.forEach((id,i) => {
+      pos[id] = { x: MX + r*COL, y: MY + (offset + i)*ROW };
+    });
+  }
+
+  const W = MX*2 + maxRank*COL + BW;
+  const H = MY*2 + maxCount*ROW - (ROW-BH);
+
+  let edges = '';
+  activities.forEach(a => {
+    a.preds.filter(p=>solution.map[p]).forEach(p => {
+      const f = pos[p], t = pos[a.id];
+      if(!f||!t) return;
+      const x1=f.x+BW, y1=f.y+BH/2, x2=t.x, y2=t.y+BH/2;
+      const mx=(x1+x2)/2;
+      edges += `<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" stroke="#9aa1b1" stroke-width="1.8" marker-end="url(#arrow)"/>`;
+    });
+  });
+
+  let boxes = '';
+  activities.forEach(a => {
+    const p = pos[a.id]; if(!p) return;
+    const crit = solution.critical[a.id];
+    const hasSlack = solution.slack[a.id] > 0;
+    let fill = 'var(--normal-fill)', stroke = 'var(--normal)';
+    if(solutionVisible){
+      if(crit){ fill='var(--critical-fill)'; stroke='var(--critical)'; }
+      else if(hasSlack){ fill='var(--slack-fill)'; stroke='var(--slack)'; }
+    }
+    const v = f => solutionVisible ? f : '·';
+    const es=v(solution.ES[a.id]), ef=v(solution.EF[a.id]),
+          ls=v(solution.LS[a.id]), lf=v(solution.LF[a.id]),
+          h =v(solution.slack[a.id]);
+    const x=p.x, y=p.y, t3=BW/3;
+    boxes += `<g>
+      <rect x="${x}" y="${y}" width="${BW}" height="${BH}" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="2"/>
+      <line x1="${x}" y1="${y+18}" x2="${x+BW}" y2="${y+18}" stroke="${stroke}" stroke-opacity=".4"/>
+      <line x1="${x}" y1="${y+BH-18}" x2="${x+BW}" y2="${y+BH-18}" stroke="${stroke}" stroke-opacity=".4"/>
+      <line x1="${x+t3}" y1="${y}" x2="${x+t3}" y2="${y+18}" stroke="${stroke}" stroke-opacity=".4"/>
+      <line x1="${x+2*t3}" y1="${y}" x2="${x+2*t3}" y2="${y+18}" stroke="${stroke}" stroke-opacity=".4"/>
+      <line x1="${x+t3}" y1="${y+BH-18}" x2="${x+t3}" y2="${y+BH}" stroke="${stroke}" stroke-opacity=".4"/>
+      <line x1="${x+2*t3}" y1="${y+BH-18}" x2="${x+2*t3}" y2="${y+BH}" stroke="${stroke}" stroke-opacity=".4"/>
+      <text x="${x+t3/2}" y="${y+13}" text-anchor="middle" font-size="11" fill="#374151">${es}</text>
+      <text x="${x+BW/2}" y="${y+13}" text-anchor="middle" font-size="11" fill="#374151">${a.dur}</text>
+      <text x="${x+2.5*t3}" y="${y+13}" text-anchor="middle" font-size="11" fill="#374151">${ef}</text>
+      <text x="${x+BW/2}" y="${y+44}" text-anchor="middle" font-size="20" font-weight="700" fill="${crit&&solutionVisible?'var(--accent-d)':'#1f2430'}">${a.id}</text>
+      <text x="${x+t3/2}" y="${y+BH-6}" text-anchor="middle" font-size="11" fill="#374151">${ls}</text>
+      <text x="${x+BW/2}" y="${y+BH-6}" text-anchor="middle" font-size="11" font-weight="700" fill="${hasSlack&&solutionVisible?'var(--slack)':'#374151'}">${h}</text>
+      <text x="${x+2.5*t3}" y="${y+BH-6}" text-anchor="middle" font-size="11" fill="#374151">${lf}</text>
+    </g>`;
+  });
+
+  svg.innerHTML = `
+    <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#9aa1b1"/></marker></defs>
+    ${edges}${boxes}`;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  updateInfo();
+}
+
+function updateInfo(){
+  if(!solution){ $('infoDur').textContent='—'; return; }
+  if(solutionVisible){
+    $('infoDur').textContent = solution.proj;
+    const paths = criticalPaths(solution, activities);
+    $('infoPath').className = '';
+    $('infoPath').innerHTML = paths.map(p => `<span class="pill">${p}</span>`).join(' &nbsp; ');
+  } else {
+    $('infoDur').textContent = '—';
+    $('infoPath').className = 'hide';
+    $('infoPath').textContent = 'oculto — pulsa «Mostrar solución»';
+  }
+}
+
+function setMsg(text, type){ const m=$('msg'); m.textContent=text; m.className='msg'+(type?' '+type:''); }
+
+/* ============================================================
+   EXPORTAR
+============================================================ */
+function download(name, content){
+  const blob = new Blob([content], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
+
+function exportar(tipo){
+  if(!solution){ setMsg('Corrige el ciclo del enunciado antes de exportar.', 'err'); return; }
+  let txt = '';
+  const linea = '='.repeat(54)+'\n';
+
+  if(tipo==='enunciado'){
+    txt += 'EJERCICIO DE CAMINO CRÍTICO (CPM)\n'+linea;
+    txt += 'Enunciado:\n';
+    txt += 'Dada la siguiente tabla de actividades, sus duraciones y\n';
+    txt += 'precedencias, calcula los tiempos tempranos (ES, EF), los\n';
+    txt += 'tiempos tardíos (LS, LF), las holguras, la duración total del\n';
+    txt += 'proyecto e identifica el/los camino(s) crítico(s).\n\n';
+    txt += 'Actividad | Duración | Predecesoras\n';
+    txt += '-'.repeat(40)+'\n';
+    activities.forEach(a => {
+      txt += `   ${a.id}      |    ${a.dur}     | ${a.preds.length?a.preds.join(', '):'—'}\n`;
+    });
+    txt += '\nTabla a rellenar: ES, EF, LS, LF, Holgura, ¿Crítica?\n';
+  }
+
+  else if(tipo==='solucion'){
+    txt += 'SOLUCIÓN — CAMINO CRÍTICO (CPM)\n'+linea;
+    txt += 'Act | Dur | Pred        | ES | EF | LS | LF | H | Crítica\n';
+    txt += '-'.repeat(54)+'\n';
+    activities.forEach(a => {
+      const pad=(v,n)=>String(v).padEnd(n);
+      txt += `${pad(a.id,3)} | ${pad(a.dur,3)} | ${pad(a.preds.join(',')||'—',11)} | `
+           + `${pad(solution.ES[a.id],2)} | ${pad(solution.EF[a.id],2)} | `
+           + `${pad(solution.LS[a.id],2)} | ${pad(solution.LF[a.id],2)} | `
+           + `${pad(solution.slack[a.id],1)} | ${solution.critical[a.id]?'SÍ':'no'}\n`;
+    });
+    txt += '\n'+linea;
+    txt += 'Duración total del proyecto: '+solution.proj+'\n';
+    txt += 'Camino(s) crítico(s): '+criticalPaths(solution, activities).join('  |  ')+'\n';
+  }
+
+  else if(tipo==='rubrica'){
+    txt += 'RÚBRICA DE EVALUACIÓN — EJERCICIO CPM\n'+linea;
+    txt += 'Criterio                                        Puntos\n';
+    txt += '-'.repeat(54)+'\n';
+    txt += 'Tiempos tempranos (ES, EF) correctos ............  30\n';
+    txt += 'Tiempos tardíos (LS, LF) correctos .............   30\n';
+    txt += 'Holguras correctas .............................   20\n';
+    txt += 'Identificación del camino crítico ..............   15\n';
+    txt += 'Duración total del proyecto ....................    5\n';
+    txt += '-'.repeat(54)+'\n';
+    txt += 'TOTAL ..........................................  100\n\n';
+    txt += 'Notas de corrección:\n';
+    txt += '· Se descuenta proporcionalmente por cada casilla errónea.\n';
+    txt += '· La holgura debe coincidir con LS−ES (= LF−EF).\n';
+    txt += '· Una actividad es crítica si y solo si su holgura es 0.\n\n';
+    txt += 'CLAVE DE RESPUESTAS\n'+linea;
+    activities.forEach(a => {
+      txt += `${a.id}: ES=${solution.ES[a.id]} EF=${solution.EF[a.id]} `
+           + `LS=${solution.LS[a.id]} LF=${solution.LF[a.id]} `
+           + `H=${solution.slack[a.id]} ${solution.critical[a.id]?'[CRÍTICA]':''}\n`;
+    });
+    txt += 'Duración total: '+solution.proj+'\n';
+    txt += 'Camino(s) crítico(s): '+criticalPaths(solution, activities).join('  |  ')+'\n';
+  }
+
+  download(`cpm_${tipo}.txt`, txt);
+  setMsg(`Archivo «cpm_${tipo}.txt» descargado.`, 'ok');
+}
+
+/* ============================================================
+   INICIO
+============================================================ */
+(function init(){
+  const sel = $('numAct');
+  for(let i=4;i<=10;i++){
+    const o=document.createElement('option'); o.value=i; o.textContent=i; sel.appendChild(o);
+  }
+  sel.value = 5;
+  recompute(); buildTable(); render();
+})();
+</script>
+</body>
+</html>

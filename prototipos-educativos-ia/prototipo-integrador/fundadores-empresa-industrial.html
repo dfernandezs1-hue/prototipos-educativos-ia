@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fundadores — crea tu empresa de ingeniería con IA</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a2744;--slate:#2d3e6b;--blue:#3b5fca;
+  --teal:#0d8a6f;--red:#c0392b;--amber:#c87a00;
+  --bg:#f4f6fb;--white:#fff;--border:#dde2ef;
+  --text:#1a2744;--muted:#6b7a9e;
+  --shadow:0 2px 14px rgba(26,39,68,.09);
+}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+header{background:var(--navy);color:#fff;padding:15px 30px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-bottom:3px solid var(--blue)}
+.hdr-t h1{font-size:1.18rem;font-weight:700}
+.hdr-t p{font-size:.75rem;color:#8fa8d0;margin-top:2px}
+.hdr-c{margin-left:auto;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.ctrl{background:var(--slate);color:#fff;border:1px solid #4a6090;border-radius:6px;padding:7px 13px;font-size:.83rem;cursor:pointer;outline:none}
+.fld label{font-size:.66rem;color:#8fa8d0;display:block;margin-bottom:3px;letter-spacing:.3px}
+.seg{display:inline-flex;border:1px solid #4a6090;border-radius:6px;overflow:hidden}
+.seg button{background:var(--slate);color:#8fa8d0;border:none;padding:7px 13px;font-size:.8rem;cursor:pointer}
+.seg button.on{background:var(--blue);color:#fff;font-weight:600}
+
+.layout{display:grid;grid-template-columns:1fr 250px;gap:20px;padding:20px 30px;max-width:1360px;margin:0 auto}
+@media(max-width:880px){.layout{grid-template-columns:1fr;padding:13px}header{padding:11px 15px}}
+
+.rail{background:var(--white);border-radius:10px;box-shadow:var(--shadow);border:1px solid var(--border);padding:14px;height:fit-content;position:sticky;top:14px}
+.rail h3{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:11px}
+.rail-step{display:flex;gap:10px;align-items:center;padding:8px;border-radius:7px;cursor:pointer;margin-bottom:2px;transition:background .15s}
+.rail-step:hover{background:var(--bg)}
+.rail-step.active{background:#eff3ff}
+.rail-step.locked{opacity:.4;cursor:not-allowed}
+.rs-n{width:23px;height:23px;border-radius:50%;background:var(--border);color:var(--muted);font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rail-step.active .rs-n{background:var(--blue);color:#fff}
+.rail-step.done .rs-n{background:var(--teal);color:#fff}
+.rs-t{font-size:.76rem;font-weight:600;line-height:1.2}
+.rs-t small{display:block;font-size:.63rem;color:var(--muted);font-weight:500}
+.rs-t .core{color:var(--teal);font-weight:700}
+.progbar{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;margin-bottom:13px}
+.progbar span{display:block;height:100%;background:var(--teal);transition:width .3s}
+
+.phase{background:var(--white);border-radius:10px;box-shadow:var(--shadow);border:1px solid var(--border);overflow:hidden;margin-bottom:15px}
+.ph-hdr{padding:16px 22px;border-bottom:1px solid var(--border);background:var(--bg)}
+.ph-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ph-badge{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#fff;background:var(--blue);padding:4px 10px;border-radius:20px}
+.ph-badge.dir{background:var(--slate)}
+.ph-badge.core{background:var(--teal)}
+.ph-hdr h2{font-size:1.15rem;color:var(--navy);margin-top:9px}
+.ph-hdr .asg{font-size:.74rem;color:var(--muted);margin-top:2px}
+.ph-body{padding:20px 22px}
+
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.tag{font-size:.66rem;background:#eef1f9;color:var(--slate);border:1px solid var(--border);padding:3px 9px;border-radius:12px;font-weight:600}
+
+.sect{margin-bottom:20px}
+.sect:last-child{margin-bottom:0}
+.sect-lbl{font-size:.68rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.sect-lbl::before{content:"";width:14px;height:2px;background:var(--blue);display:inline-block}
+.narr{font-size:.93rem;line-height:1.6;color:var(--text)}
+.narr b{color:var(--navy)}
+.hint{font-size:.83rem;color:var(--muted);margin-bottom:11px}
+
+.decis{background:#eff3ff;border-left:3px solid var(--blue);padding:13px 16px;border-radius:0 8px 8px 0;font-size:.92rem;font-weight:600;color:var(--navy);line-height:1.5}
+
+.chain{background:#f0faf6;border:1px solid #b8e0d2;border-radius:8px;padding:12px 15px}
+.chain-h{font-size:.68rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.chain-row{font-size:.85rem;display:flex;gap:8px;padding:3px 0;line-height:1.4}
+.chain-row b{color:var(--navy);min-width:150px;flex-shrink:0}
+.chain-empty{color:var(--muted);font-style:italic}
+
+.prompt{background:var(--navy);border-radius:9px;padding:14px 16px;margin-bottom:10px;position:relative}
+.prompt-txt{font-size:.86rem;color:#e8eefb;line-height:1.55;font-family:'Courier New',monospace;white-space:pre-wrap;padding-right:82px}
+.copy{position:absolute;top:11px;right:12px;background:var(--blue);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:.72rem;font-weight:600;cursor:pointer}
+.copy:hover{filter:brightness(1.12)}
+.copy.ok{background:var(--teal)}
+
+.crit{background:#fff9ed;border:1px solid #f0d070;border-radius:8px;padding:11px 15px;font-size:.85rem;color:#6b5000;line-height:1.5}
+.crit b{color:#b07a00}
+.tip{background:#eef4ff;border:1px solid #c5d5f5;border-radius:8px;padding:10px 14px;font-size:.82rem;color:var(--slate);line-height:1.5;display:flex;gap:9px}
+.tip .i{color:var(--blue);font-weight:700;flex-shrink:0}
+.tip b{color:var(--navy)}
+
+.reg{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}
+.reg label{font-size:.74rem;font-weight:600;color:var(--muted)}
+.reg input,.reg textarea{border:1.5px solid var(--border);border-radius:7px;padding:9px 12px;font-size:.88rem;color:var(--text);background:var(--bg);outline:none;font-family:inherit;transition:border .15s}
+.reg input:focus,.reg textarea:focus{border-color:var(--blue);background:#fff}
+.reg textarea{resize:vertical;min-height:52px}
+
+.feeds{font-size:.82rem;color:var(--muted);line-height:1.5;border-top:1px dashed var(--border);padding-top:12px}
+.feeds b{color:var(--teal)}
+
+.navrow{display:flex;justify-content:space-between;gap:10px;padding:0 22px 20px}
+.btn{padding:10px 22px;border-radius:7px;border:none;cursor:pointer;font-size:.86rem;font-weight:600;transition:filter .15s}
+.btn:hover{filter:brightness(1.1)}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-ghost{background:var(--bg);color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:disabled{opacity:.4;cursor:not-allowed}
+
+.sum-block{border:1px solid var(--border);border-radius:8px;padding:13px 16px;margin-bottom:11px}
+.sum-block h4{font-size:.8rem;color:var(--navy);margin-bottom:7px;display:flex;align-items:center;gap:8px}
+.sum-block h4 span{font-size:.6rem;background:var(--blue);color:#fff;padding:2px 8px;border-radius:12px;text-transform:uppercase;letter-spacing:.4px}
+.sum-block h4 span.core{background:var(--teal)}
+.sum-row{font-size:.85rem;padding:3px 0;color:var(--text)}
+.sum-row b{color:var(--muted);font-weight:600}
+.sum-miss{color:var(--amber);font-style:italic}
+.coh{background:#f0faf6;border:1px solid #b8e0d2;border-radius:8px;padding:13px 16px;margin-top:6px}
+.coh-h{font-size:.72rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+.coh-row{font-size:.84rem;padding:4px 0;display:flex;gap:9px;line-height:1.45}
+.coh-row .ic{font-weight:700}
+.coh-row.ok .ic{color:var(--teal)}
+.coh-row.no .ic{color:var(--amber)}
+
+.intro-note{background:#eff3ff;border-left:3px solid var(--blue);padding:12px 16px;border-radius:0 8px 8px 0;font-size:.84rem;color:var(--slate);line-height:1.55;margin-bottom:15px}
+.intro-note b{color:var(--navy)}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr-t">
+    <h1>Fundadores — crea tu empresa de ingeniería con IA</h1>
+    <p>Proyecto integrador · recorre la empresa área por área usando IA en cada fase</p>
+  </div>
+  <div class="hdr-c">
+    <div class="fld"><label>Sector de la empresa</label><select class="ctrl" id="sectorSel"></select></div>
+    <div class="fld"><label>Nivel</label>
+      <div class="seg" id="nivelSeg">
+        <button data-n="basico" class="on">Básico</button>
+        <button data-n="avanzado">Avanzado</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <main id="main"></main>
+  <aside class="rail">
+    <div class="progbar"><span id="progFill" style="width:0%"></span></div>
+    <h3>Recorrido</h3>
+    <div id="railSteps"></div>
+  </aside>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG — pila de datos editable
+   ------------------------------------------------------------
+   · sectores : variedad de empresas de ingeniería a fundar
+   · fases    : recorrido secuencial fijo (mapea las 9 tareas
+                del caso Harvard, trasladadas a una empresa de
+                organización industrial). core:true = asignatura
+                del grado (IO, Logística, Dir. Financiera).
+   Tokens en los prompts: «PRODUCTO» «CLIENTE» «PLAN» «DEMANDA»
+   «COSTEDIST» «OPORTUNIDAD» se rellenan con lo registrado antes.
+   ============================================================ */
+const CONFIG = {
+  sectores:[
+    {id:"auto", nombre:"Componente de automoción", producto:"un soporte estructural de aluminio para vehículo eléctrico",
+     ctx:"Los fabricantes de coche eléctrico buscan aligerar peso sin perder resistencia; mercado muy exigente en coste y calidad."},
+    {id:"iot", nombre:"Dispositivo IoT industrial", producto:"un sensor de calidad del aire para naves industriales",
+     ctx:"La normativa de seguridad laboral impulsa la monitorización ambiental continua en fábricas."},
+    {id:"med", nombre:"Equipamiento médico", producto:"una bomba de infusión portátil",
+     ctx:"Hospitales y atención domiciliaria demandan equipos ligeros, fiables y certificados (marcado CE sanitario)."},
+    {id:"alm", nombre:"Mobiliario para almacén", producto:"una estantería modular para almacén automatizado",
+     ctx:"El auge del e-commerce dispara la inversión en almacenes robotizados y estanterías compatibles con AGV."},
+    {id:"env", nombre:"Envase sostenible", producto:"una bandeja compostable para alimentación",
+     ctx:"La presión regulatoria sobre el plástico de un solo uso abre hueco a envases compostables certificados."}
+  ],
+  fases:[
+    {
+      id:"idea", dpto:"I+D · Diseño", asig:"Ingeniería de producto", tareaHBS:"T1+T3",
+      titulo:"Idea y diseño del producto",
+      tecnicas:["Preguntas interactivas","Criticar y mejorar"],
+      narrativa:"Eres el equipo fundador de una empresa de ingeniería en el sector <b>«SECTORNOMBRE»</b>. «SECTORCTX» I+D arranca definiendo el producto estrella: sus especificaciones y su propuesta de valor, antes de pasar a fabricación.",
+      decision:"Decide QUÉ vas a fabricar, con qué especificaciones y PARA QUIÉN. Este producto te acompañará por toda la empresa.",
+      metodo:"Ideación dirigida + especificación técnica",
+      prompts:{
+        basico:[
+          "Soy el equipo fundador de una empresa de ingeniería que quiere lanzar «PRODUCTO». Hazme 5 preguntas, una a una, para definir sus especificaciones técnicas, el cliente objetivo y la propuesta de valor.",
+          "Con mis respuestas, redacta una ficha de producto: nombre, especificaciones clave, cliente objetivo y 3 ventajas competitivas. Añade una versión industrial del proceso de fabricación."
+        ],
+        avanzado:[
+          "Propón 3 conceptos de «PRODUCTO» con un coste objetivo de fabricación de [X] €/ud y sujetos a [normativa aplicable]. Puntúa cada uno (1-5) en viabilidad técnica, diferenciación y demanda. Justifica.",
+          "Elige el mejor concepto y define su ficha técnica con especificaciones medibles y el proceso industrial de fabricación."
+        ]
+      },
+      critica:"Critica esta ficha de producto: ¿qué debilidades técnicas o de propuesta de valor tiene? Reescríbela mejorada.",
+      tip:"En el caso Harvard la clave es pedir las preguntas <b>de una en una</b>: respondiendo paso a paso afinas mucho mejor el producto.",
+      chainShow:[],
+      registros:[
+        {id:"producto", label:"Producto que has decidido"},
+        {id:"cliente", label:"Cliente objetivo"},
+        {id:"ventaja", label:"Ventaja competitiva principal", area:true}
+      ],
+      feeds:"El <b>producto</b> y su <b>cliente</b> marcan lo que analizará Inteligencia de Mercado y, después, todo lo que fabricará y venderá la empresa."
+    },
+    {
+      id:"mkt", dpto:"Inteligencia de mercado", asig:"Análisis de datos y competencia", tareaHBS:"T2+T4",
+      titulo:"Oportunidad y competencia",
+      tecnicas:["Análisis de datos","Búsqueda web + fuentes"],
+      narrativa:"Antes de invertir, hay que confirmar que existe oportunidad para <b>«PRODUCTO»</b>. Este equipo analiza datos de tendencias del sector y estudia a los competidores reales.",
+      decision:"Decide DÓNDE está la oportunidad y cuál es tu DIFERENCIACIÓN frente a la competencia.",
+      metodo:"Análisis exploratorio de datos + benchmarking competitivo",
+      prompts:{
+        basico:[
+          "Adjunto datos de tendencias del sector [sube el archivo]. Haz un análisis exploratorio, visualiza lo más relevante y dime dónde está la mayor oportunidad para «PRODUCTO» y por qué.",
+          "Busca en internet los competidores más cercanos a «PRODUCTO»: qué ofrecen, a qué precio y cuál sería mi diferenciación. Cita las fuentes."
+        ],
+        avanzado:[
+          "Sobre los datos adjuntos, identifica segmentos de mercado con mayor crecimiento y estima el tamaño de la oportunidad. Señala los supuestos que haces.",
+          "Haz un mapa competitivo (precio vs. prestaciones) de «PRODUCTO» y localiza el hueco de mercado que puedo ocupar. Cita fuentes."
+        ]
+      },
+      critica:"¿El análisis de datos es sólido o hay saltos lógicos? Pídele que rehaga la parte que no cuadre.",
+      tip:"<b>Activa la búsqueda web</b> para datos y competidores reales. Ojo: la IA a veces se equivoca analizando datos; si algo no cuadra, pídele que <b>rehaga el análisis</b>.",
+      chainShow:["producto","cliente"],
+      registros:[
+        {id:"oportunidad", label:"Oportunidad detectada", area:true},
+        {id:"diferenciacion", label:"Diferenciación frente a la competencia"}
+      ],
+      feeds:"La <b>oportunidad</b> y la <b>diferenciación</b> son los criterios con los que Estrategia decidirá si el producto merece la inversión."
+    },
+    {
+      id:"estr", dpto:"Estrategia · Dirección", asig:"Viabilidad y decisión", tareaHBS:"T4",
+      titulo:"Viabilidad del proyecto",
+      tecnicas:["Puntuación de viabilidad","Persona"],
+      narrativa:"Dirección debe decidir si «PRODUCTO» es la apuesta correcta. Para ello puntúa su viabilidad en varias dimensiones y da luz verde (o no) al resto de departamentos.",
+      decision:"Decide si el producto SE APRUEBA para desarrollo, con una puntuación de viabilidad razonada.",
+      metodo:"Evaluación multicriterio de viabilidad",
+      prompts:{
+        basico:[
+          "Actúa como consultor de estrategia industrial. Analiza la viabilidad de «PRODUCTO» en 4 dimensiones: fabricación y cadena de suministro, diferenciación, atractivo para el cliente y potencial de margen. Puntúa cada una (1-5), justifica y da una nota global.",
+          "Con esa evaluación, recomiéndame si seguir adelante con «PRODUCTO» o replantearlo, y por qué."
+        ],
+        avanzado:[
+          "Compara «PRODUCTO» con una alternativa de producto del mismo sector usando la misma matriz de viabilidad (1-5 por dimensión) y recomienda cuál priorizar.",
+          "Haz un análisis DAFO de «PRODUCTO» apoyándote en la oportunidad y la diferenciación ya detectadas."
+        ]
+      },
+      critica:"Pídele que juegue al abogado del diablo: ¿por qué NO deberíamos lanzar este producto?",
+      tip:"Truco del caso Harvard: <b>asigna un rol a la IA</b> ('actúa como consultor de estrategia'). La respuesta mejora mucho.",
+      chainShow:["producto","oportunidad","diferenciacion"],
+      registros:[
+        {id:"viabilidad", label:"Puntuación de viabilidad y decisión", area:true}
+      ],
+      feeds:"Con el producto aprobado, arrancan las tres asignaturas del grado: <b>Operaciones (IO)</b>, <b>Suministro (Logística)</b> y <b>Finanzas</b>."
+    },
+    {
+      id:"ops", dpto:"Operaciones", asig:"Investigación Operativa", core:true, tareaHBS:"—",
+      titulo:"Producción y planificación",
+      tecnicas:["Optimización / modelo","Criticar y mejorar"],
+      narrativa:"Operaciones debe fabricar <b>«PRODUCTO»</b> con recursos limitados (líneas, horas, materiales) y planificar el proyecto de lanzamiento para no perder la ventana de mercado.",
+      decision:"Decide el PLAN DE PRODUCCIÓN óptimo y la DURACIÓN del lanzamiento.",
+      metodo:"Programación lineal (mix de producción) + camino crítico (CPM)",
+      prompts:{
+        basico:[
+          "Actúa como responsable de operaciones. Para fabricar «PRODUCTO» dispongo de 2-3 líneas o recursos limitados. Formula un modelo de programación lineal (variables, función objetivo de maximizar margen, restricciones de capacidad) y resuélvelo dándome el mix óptimo.",
+          "Planifica el lanzamiento con el método del camino crítico: 6-8 actividades con duraciones y precedencias, la duración total y la ruta crítica."
+        ],
+        avanzado:[
+          "Resuelve el modelo de mix de producción de «PRODUCTO» añadiendo una restricción real (turno máximo, material escaso o demanda máxima) y haz un análisis de sensibilidad: ¿qué recurso conviene ampliar antes?",
+          "Construye el CPM del lanzamiento con holguras por actividad e indica dónde poner recursos extra para acortar la ruta crítica."
+        ]
+      },
+      critica:"¿Es realista este plan con los recursos de una empresa que arranca? Critícalo y ajústalo.",
+      tip:"Pide a la IA que <b>revise sus propios cálculos con un caso pequeño</b> antes de fiarte del resultado.",
+      chainShow:["producto","viabilidad"],
+      registros:[
+        {id:"plan", label:"Plan de producción decidido (uds/mes o mix)", area:true},
+        {id:"lanzamiento", label:"Duración del lanzamiento (camino crítico)"}
+      ],
+      feeds:"La <b>capacidad de producción</b> pone el techo a lo que Suministro podrá servir: la demanda prevista no debería superarla sin ampliar recursos."
+    },
+    {
+      id:"sup", dpto:"Cadena de suministro", asig:"Logística", core:true, tareaHBS:"T5",
+      titulo:"Demanda, inventario y proveedores",
+      tecnicas:["Previsión","Búsqueda web + fuentes"],
+      narrativa:"Suministro prevé la demanda de <b>«PRODUCTO»</b>, dimensiona el inventario, planifica la distribución a <b>«CLIENTE»</b> y localiza fabricantes o proveedores reales.",
+      decision:"Decide la DEMANDA PREVISTA, el LOTE ÓPTIMO, el COSTE de distribución y el PROVEEDOR.",
+      metodo:"Previsión + lote económico (EOQ) + distribución + sourcing",
+      prompts:{
+        basico:[
+          "Con estos datos de demanda de 12 meses [pega la serie], haz una previsión de 6 meses (media móvil o suavizado) y dime si hay estacionalidad.",
+          "Calcula el lote económico (EOQ) de «PRODUCTO»: demanda anual D, coste de pedido S y coste de mantenimiento H. Dame Q*, número de pedidos y coste total.",
+          "Busca empresas reales en España o la UE que puedan fabricar o suministrar componentes para «PRODUCTO». Cita las fuentes."
+        ],
+        avanzado:[
+          "Añade a la previsión un stock de seguridad para un nivel de servicio del 95 % y explica cómo cambia si la demanda es más volátil (efecto látigo aguas arriba).",
+          "Optimiza la distribución de última milla a «CLIENTE» repartiendo la demanda en vehículos con capacidad limitada y compara 2 configuraciones de ruta por coste."
+        ]
+      },
+      critica:"¿Encaja esta demanda prevista con el plan de producción anterior («PLAN»)? Si no, ajústala e indica qué cambiar en producción.",
+      tip:"<b>Activa la búsqueda web</b> para localizar proveedores/fabricantes reales y sus condiciones aproximadas.",
+      chainShow:["producto","cliente","plan"],
+      registros:[
+        {id:"demanda", label:"Demanda prevista (uds/año)"},
+        {id:"eoq", label:"Lote óptimo Q* / política de inventario"},
+        {id:"costedist", label:"Coste de distribución estimado (€/año)"},
+        {id:"proveedor", label:"Proveedor / fabricante localizado"}
+      ],
+      feeds:"La <b>demanda prevista</b> y los <b>costes logísticos</b> son las entradas del modelo financiero: sin ellos no hay ingresos ni costes fiables."
+    },
+    {
+      id:"cal", dpto:"Calidad y sostenibilidad", asig:"Normativa e impacto", tareaHBS:"T6(parcial)",
+      titulo:"Calidad, normativa e impacto",
+      tecnicas:["Búsqueda web + fuentes","Criticar y mejorar"],
+      narrativa:"Antes de vender, «PRODUCTO» debe cumplir la normativa aplicable y demostrar un plan de calidad y sostenibilidad. Este equipo lo asegura.",
+      decision:"Decide el PLAN DE CALIDAD (qué controlar) y la POSICIÓN de sostenibilidad/normativa.",
+      metodo:"Plan de control de calidad + análisis de normativa e impacto",
+      prompts:{
+        basico:[
+          "Define un plan de calidad para «PRODUCTO»: 4-5 características críticas a controlar, cómo medirlas y qué normas o certificaciones aplican. Cita las fuentes normativas.",
+          "Analiza el impacto ambiental de «PRODUCTO» a lo largo de su ciclo de vida y propón 3 mejoras de sostenibilidad realistas."
+        ],
+        avanzado:[
+          "Diseña un plan de control estadístico de proceso (SPC) para la característica más crítica de «PRODUCTO»: variable, límites de control y frecuencia de muestreo.",
+          "Estima la huella de carbono aproximada por unidad de «PRODUCTO» y señala la fase del ciclo de vida donde más se puede reducir."
+        ]
+      },
+      critica:"¿La normativa citada es la correcta y está vigente? Pídele que la verifique y cite la referencia oficial.",
+      tip:"Exige siempre que <b>cite las fuentes y la normativa</b> (p. ej. marcado CE, ISO 9001, directivas UE). Verifica que existan.",
+      chainShow:["producto"],
+      registros:[
+        {id:"calidad", label:"Plan de calidad / normativa aplicable", area:true},
+        {id:"sostenibilidad", label:"Posición de sostenibilidad"}
+      ],
+      feeds:"El coste de calidad y de cumplir la normativa entra en el modelo financiero; la sostenibilidad es un argumento para Marketing."
+    },
+    {
+      id:"fin", dpto:"Finanzas", asig:"Dirección Financiera", core:true, tareaHBS:"—",
+      titulo:"Viabilidad económica y control",
+      tecnicas:["Modelo financiero","Criticar y mejorar"],
+      narrativa:"Finanzas dice al consejo si lanzar <b>«PRODUCTO»</b> crea valor. Usa la demanda de <b>«DEMANDA»</b> uds/año y los costes logísticos de Suministro para montar las cuentas.",
+      decision:"Decide si el proyecto SE APRUEBA, con VAN y TIR sobre la mesa, y define el control de gestión.",
+      metodo:"VAN / TIR + cuenta previsional + control de desviaciones",
+      prompts:{
+        basico:[
+          "Monta la cuenta de resultados previsional a 5 años de «PRODUCTO»: demanda «DEMANDA» uds/año, precio P €/ud y costes (incluye el coste logístico «COSTEDIST»). Con inversión inicial I y tasa de descuento r, calcula VAN y TIR.",
+          "Compara la TIR con el coste de capital y dime con argumentos si el proyecto crea valor y debe aprobarse.",
+          "Diseña un cuadro de control con 4 desviaciones clave (ventas, coste de material, productividad y logística) y cómo se calcula cada una."
+        ],
+        avanzado:[
+          "Análisis de sensibilidad del VAN a la demanda (±20 %) y al precio: ¿a partir de qué demanda deja de crear valor (punto muerto)?",
+          "Compara financiar la inversión con deuda vs. capital (o una emisión de bonos): efecto en la rentabilidad del accionista y en el riesgo."
+        ]
+      },
+      critica:"Critica los supuestos financieros: ¿cuáles son demasiado optimistas dada la capacidad de producción y la demanda prevista?",
+      tip:"Haz que la IA <b>critique sus propios supuestos</b>: los de ventas y coste suelen ser demasiado optimistas.",
+      chainShow:["producto","plan","demanda","costedist"],
+      registros:[
+        {id:"van", label:"VAN obtenido"},
+        {id:"tir", label:"TIR obtenida"},
+        {id:"decision", label:"Decisión de inversión (aprobar / no) y por qué", area:true}
+      ],
+      feeds:"La <b>decisión de inversión</b> cierra el análisis. Marketing prepara el lanzamiento y el consejo verá todo junto en el pitch."
+    },
+    {
+      id:"mk2", dpto:"Marketing y cliente", asig:"Lanzamiento", tareaHBS:"T6+T7+T5(logo)",
+      titulo:"Cliente, marca y lanzamiento",
+      tecnicas:["Feedback sintético","Persona","Generación de imagen","Criticar y mejorar"],
+      narrativa:"Marketing afina el segmento de cliente, valida el producto con clientes simulados, crea la identidad visual y prepara el mensaje de lanzamiento de <b>«PRODUCTO»</b>.",
+      decision:"Decide el SEGMENTO objetivo, el MENSAJE de lanzamiento y la IDENTIDAD visual.",
+      metodo:"Segmentación + feedback sintético + branding + go-to-market",
+      prompts:{
+        basico:[
+          "¿Cuál es el mejor segmento de cliente para «PRODUCTO»? Justifícalo y cita fuentes.",
+          "Eres un panel de 10 personas del perfil «CLIENTE». Para cada una, describe brevemente quién es y qué opina de «PRODUCTO»: fortalezas, debilidades, a quién atrae más y cómo mejorarlo.",
+          "Actúa como profesional de marketing. Escribe la descripción de lanzamiento de «PRODUCTO». Después critica ese borrador (¿qué falla?) e incorpóralo para mejorarlo. Usa un tono profesional."
+        ],
+        avanzado:[
+          "Genera un logo para la empresa: moderno, [colores], que muestre solo la inicial (no el nombre completo).",
+          "Diseña una campaña de lanzamiento: canales más adecuados para llegar a «CLIENTE» y la idea de un anuncio."
+        ]
+      },
+      critica:"Pide a la IA que critique el mensaje como si fuera un cliente escéptico del segmento, y que lo reescriba.",
+      tip:"La <b>generación de imágenes</b> suele cometer faltas de ortografía en el texto del logo: revísalo. Y vigila tu <b>límite de uso</b>: generar muchas imágenes lo agota rápido.",
+      chainShow:["producto","cliente","diferenciacion","sostenibilidad"],
+      registros:[
+        {id:"segmento", label:"Segmento objetivo y mensaje", area:true},
+        {id:"feedback", label:"Idea clave del feedback de clientes"}
+      ],
+      feeds:"El segmento y el mensaje completan el caso: el consejo ya tiene producto, operaciones, suministro, calidad, finanzas y marketing."
+    },
+    {
+      id:"board", dpto:"Consejo", asig:"Caso de negocio y pitch", badgeDir:true, isBoard:true, tareaHBS:"T8+T9",
+      titulo:"Caso de negocio y pitch",
+      tecnicas:["Síntesis","Persona","Criticar y mejorar"],
+      narrativa:"Presentas la empresa al consejo e inversores. Reúne los entregables de todas las áreas en un caso coherente: la fuerza del proyecto está en que <b>todo encaje</b>, no en cada pieza suelta.",
+      decision:"Comprueba la COHERENCIA entre áreas y genera el documento de diseño + el pitch.",
+      metodo:"Síntesis integradora dirigida por IA",
+      prompts:{
+        basico:[
+          "Con todo lo siguiente [va incluido abajo], redacta un documento de diseño de 1 página y un guion de 2 diapositivas para inversores: problema y producto, mercado y diferenciación, operaciones, suministro, calidad, viabilidad financiera (VAN/TIR) y la decisión."
+        ],
+        avanzado:[
+          "Con el resumen de abajo, genera el caso de negocio y además señala las 3 mayores incoherencias o riesgos entre áreas (p. ej. producir menos de lo que se prevé vender) y cómo resolverlas antes de presentar a inversores."
+        ]
+      },
+      critica:"Pide a la IA que actúe como inversor escéptico y ataque el caso: ¿qué preguntas incómodas haría?",
+      tip:"El botón copia el prompt <b>junto con el resumen completo</b> de tus decisiones, listo para pegar en tu IA.",
+      chainShow:[],
+      registros:[]
+    }
+  ]
+};
+
+/* etiqueta de cada registro para el resumen final, agrupada por área */
+const RESUMEN = [
+  {dpto:"I+D · Diseño", core:false, filas:[["producto","Producto"],["cliente","Cliente"],["ventaja","Ventaja"]]},
+  {dpto:"Inteligencia de mercado", core:false, filas:[["oportunidad","Oportunidad"],["diferenciacion","Diferenciación"]]},
+  {dpto:"Estrategia", core:false, filas:[["viabilidad","Viabilidad / decisión"]]},
+  {dpto:"Operaciones · IO", core:true, filas:[["plan","Plan de producción"],["lanzamiento","Lanzamiento"]]},
+  {dpto:"Suministro · Logística", core:true, filas:[["demanda","Demanda prevista"],["eoq","Lote Q*"],["costedist","Coste distribución"],["proveedor","Proveedor"]]},
+  {dpto:"Calidad y sostenibilidad", core:false, filas:[["calidad","Plan de calidad"],["sostenibilidad","Sostenibilidad"]]},
+  {dpto:"Finanzas · Dir. Financiera", core:true, filas:[["van","VAN"],["tir","TIR"],["decision","Decisión de inversión"]]},
+  {dpto:"Marketing", core:false, filas:[["segmento","Segmento y mensaje"],["feedback","Feedback de clientes"]]}
+];
+
+/* etiquetas cortas para el contexto encadenado */
+const ETIQ = {producto:"Producto",cliente:"Cliente",ventaja:"Ventaja",oportunidad:"Oportunidad",
+  diferenciacion:"Diferenciación",viabilidad:"Viabilidad",plan:"Plan de producción",
+  lanzamiento:"Lanzamiento",demanda:"Demanda prevista",eoq:"Lote Q*",costedist:"Coste distribución",
+  proveedor:"Proveedor",calidad:"Plan de calidad",sostenibilidad:"Sostenibilidad",van:"VAN",tir:"TIR",
+  decision:"Decisión inversión",segmento:"Segmento",feedback:"Feedback"};
+
+/* ============================================================ ESTADO ============================================================ */
+const state = { sectorId:CONFIG.sectores[0].id, nivel:"basico", fase:0, maxFase:0, reg:{} };
+let VISTA = { prompts:[] };   // textos de los botones de copiar de la fase actual (evita meterlos en el HTML)
+
+/* ============================================================ UTILIDADES ============================================================ */
+function sector(){ return CONFIG.sectores.find(s=>s.id===state.sectorId); }
+
+function fillTokens(txt){
+  const s=sector();
+  const map={
+    "«PRODUCTO»":state.reg.producto||s.producto,
+    "«CLIENTE»":state.reg.cliente||"[tu cliente objetivo]",
+    "«PLAN»":state.reg.plan||"[tu plan de producción]",
+    "«DEMANDA»":state.reg.demanda||"[tu demanda prevista]",
+    "«COSTEDIST»":state.reg.costedist||"[tu coste logístico]",
+    "«OPORTUNIDAD»":state.reg.oportunidad||"[la oportunidad detectada]",
+    "«SECTORNOMBRE»":s.nombre, "«SECTORCTX»":s.ctx
+  };
+  let o=txt; for(const k in map) o=o.split(k).join(map[k]); return o;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function copiar(btn,idx){
+  const texto=VISTA.prompts[idx]||"";
+  const done=()=>{btn.textContent="✓ Copiado";btn.classList.add("ok");setTimeout(()=>{btn.textContent=btn.dataset.lbl;btn.classList.remove("ok");},1400);};
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(texto).then(done).catch(()=>fallback(texto,done));
+  else fallback(texto,done);
+}
+function fallback(t,cb){const ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");}catch(e){}document.body.removeChild(ta);cb();}
+
+/* ============================================================ RENDER ============================================================ */
+function render(){
+  renderRail();
+  const f=CONFIG.fases[state.fase];
+  f.isBoard?renderBoard(f):renderPhase(f);
+  const pct=(state.maxFase/(CONFIG.fases.length-1))*100;
+  document.getElementById("progFill").style.width=pct+"%";
+}
+
+function renderRail(){
+  document.getElementById("railSteps").innerHTML=CONFIG.fases.map((f,i)=>{
+    const cls=i===state.fase?"active":(i<=state.maxFase?"done":"locked");
+    const locked=i>state.maxFase;
+    const core=f.core?'<span class="core">●</span> ':'';
+    return `<div class="rail-step ${cls}" ${locked?'':`onclick="goto(${i})"`}>
+      <div class="rs-n">${i<state.maxFase&&i!==state.fase?'✓':i+1}</div>
+      <div class="rs-t">${core}${f.dpto}<small>${f.asig}</small></div></div>`;
+  }).join("");
+}
+
+function tagsHtml(f){ return `<div class="tags">${f.tecnicas.map(t=>`<span class="tag">${t}</span>`).join("")}</div>`; }
+function badgeCls(f){ return f.badgeDir?'dir':(f.core?'core':''); }
+
+function chainHtml(f){
+  if(!f.chainShow||!f.chainShow.length) return "";
+  const rows=f.chainShow.map(id=>{
+    const v = id==="producto" ? (state.reg.producto||sector().producto) : state.reg[id];
+    return `<div class="chain-row"><b>${ETIQ[id]}</b><span>${v?escapeHtml(v):'<span class="chain-empty">— sin registrar aún —</span>'}</span></div>`;
+  }).join("");
+  return `<div class="sect"><div class="chain"><div class="chain-h">Viene de fases anteriores</div>${rows}</div></div>`;
+}
+
+function promptsHtml(f, withResumen){
+  const arr=f.prompts[state.nivel]||f.prompts.basico;
+  VISTA.prompts=arr.map(p=> withResumen ? fillTokens(p)+"\n\n"+resumenTexto() : fillTokens(p));
+  const lbl=withResumen?"Copiar con resumen":"Copiar";
+  return arr.map((p,i)=>`<div class="prompt">
+    <button class="copy" data-lbl="${lbl}" onclick="copiar(this,${i})">${lbl}</button>
+    <div class="prompt-txt">${escapeHtml(fillTokens(p))}</div></div>`).join("");
+}
+
+function regsHtml(f){
+  return f.registros.map(r=>{
+    const v=state.reg[r.id]||"";
+    const inp=r.area
+      ? `<textarea oninput="saveReg('${r.id}',this.value)" placeholder="Anota aquí tu decisión…">${escapeHtml(v)}</textarea>`
+      : `<input value="${escapeHtml(v)}" oninput="saveReg('${r.id}',this.value)" placeholder="Anota aquí tu decisión…">`;
+    return `<div class="reg"><label>${r.label}</label>${inp}</div>`;
+  }).join("");
+}
+
+function renderPhase(f){
+  document.getElementById("main").innerHTML=`
+  ${state.fase===0?`<div class="intro-note"><b>Qué es esto:</b> el ejercicio de Harvard «montar una empresa con IA», trasladado a una empresa de ingeniería. Recorres la empresa área por área; en cada una tienes prompts listos para tu IA (ChatGPT, Claude…): cópialos, trabájalos <b>fuera</b> y anota aquí la decisión. Lo que anotas viaja a la fase siguiente. La app no se conecta a ninguna IA: te dirige, tú la usas. El punto verde ● marca las asignaturas del grado.</div>`:''}
+  <div class="phase">
+    <div class="ph-hdr">
+      <div class="ph-top"><span class="ph-badge ${badgeCls(f)}">${f.dpto}</span>${tagsHtml(f)}</div>
+      <h2>${f.titulo}</h2><div class="asg">${f.asig}${f.core?' · asignatura del grado':''}</div>
+    </div>
+    <div class="ph-body">
+      <div class="sect"><div class="sect-lbl">Situación</div><div class="narr">${fillTokens(f.narrativa)}</div></div>
+      ${chainHtml(f)}
+      <div class="sect"><div class="sect-lbl">Tu decisión</div><div class="decis">${f.decision}</div></div>
+      <div class="sect"><div class="sect-lbl">Método · ${f.metodo}</div>
+        <div class="hint">Usa tu IA con estos prompts (nivel ${state.nivel}). Lo que va entre corchetes lo personalizas tú.</div>
+        ${promptsHtml(f,false)}
+        ${f.tip?`<div class="tip" style="margin-top:6px"><span class="i">Nota</span><div>${f.tip}</div></div>`:''}
+      </div>
+      <div class="sect"><div class="sect-lbl">Itera como en el caso Harvard</div>
+        <div class="crit"><b>Critica y mejora:</b> ${fillTokens(f.critica)}</div></div>
+      <div class="sect"><div class="sect-lbl">Registra tu decisión</div>${regsHtml(f)}</div>
+      <div class="feeds"><b>→ Alimenta la siguiente fase:</b> ${f.feeds}</div>
+    </div>
+  </div>${navRow()}`;
+}
+
+function renderBoard(f){
+  document.getElementById("main").innerHTML=`
+  <div class="phase">
+    <div class="ph-hdr">
+      <div class="ph-top"><span class="ph-badge dir">${f.dpto}</span>${tagsHtml(f)}</div>
+      <h2>${f.titulo}</h2><div class="asg">${f.asig}</div>
+    </div>
+    <div class="ph-body">
+      <div class="sect"><div class="sect-lbl">Situación</div><div class="narr">${fillTokens(f.narrativa)}</div></div>
+      <div class="sect"><div class="sect-lbl">Tu empresa, de un vistazo</div>${resumenBloques()}</div>
+      <div class="sect"><div class="sect-lbl">Coherencia entre áreas</div>${coherencia()}</div>
+      <div class="sect"><div class="sect-lbl">Genera el pitch</div>
+        <div class="hint">El botón copia el prompt <b>con el resumen de todas tus decisiones</b>, listo para pegar en tu IA.</div>
+        ${promptsHtml(f,true)}
+        ${f.tip?`<div class="tip" style="margin-top:6px"><span class="i">Nota</span><div>${f.tip}</div></div>`:''}
+      </div>
+      <div class="sect"><div class="sect-lbl">Prueba de fuego</div>
+        <div class="crit"><b>Inversor escéptico:</b> ${fillTokens(f.critica)}</div></div>
+    </div>
+  </div>${navRow()}`;
+}
+
+function navRow(){
+  const first=state.fase===0,last=state.fase===CONFIG.fases.length-1;
+  return `<div class="navrow">
+    <button class="btn btn-ghost" ${first?'disabled':''} onclick="prev()">← Anterior</button>
+    ${last?'':`<button class="btn btn-primary" onclick="next()">Siguiente fase →</button>`}</div>`;
+}
+
+/* resumen final */
+function resumenBloques(){
+  return RESUMEN.map(b=>{
+    const filas=b.filas.map(([id,lbl])=>{
+      const v = id==="producto" ? (state.reg.producto||sector().producto) : state.reg[id];
+      const val = v?escapeHtml(v):`<span class="sum-miss">sin registrar</span>`;
+      return `<div class="sum-row"><b>${lbl}:</b> ${val}</div>`;
+    }).join("");
+    return `<div class="sum-block"><h4><span class="${b.core?'core':''}">${b.core?'Asignatura':'Área'}</span> ${b.dpto}</h4>${filas}</div>`;
+  }).join("");
+}
+function resumenTexto(){
+  const lineas=["RESUMEN DEL CASO — "+sector().nombre];
+  RESUMEN.forEach(b=>b.filas.forEach(([id,lbl])=>{
+    const v = id==="producto" ? (state.reg.producto||sector().producto) : (state.reg[id]||"[pendiente]");
+    lineas.push(lbl+": "+v);
+  }));
+  return lineas.join("\n");
+}
+
+function coherencia(){
+  const d=id=>!!state.reg[id];
+  const rows=[
+    [d('producto'),"El producto está definido y arrastrado por toda la empresa."],
+    [d('oportunidad')&&d('viabilidad'),"La decisión de seguir se apoya en la oportunidad de mercado, no en una corazonada."],
+    [d('plan')&&d('demanda'),"La demanda prevista cabe en el plan de producción (no vender más de lo que se fabrica)."],
+    [d('demanda')&&d('van'),"Los ingresos financieros parten de la demanda de Suministro, no de una cifra inventada."],
+    [d('costedist')&&d('van'),"El coste logístico de Suministro está incorporado en las cuentas."],
+    [d('calidad'),"El producto cumple un plan de calidad y la normativa aplicable."],
+    [d('decision'),"Hay una decisión de inversión final justificada."]
+  ];
+  return `<div class="coh"><div class="coh-h">Checklist de integración</div>${
+    rows.map(([ok,t])=>`<div class="coh-row ${ok?'ok':'no'}"><span class="ic">${ok?'✓':'○'}</span><span>${t}</span></div>`).join("")}</div>`;
+}
+
+/* ============================================================ ACCIONES ============================================================ */
+function saveReg(id,val){ state.reg[id]=val; }
+function next(){ if(state.fase<CONFIG.fases.length-1){state.fase++;state.maxFase=Math.max(state.maxFase,state.fase);render();irArriba();} }
+function prev(){ if(state.fase>0){state.fase--;render();irArriba();} }
+function goto(i){ if(i<=state.maxFase){state.fase=i;render();irArriba();} }
+function irArriba(){ window.scrollTo({top:0,behavior:"smooth"}); }
+
+/* ============================================================ INIT ============================================================ */
+(function init(){
+  const sel=document.getElementById("sectorSel");
+  sel.innerHTML=CONFIG.sectores.map(s=>`<option value="${s.id}">${s.nombre}</option>`).join("");
+  sel.onchange=e=>{state.sectorId=e.target.value;render();};
+  document.querySelectorAll("#nivelSeg button").forEach(b=>{
+    b.onclick=()=>{document.querySelectorAll("#nivelSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");state.nivel=b.dataset.n;render();};
+  });
+  render();
+})();
+</script>
+</body>
+</html>
