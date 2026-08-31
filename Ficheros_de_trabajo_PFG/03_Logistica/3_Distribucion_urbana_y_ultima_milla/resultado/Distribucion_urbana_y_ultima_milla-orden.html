@@ -1,0 +1,2194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optimizador inteligente de distribución urbana y última milla</title>
+<style>
+/* ============ BASE ============ */
+:root{
+  --bg:#0b0f14;
+  --bg-2:#101720;
+  --panel:#131c27;
+  --panel-2:#192534;
+  --border:#243245;
+  --text:#d8e2ee;
+  --muted:#8aa0b8;
+  --cyan:#22d3ee;
+  --yellow:#facc15;
+  --green:#4ade80;
+  --red:#f87171;
+  --orange:#fb923c;
+  --mono:'JetBrains Mono','Fira Code',ui-monospace,Consolas,monospace;
+  --sans:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;min-height:100vh}
+body{
+  background-image:
+    radial-gradient(circle at 15% 10%,rgba(34,211,238,.06),transparent 40%),
+    radial-gradient(circle at 85% 90%,rgba(74,222,128,.04),transparent 40%);
+}
+
+/* ============ HEADER ============ */
+header{
+  border-bottom:1px solid var(--border);
+  padding:18px 28px;
+  display:flex;justify-content:space-between;align-items:center;
+  background:rgba(13,18,25,.6);
+  backdrop-filter:blur(8px);
+  position:sticky;top:0;z-index:10;
+}
+header .brand{display:flex;align-items:center;gap:14px}
+header .logo{
+  width:36px;height:36px;border:1.5px solid var(--cyan);border-radius:6px;
+  display:grid;place-items:center;color:var(--cyan);font-family:var(--mono);font-weight:700;
+  background:rgba(34,211,238,.08);
+}
+header h1{font-size:15px;font-weight:600;letter-spacing:.3px}
+header .sub{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px}
+header .meta{font-family:var(--mono);font-size:11px;color:var(--muted)}
+header .meta span{color:var(--green)}
+
+/* ============ TABS ============ */
+nav.tabs{
+  display:flex;gap:2px;border-bottom:1px solid var(--border);
+  background:var(--bg-2);padding:0 20px;overflow-x:auto;
+}
+nav.tabs button{
+  background:transparent;border:none;color:var(--muted);
+  padding:14px 18px;font-family:var(--sans);font-size:13px;font-weight:500;
+  cursor:pointer;border-bottom:2px solid transparent;
+  white-space:nowrap;transition:color .15s,border-color .15s;
+}
+nav.tabs button:hover{color:var(--text)}
+nav.tabs button.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+nav.tabs button .num{
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  margin-right:8px;opacity:.7;
+}
+nav.tabs button.active .num{color:var(--cyan);opacity:1}
+
+/* ============ LAYOUT ============ */
+main{padding:24px 28px;max-width:1600px;margin:0 auto}
+.tab-panel{display:none;animation:fadeIn .25s ease}
+.tab-panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.grid-4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.grid-split{grid-template-columns:340px 1fr}
+@media(max-width:900px){.grid-split{grid-template-columns:1fr}}
+
+/* ============ PANELS ============ */
+.panel{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;padding:18px;
+}
+.panel h2{
+  font-size:13px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.panel h2::before{
+  content:'';width:3px;height:14px;background:var(--cyan);
+}
+.panel h3{
+  font-size:12px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;
+  color:var(--muted);margin:14px 0 8px;
+}
+.panel p.desc{font-size:13px;color:var(--muted);margin-bottom:12px;line-height:1.6}
+.panel p.note{
+  font-size:12px;color:var(--muted);font-style:italic;
+  border-left:2px solid var(--border);padding-left:10px;margin-top:12px;
+}
+
+/* ============ FORM ============ */
+.field{margin-bottom:12px}
+.field label{
+  display:block;font-size:11px;color:var(--muted);
+  font-family:var(--mono);text-transform:uppercase;letter-spacing:.3px;
+  margin-bottom:5px;
+}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--bg-2);border:1px solid var(--border);
+  color:var(--text);padding:8px 10px;border-radius:5px;
+  font-family:var(--mono);font-size:13px;
+  transition:border-color .15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:none;border-color:var(--cyan);
+}
+.field input[type="number"]{appearance:textfield}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* ============ BUTTONS ============ */
+button.btn{
+  background:var(--cyan);color:#06141a;border:none;
+  padding:10px 18px;border-radius:5px;font-weight:600;font-size:13px;
+  cursor:pointer;font-family:var(--sans);
+  transition:filter .15s,transform .05s;
+  display:inline-flex;align-items:center;gap:8px;
+}
+button.btn:hover{filter:brightness(1.1)}
+button.btn:active{transform:translateY(1px)}
+button.btn.secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border)}
+button.btn.secondary:hover{border-color:var(--cyan);color:var(--cyan)}
+button.btn.yellow{background:var(--yellow);color:#1a1500}
+button.btn.green{background:var(--green);color:#001a08}
+button.btn.danger{background:var(--red);color:#1a0000}
+button.btn.small{padding:6px 12px;font-size:12px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+/* ============ TABLES ============ */
+table{
+  width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;
+  background:var(--bg-2);border-radius:5px;overflow:hidden;
+}
+table th{
+  background:var(--panel-2);color:var(--muted);
+  font-weight:600;text-align:left;padding:8px 10px;
+  font-size:10px;text-transform:uppercase;letter-spacing:.4px;
+  border-bottom:1px solid var(--border);
+}
+table td{padding:7px 10px;border-bottom:1px solid var(--border)}
+table tr:last-child td{border-bottom:none}
+table tr:hover td{background:rgba(34,211,238,.04)}
+table input{
+  background:transparent;border:1px solid transparent;
+  color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:3px 5px;width:100%;border-radius:3px;
+}
+table input:focus{outline:none;background:var(--panel);border-color:var(--cyan)}
+.table-wrap{overflow-x:auto;margin-top:8px}
+
+/* ============ KPI ============ */
+.kpi{
+  background:var(--bg-2);border:1px solid var(--border);
+  border-radius:6px;padding:12px;
+}
+.kpi .label{
+  font-size:10px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.4px;font-family:var(--mono);
+}
+.kpi .value{
+  font-family:var(--mono);font-size:22px;font-weight:700;
+  color:var(--text);margin-top:5px;
+}
+.kpi .value.cyan{color:var(--cyan)}
+.kpi .value.yellow{color:var(--yellow)}
+.kpi .value.green{color:var(--green)}
+.kpi .value.red{color:var(--red)}
+.kpi .unit{font-size:12px;color:var(--muted);font-weight:400;margin-left:3px}
+.kpi .sub{font-size:11px;color:var(--muted);margin-top:3px}
+
+/* ============ ALERTS ============ */
+.alert{
+  border-radius:5px;padding:10px 12px;font-size:12px;
+  margin-top:10px;display:flex;gap:8px;align-items:flex-start;
+}
+.alert.warn{background:rgba(250,204,21,.08);border:1px solid rgba(250,204,21,.3);color:#fde68a}
+.alert.error{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);color:#fca5a5}
+.alert.info{background:rgba(34,211,238,.06);border:1px solid rgba(34,211,238,.25);color:#a5f3fc}
+.alert.success{background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3);color:#86efac}
+.alert .icon{font-family:var(--mono);font-weight:700}
+
+/* ============ MAP ============ */
+.map-container{
+  background:#0a1018;border:1px solid var(--border);
+  border-radius:6px;padding:0;overflow:hidden;
+  position:relative;
+}
+.map-svg{display:block;width:100%;height:auto;background:#0a1018}
+.map-legend{
+  display:flex;flex-wrap:wrap;gap:14px;
+  padding:10px 14px;border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+}
+.map-legend .item{display:flex;align-items:center;gap:6px}
+.map-legend .dot{width:10px;height:10px;border-radius:50%}
+
+/* ============ BADGES ============ */
+.badge{
+  display:inline-block;padding:2px 7px;border-radius:3px;
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.3px;
+}
+.badge.ok{background:rgba(74,222,128,.15);color:var(--green)}
+.badge.warn{background:rgba(250,204,21,.15);color:var(--yellow)}
+.badge.err{background:rgba(248,113,113,.15);color:var(--red)}
+.badge.info{background:rgba(34,211,238,.15);color:var(--cyan)}
+.badge.neutral{background:var(--panel-2);color:var(--muted)}
+
+/* ============ CHART ============ */
+.chart-container{
+  background:var(--bg-2);border:1px solid var(--border);
+  border-radius:6px;padding:14px;margin-top:10px;
+}
+.chart-container svg{display:block;width:100%;height:auto}
+
+/* ============ EXERCISES ============ */
+.exercise-card{
+  background:var(--bg-2);border:1px solid var(--border);
+  border-left:3px solid var(--yellow);
+  padding:18px;border-radius:6px;
+}
+.exercise-card h4{
+  font-size:14px;color:var(--yellow);margin-bottom:10px;
+  font-family:var(--mono);text-transform:uppercase;letter-spacing:.5px;
+}
+.exercise-statement{
+  font-size:13px;line-height:1.7;color:var(--text);
+  background:var(--panel);padding:12px;border-radius:5px;
+  margin-bottom:14px;
+}
+.option-row{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:8px 10px;background:var(--panel);border-radius:4px;
+  margin-bottom:6px;cursor:pointer;
+  border:1px solid transparent;transition:border-color .15s;
+}
+.option-row:hover{border-color:var(--border)}
+.option-row.selected{border-color:var(--cyan);background:rgba(34,211,238,.05)}
+.option-row.correct{border-color:var(--green);background:rgba(74,222,128,.08)}
+.option-row.incorrect{border-color:var(--red);background:rgba(248,113,113,.08)}
+.option-row .letter{
+  font-family:var(--mono);color:var(--cyan);font-weight:700;
+}
+.hint-box{
+  background:rgba(250,204,21,.06);border:1px dashed rgba(250,204,21,.3);
+  padding:10px 12px;border-radius:5px;margin-top:10px;
+  font-size:12px;color:#fde68a;
+}
+.solution-box{
+  background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.25);
+  padding:14px;border-radius:5px;margin-top:10px;
+  font-size:12px;line-height:1.7;
+}
+.solution-box .step{margin-bottom:8px;font-family:var(--mono);font-size:11px}
+.solution-box .step strong{color:var(--green);display:block;margin-bottom:2px}
+
+/* ============ COMPARATOR ============ */
+.recommend-box{
+  background:linear-gradient(135deg,rgba(34,211,238,.08),rgba(74,222,128,.05));
+  border:1px solid var(--cyan);border-radius:6px;padding:16px;
+  margin-top:16px;
+}
+.recommend-box .label{
+  font-family:var(--mono);font-size:11px;color:var(--cyan);
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.recommend-box .winner{
+  font-size:18px;font-weight:700;color:var(--text);margin-top:5px;
+}
+.recommend-box .reason{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.6}
+
+/* ============ SCROLL ============ */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* ============ UTIL ============ */
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+.tag{
+  font-family:var(--mono);font-size:10px;color:var(--muted);
+  padding:1px 6px;border:1px solid var(--border);border-radius:3px;
+}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.text-sm{font-size:12px}
+
+/* Scenario card in comparator */
+.scenario-card{
+  background:var(--bg-2);border:1px solid var(--border);
+  border-radius:6px;padding:14px;
+}
+.scenario-card.best{border-color:var(--green);box-shadow:0 0 0 1px rgba(74,222,128,.2)}
+.scenario-card h4{
+  font-size:12px;color:var(--text);font-family:var(--mono);
+  text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.scenario-card .metric{
+  display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:11px;
+  padding:3px 0;border-bottom:1px dashed var(--border);
+}
+.scenario-card .metric:last-child{border-bottom:none}
+.scenario-card .metric .k{color:var(--muted)}
+.scenario-card .metric .v{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">UL</div>
+    <div>
+      <h1>Optimizador inteligente de distribución urbana y última milla</h1>
+      <div class="sub">PROTOTIPO EDUCATIVO · LOGÍSTICA · DISTRIBUCIÓN Y TRANSPORTE</div>
+    </div>
+  </div>
+  <div class="meta">
+    Estado: <span id="status-indicator">operativo</span>
+  </div>
+</header>
+
+<nav class="tabs" id="tab-nav">
+  <button data-tab="escenario" class="active"><span class="num">01</span>Escenario urbano</button>
+  <button data-tab="clientes"><span class="num">02</span>Clientes y restricciones</button>
+  <button data-tab="directa"><span class="num">03</span>Ruta directa</button>
+  <button data-tab="ccu"><span class="num">04</span>Centro de consolidación</button>
+  <button data-tab="microhub"><span class="num">05</span>Microhub / sostenible</button>
+  <button data-tab="nocturna"><span class="num">06</span>Entrega nocturna</button>
+  <button data-tab="comparador"><span class="num">07</span>Comparador</button>
+  <button data-tab="ejercicios"><span class="num">08</span>Generador de ejercicios</button>
+</nav>
+
+<main>
+
+<!-- ============ TAB 1: ESCENARIO URBANO ============ -->
+<section class="tab-panel active" id="tab-escenario">
+  <div class="grid grid-split">
+    <div class="panel">
+      <h2>Configuración del escenario</h2>
+      <p class="desc">Genera una ciudad ficticia con depósito, clientes, zonas de tráfico, zonas restringidas y posibles ubicaciones para CCU y microhub.</p>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Nº de clientes</label>
+          <input type="number" id="cfg-clients" value="10" min="3" max="30">
+        </div>
+        <div class="field">
+          <label>Tamaño ciudad (km)</label>
+          <input type="number" id="cfg-size" value="10" min="3" max="30">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Nivel de tráfico</label>
+          <select id="cfg-traffic">
+            <option value="0.8">Bajo (×0.8 tiempo)</option>
+            <option value="1.0" selected>Medio (×1.0)</option>
+            <option value="1.4">Alto (×1.4)</option>
+            <option value="1.8">Muy alto (×1.8)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Distancia urbana</label>
+          <select id="cfg-distance">
+            <option value="manhattan" selected>Manhattan (red urbana)</option>
+            <option value="euclid">Euclídea (recta)</option>
+          </select>
+        </div>
+      </div>
+
+      <h3>Flota base (vehículo convencional)</h3>
+      <div class="field-row">
+        <div class="field">
+          <label>Nº vehículos</label>
+          <input type="number" id="cfg-vehicles" value="1" min="1" max="10">
+        </div>
+        <div class="field">
+          <label>Capacidad (uds)</label>
+          <input type="number" id="cfg-capacity" value="80" min="10">
+        </div>
+      </div>
+
+      <div class="field-row-3">
+        <div class="field">
+          <label>€/km</label>
+          <input type="number" id="cfg-cost-km" value="0.45" step="0.01" min="0">
+        </div>
+        <div class="field">
+          <label>€/hora</label>
+          <input type="number" id="cfg-cost-h" value="22" step="0.5" min="0">
+        </div>
+        <div class="field">
+          <label>kgCO₂/km</label>
+          <input type="number" id="cfg-emission" value="0.27" step="0.01" min="0">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Velocidad urbana (km/h)</label>
+          <input type="number" id="cfg-speed" value="25" min="5">
+        </div>
+        <div class="field">
+          <label>Hora inicio reparto</label>
+          <input type="number" id="cfg-start" value="8" min="0" max="23" step="0.5">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="generateScenario()">Generar escenario</button>
+        <button class="btn secondary" onclick="regenerateClients()">Solo regenerar clientes</button>
+      </div>
+
+      <div id="cfg-warnings"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Vista de la ciudad</h2>
+      <div class="map-container">
+        <svg class="map-svg" id="map-main" viewBox="0 0 600 500"></svg>
+        <div class="map-legend">
+          <div class="item"><div class="dot" style="background:var(--cyan)"></div>Depósito</div>
+          <div class="item"><div class="dot" style="background:var(--yellow)"></div>Cliente</div>
+          <div class="item"><div class="dot" style="background:var(--green)"></div>CCU</div>
+          <div class="item"><div class="dot" style="background:#a855f7"></div>Microhub</div>
+          <div class="item"><div class="dot" style="background:rgba(248,113,113,.6)"></div>Zona tráfico</div>
+          <div class="item"><div class="dot" style="background:rgba(250,204,21,.4)"></div>Zona restringida</div>
+          <div class="item"><div class="dot" style="background:rgba(34,211,238,.5)"></div>Carga/descarga</div>
+        </div>
+      </div>
+      <div class="grid grid-4" style="margin-top:14px">
+        <div class="kpi"><div class="label">Clientes</div><div class="value cyan" id="kpi-clients">—</div></div>
+        <div class="kpi"><div class="label">Demanda total</div><div class="value" id="kpi-demand">—<span class="unit">uds</span></div></div>
+        <div class="kpi"><div class="label">Zonas restringidas</div><div class="value yellow" id="kpi-restricted">—</div></div>
+        <div class="kpi"><div class="label">Distancia máx.</div><div class="value" id="kpi-maxdist">—<span class="unit">km</span></div></div>
+      </div>
+      <p class="note">El mapa simula una red urbana ficticia. Distancias calculadas con métrica <span class="mono" id="metric-label">Manhattan</span>. La generación es estocástica: cada escenario es único.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 2: CLIENTES ============ -->
+<section class="tab-panel" id="tab-clientes">
+  <div class="panel">
+    <h2>Clientes y restricciones</h2>
+    <p class="desc">Cada cliente tiene coordenadas, demanda, ventana horaria, tiempo de descarga, prioridad, posibilidad de devolución (logística inversa) y dificultad de aparcamiento. Modifica los valores para ver el efecto en las rutas.</p>
+
+    <div class="btn-row">
+      <button class="btn secondary small" onclick="validateClients()">Validar restricciones</button>
+      <button class="btn secondary small" onclick="addCustomer()">+ Añadir cliente</button>
+      <button class="btn secondary small" onclick="regenerateClients()">Regenerar aleatorios</button>
+    </div>
+
+    <div id="client-validation"></div>
+
+    <div class="table-wrap" style="margin-top:14px">
+      <table id="clients-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>X (km)</th>
+            <th>Y (km)</th>
+            <th>Demanda</th>
+            <th>Ventana (h)</th>
+            <th>T. descarga (min)</th>
+            <th>Prioridad</th>
+            <th>Devol.</th>
+            <th>Aparcam.</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="clients-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="grid grid-3" style="margin-top:14px">
+      <div class="kpi"><div class="label">Total clientes</div><div class="value cyan" id="kpi2-n">—</div></div>
+      <div class="kpi"><div class="label">Demanda agregada</div><div class="value" id="kpi2-dem">—<span class="unit">uds</span></div></div>
+      <div class="kpi"><div class="label">Logística inversa</div><div class="value yellow" id="kpi2-reverse">—<span class="unit">clientes</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 3: RUTA DIRECTA ============ -->
+<section class="tab-panel" id="tab-directa">
+  <div class="grid grid-split">
+    <div class="panel">
+      <h2>Ruta directa tradicional</h2>
+      <p class="desc">Desde el depósito se visita a todos los clientes y se regresa. Usa una heurística <span class="mono">vecino más cercano</span> con preferencia por ventanas horarias próximas. No es óptimo matemático, es una aproximación didáctica.</p>
+
+      <h3>Parámetros del cálculo</h3>
+      <div class="field">
+        <label>Penalización por retraso (€/hora)</label>
+        <input type="number" id="dir-penalty" value="15" min="0">
+      </div>
+      <div class="field">
+        <label>Factor tráfico aplicado</label>
+        <input type="number" id="dir-traffic" value="1.0" step="0.1" min="0.5" readonly>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="computeDirect()">Calcular ruta directa</button>
+        <button class="btn secondary" onclick="exportRouteDirect()">Ver orden de visita</button>
+      </div>
+
+      <div id="dir-warnings"></div>
+      <p class="note">Esta heurística no garantiza el mínimo absoluto. Su objetivo es ilustrar el problema VRP con ventanas horarias y permitir comparar alternativas.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Resultados</h2>
+      <div class="grid grid-3">
+        <div class="kpi"><div class="label">Distancia total</div><div class="value cyan" id="dir-dist">—<span class="unit">km</span></div></div>
+        <div class="kpi"><div class="label">Tiempo total</div><div class="value" id="dir-time">—<span class="unit">h</span></div><div class="sub" id="dir-time-detail"></div></div>
+        <div class="kpi"><div class="label">Coste total</div><div class="value yellow" id="dir-cost">—<span class="unit">€</span></div></div>
+        <div class="kpi"><div class="label">Emisiones</div><div class="value" id="dir-co2">—<span class="unit">kgCO₂</span></div></div>
+        <div class="kpi"><div class="label">Nivel de servicio</div><div class="value green" id="dir-service">—<span class="unit">%</span></div></div>
+        <div class="kpi"><div class="label">Penalización</div><div class="value red" id="dir-pen">—<span class="unit">€</span></div></div>
+      </div>
+
+      <div class="map-container" style="margin-top:14px">
+        <svg class="map-svg" id="map-direct" viewBox="0 0 600 400"></svg>
+      </div>
+
+      <h3>Orden de visita</h3>
+      <div class="table-wrap">
+        <table id="direct-route-table">
+          <thead>
+            <tr>
+              <th>#</th><th>Cliente</th><th>Llegada</th><th>Ventana</th><th>Espera</th><th>Descarga</th><th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="direct-route-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 4: CCU ============ -->
+<section class="tab-panel" id="tab-ccu">
+  <div class="grid grid-split">
+    <div class="panel">
+      <h2>Centro de consolidación urbano</h2>
+      <p class="desc">Las mercancías llegan al depósito, se trasladan al CCU (en la periferia urbana) y desde allí se distribuyen al centro con vehículos adaptados. Reduce kilómetros urbanos pero añade coste de manipulación.</p>
+
+      <h3>Parámetros del CCU</h3>
+      <div class="field-row">
+        <div class="field">
+          <label>Coste fijo CCU (€)</label>
+          <input type="number" id="ccu-fixed" value="80" min="0">
+        </div>
+        <div class="field">
+          <label>Coste manipulación (€/ud)</label>
+          <input type="number" id="ccu-unit" value="0.35" step="0.01" min="0">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Tiempo consolidación (min)</label>
+          <input type="number" id="ccu-time" value="45" min="0">
+        </div>
+        <div class="field">
+          <label>Reducción tráfico desde CCU</label>
+          <select id="ccu-traffic-reduce">
+            <option value="0.85">−15%</option>
+            <option value="0.75" selected>−25%</option>
+            <option value="0.65">−35%</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="computeCCU()">Calcular CCU</button>
+      </div>
+
+      <div id="ccu-warnings"></div>
+      <p class="note">Conviene cuando hay muchos clientes con drop size pequeño, alta congestión, restricciones de acceso al centro, o necesidad de reducir vehículos pesados en el casco urbano.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Resultados CCU vs Directa</h2>
+      <div class="grid grid-3">
+        <div class="kpi"><div class="label">Distancia total</div><div class="value cyan" id="ccu-dist">—<span class="unit">km</span></div><div class="sub" id="ccu-dist-vs"></div></div>
+        <div class="kpi"><div class="label">Tiempo total</div><div class="value" id="ccu-time-r">—<span class="unit">h</span></div><div class="sub" id="ccu-time-vs"></div></div>
+        <div class="kpi"><div class="label">Coste total</div><div class="value yellow" id="ccu-cost">—<span class="unit">€</span></div><div class="sub" id="ccu-cost-vs"></div></div>
+        <div class="kpi"><div class="label">Emisiones</div><div class="value" id="ccu-co2">—<span class="unit">kgCO₂</span></div><div class="sub" id="ccu-co2-vs"></div></div>
+        <div class="kpi"><div class="label">Km urbanos ahorrados</div><div class="value green" id="ccu-saved">—<span class="unit">km</span></div></div>
+        <div class="kpi"><div class="label">Nivel de servicio</div><div class="value green" id="ccu-service">—<span class="unit">%</span></div></div>
+      </div>
+
+      <div class="map-container" style="margin-top:14px">
+        <svg class="map-svg" id="map-ccu" viewBox="0 0 600 400"></svg>
+      </div>
+
+      <div id="ccu-diagnosis"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 5: MICROHUB ============ -->
+<section class="tab-panel" id="tab-microhub">
+  <div class="grid grid-split">
+    <div class="panel">
+      <h2>Microhub y reparto sostenible</h2>
+      <p class="desc">Un microhub urbano permite hacer la última milla con vehículos eco-friendly (furgoneta eléctrica o bicicleta de carga). Menos emisiones y mejor acceso a zonas restringidas, pero menor capacidad y posibles viajes múltiples.</p>
+
+      <h3>Vehículo de última milla</h3>
+      <div class="field">
+        <label>Tipo de vehículo</label>
+        <select id="mh-vehicle" onchange="updateVehiclePreset()">
+          <option value="van">Furgón convencional diésel</option>
+          <option value="ev" selected>Furgoneta eléctrica</option>
+          <option value="cargo">Bicicleta de carga</option>
+        </select>
+      </div>
+
+      <div class="field-row">
+        <div class="field"><label>Capacidad (uds)</label><input type="number" id="mh-cap" value="40"></div>
+        <div class="field"><label>Velocidad (km/h)</label><input type="number" id="mh-speed" value="22"></div>
+      </div>
+      <div class="field-row-3">
+        <div class="field"><label>€/km</label><input type="number" id="mh-costkm" value="0.18" step="0.01"></div>
+        <div class="field"><label>kgCO₂/km</label><input type="number" id="mh-em" value="0.05" step="0.01"></div>
+        <div class="field"><label>Coste fijo (€)</label><input type="number" id="mh-fixed" value="60"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="computeMicrohub()">Calcular microhub</button>
+      </div>
+
+      <div id="mh-warnings"></div>
+      <p class="note">Trade-off: menor emisión y mejor acceso urbano, pero capacidad limitada. Si la demanda agregada supera la capacidad, se necesitan varios viajes desde el microhub.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Resultados microhub</h2>
+      <div class="grid grid-3">
+        <div class="kpi"><div class="label">Viajes necesarios</div><div class="value cyan" id="mh-trips">—</div></div>
+        <div class="kpi"><div class="label">Distancia total</div><div class="value" id="mh-dist">—<span class="unit">km</span></div></div>
+        <div class="kpi"><div class="label">Tiempo total</div><div class="value" id="mh-time">—<span class="unit">h</span></div></div>
+        <div class="kpi"><div class="label">Coste total</div><div class="value yellow" id="mh-cost">—<span class="unit">€</span></div></div>
+        <div class="kpi"><div class="label">Emisiones</div><div class="value green" id="mh-co2">—<span class="unit">kgCO₂</span></div></div>
+        <div class="kpi"><div class="label">Nivel de servicio</div><div class="value" id="mh-service">—<span class="unit">%</span></div></div>
+      </div>
+
+      <div class="map-container" style="margin-top:14px">
+        <svg class="map-svg" id="map-microhub" viewBox="0 0 600 400"></svg>
+      </div>
+
+      <div id="mh-diagnosis"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 6: NOCTURNA ============ -->
+<section class="tab-panel" id="tab-nocturna">
+  <div class="grid grid-split">
+    <div class="panel">
+      <h2>Entrega nocturna</h2>
+      <p class="desc">Reparto fuera del horario punta: menor tráfico, menor tiempo de conducción, menor espera. Puede chocar con restricciones de ruido y necesita coordinación con receptores. Apropiado en grandes superficies y zonas saturadas.</p>
+
+      <h3>Parámetros nocturnos</h3>
+      <div class="field-row">
+        <div class="field">
+          <label>Reducción de tráfico</label>
+          <select id="nig-traffic">
+            <option value="0.55">Fuerte (×0.55)</option>
+            <option value="0.45" selected>Muy fuerte (×0.45)</option>
+            <option value="0.35">Extrema (×0.35)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Reducción de espera</label>
+          <select id="nig-wait">
+            <option value="0.3">−70%</option>
+            <option value="0.2" selected>−80%</option>
+            <option value="0.1">−90%</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Recargo nocturno (€/hora)</label>
+          <input type="number" id="nig-extra" value="6" step="0.5">
+        </div>
+        <div class="field">
+          <label>Hora inicio reparto</label>
+          <input type="number" id="nig-start" value="22" min="0" max="23">
+        </div>
+      </div>
+      <div class="field">
+        <label>% clientes que admiten nocturno</label>
+        <input type="number" id="nig-pct" value="70" min="0" max="100">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="computeNight()">Calcular nocturna</button>
+      </div>
+
+      <div id="nig-warnings"></div>
+      <p class="note">No todos los clientes pueden recibir de noche. Si el % es bajo, parte de la entrega vuelve a horario diurno, reduciendo el ahorro.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Resultados nocturna vs diurna</h2>
+      <div class="grid grid-3">
+        <div class="kpi"><div class="label">Distancia total</div><div class="value cyan" id="nig-dist">—<span class="unit">km</span></div></div>
+        <div class="kpi"><div class="label">Tiempo total</div><div class="value" id="nig-time">—<span class="unit">h</span></div><div class="sub" id="nig-time-vs"></div></div>
+        <div class="kpi"><div class="label">Coste total</div><div class="value yellow" id="nig-cost">—<span class="unit">€</span></div><div class="sub" id="nig-cost-vs"></div></div>
+        <div class="kpi"><div class="label">Emisiones</div><div class="value" id="nig-co2">—<span class="unit">kgCO₂</span></div></div>
+        <div class="kpi"><div class="label">Espera evitada</div><div class="value green" id="nig-wait-saved">—<span class="unit">h</span></div></div>
+        <div class="kpi"><div class="label">Nivel de servicio</div><div class="value green" id="nig-service">—<span class="unit">%</span></div></div>
+      </div>
+      <div id="nig-diagnosis"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TAB 7: COMPARADOR ============ -->
+<section class="tab-panel" id="tab-comparador">
+  <div class="panel">
+    <h2>Comparador de escenarios</h2>
+    <p class="desc">Compara los cuatro escenarios calculados. Selecciona el criterio prioritario para destacar la mejor alternativa.</p>
+
+    <div class="row">
+      <div class="field" style="min-width:220px;margin-bottom:0">
+        <label>Criterio prioritario</label>
+        <select id="cmp-criterion" onchange="renderComparator()">
+          <option value="cost">Minimizar coste</option>
+          <option value="time">Minimizar tiempo</option>
+          <option value="co2">Minimizar emisiones</option>
+          <option value="service">Maximizar nivel de servicio</option>
+          <option value="balance" selected>Equilibrio general</option>
+        </select>
+      </div>
+      <button class="btn" onclick="computeAllAndCompare()">Recalcular todos y comparar</button>
+    </div>
+
+    <div class="table-wrap" style="margin-top:16px">
+      <table id="cmp-table">
+        <thead>
+          <tr>
+            <th>Escenario</th>
+            <th>Distancia (km)</th>
+            <th>Tiempo (h)</th>
+            <th>Coste (€)</th>
+            <th>Emisiones (kgCO₂)</th>
+            <th>A tiempo</th>
+            <th>Penaliz. (€)</th>
+            <th>Servicio</th>
+            <th>Viajes</th>
+          </tr>
+        </thead>
+        <tbody id="cmp-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="grid grid-4" style="margin-top:16px" id="cmp-cards"></div>
+
+    <div class="chart-container" style="margin-top:16px">
+      <h3 style="margin-bottom:10px">Coste vs Emisiones vs Tiempo</h3>
+      <svg id="cmp-chart" viewBox="0 0 700 280"></svg>
+    </div>
+
+    <div id="cmp-recommend"></div>
+    <div id="cmp-diagnosis"></div>
+  </div>
+</section>
+
+<!-- ============ TAB 8: EJERCICIOS ============ -->
+<section class="tab-panel" id="tab-ejercicios">
+  <div class="grid grid-split">
+    <div class="panel">
+      <h2>Generador de ejercicios</h2>
+      <p class="desc">Genera ejercicios automáticos con datos aleatorios realistas. Cada ejercicio permite responder, pedir pistas progresivas y ver la solución paso a paso.</p>
+
+      <div class="field">
+        <label>Tipo de ejercicio</label>
+        <select id="ex-type">
+          <option value="random">Aleatorio</option>
+          <option value="route">Calcular ruta aproximada</option>
+          <option value="ccu">Elegir directa vs CCU</option>
+          <option value="night">¿Conviene nocturna?</option>
+          <option value="vehicle">Vehículo convencional vs eléctrico</option>
+          <option value="constraint">Identificar restricción principal</option>
+          <option value="window">Impacto de ventanas horarias</option>
+          <option value="cost">Calcular coste y emisiones</option>
+          <option value="case">Caso abierto (justificación)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Dificultad</label>
+        <select id="ex-difficulty">
+          <option value="easy">Básico</option>
+          <option value="med" selected>Intermedio</option>
+          <option value="hard">Avanzado</option>
+        </select>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn yellow" onclick="generateExercise()">Generar ejercicio</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Ejercicio actual</h2>
+      <div id="exercise-area">
+        <p class="muted text-sm">Pulsa "Generar ejercicio" para comenzar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN — DATOS EDITABLES DEL ESCENARIO
+   ------------------------------------------------------------
+   Aquí está centralizada la "pila de datos" del prototipo. Para
+   cambiar el mapa o cómo se generan los clientes se edita SOLO
+   este bloque; la lógica de cálculo de rutas y costes de más
+   abajo no hay que tocarla.
+
+   Las posiciones y radios se dan como FRACCIÓN del tamaño del
+   mapa (s, en km): así el escenario escala solo al cambiar el
+   tamaño desde el panel de configuración.
+
+   Mapa de datos editables:
+     • puntos ....... depósito, CCU y microhub (datos fijos)     [aquí]
+     • zonas ........ tráfico / restringidas / carga (fijas)     [aquí]
+     • escenario .... rangos aleatorios de los clientes          [aquí]
+   Nota: los parámetros numéricos del panel (nº clientes, costes,
+   velocidad, etc.) los introduce el usuario en pantalla. Los
+   coeficientes del modelo de costes/rutas (factores de eficiencia,
+   penalizaciones, reducción de tráfico) están dentro de cada
+   función de cálculo (calcular ruta directa / CCU / microhub).
+   ============================================================ */
+const CONFIG = {
+
+  /* --- PUNTOS FIJOS (fracción del tamaño del mapa s) --- */
+  puntos: {
+    depot:    { fx:0.05, fy:0.5  }, // depósito en periferia
+    ccu:      { fx:0.2,  fy:0.15 }, // CCU en periferia opuesta
+    microhub: { fx:0.55, fy:0.55 }  // microhub dentro del centro
+  },
+
+  /* --- ZONAS FIJAS del mapa (posición y radio como fracción de s) --- */
+  zonas: {
+    trafico:      [ {fx:0.55, fy:0.55, fr:0.18}, {fx:0.7, fy:0.4, fr:0.12} ],
+    restringidas: [ {fx:0.6,  fy:0.5,  fr:0.10} ],
+    carga:        [ {fx:0.5, fy:0.45}, {fx:0.65, fy:0.6}, {fx:0.45, fy:0.7} ]
+  },
+
+  /* --- PILA DE DATOS ALEATORIOS: generación de clientes --- */
+  escenario: {
+    probCentral: 0.7,                          // prob. de cliente en zona central
+    centralX: [0.3, 0.85], centralY: [0.2, 0.85], // fracciones de s (zona central)
+    perifX:   [0.1, 0.95], perifY:   [0.05, 0.95], // fracciones de s (periferia)
+    demanda:        [3, 15],
+    ventanaInicio:  [8, 15],   // hora de inicio de la ventana horaria
+    ventanaDuracion:[2, 4],    // horas que se suman al inicio para el fin
+    descargaMin:    [5, 15],   // minutos de descarga
+    prioridad:      [1, 3],
+    probReverse:    0.25       // prob. de necesitar logística inversa
+  }
+
+};
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+const state = {
+  depot:{x:0,y:0},
+  ccu:{x:0,y:0},
+  microhub:{x:0,y:0},
+  customers:[],
+  trafficZones:[], // [{x,y,r}]
+  restrictedZones:[], // [{x,y,r}]
+  loadingZones:[], // [{x,y}]
+  cfg:{},
+  results:{ direct:null, ccu:null, microhub:null, night:null },
+  currentExercise:null,
+};
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+function rnd(min,max){return Math.random()*(max-min)+min}
+function rndInt(min,max){return Math.floor(rnd(min,max+1))}
+function fmt(n,d=2){return (Math.round(n*Math.pow(10,d))/Math.pow(10,d)).toFixed(d)}
+function fmt1(n){return fmt(n,1)}
+
+function distance(a,b,metric){
+  if(metric==='euclid'){
+    return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);
+  }
+  return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+}
+
+function readConfig(){
+  state.cfg = {
+    nClients: parseInt(document.getElementById('cfg-clients').value)||10,
+    size: parseFloat(document.getElementById('cfg-size').value)||10,
+    traffic: parseFloat(document.getElementById('cfg-traffic').value)||1.0,
+    metric: document.getElementById('cfg-distance').value,
+    vehicles: parseInt(document.getElementById('cfg-vehicles').value)||1,
+    capacity: parseFloat(document.getElementById('cfg-capacity').value)||80,
+    costKm: parseFloat(document.getElementById('cfg-cost-km').value)||0.45,
+    costH: parseFloat(document.getElementById('cfg-cost-h').value)||22,
+    emission: parseFloat(document.getElementById('cfg-emission').value)||0.27,
+    speed: parseFloat(document.getElementById('cfg-speed').value)||25,
+    startHour: parseFloat(document.getElementById('cfg-start').value)||8,
+  };
+  document.getElementById('dir-traffic').value = state.cfg.traffic;
+  document.getElementById('metric-label').textContent = state.cfg.metric==='euclid'?'Euclídea':'Manhattan';
+}
+
+function validateConfig(){
+  readConfig();
+  const errs=[];
+  if(state.cfg.nClients<3) errs.push('Debe haber al menos 3 clientes.');
+  if(state.cfg.nClients>30) errs.push('Máximo 30 clientes para mantener legibilidad.');
+  if(state.cfg.size<3) errs.push('Tamaño mínimo recomendado: 3 km.');
+  if(state.cfg.capacity<=0) errs.push('Capacidad debe ser positiva.');
+  if(state.cfg.speed<=0) errs.push('Velocidad debe ser positiva.');
+  if(state.cfg.costKm<0||state.cfg.costH<0) errs.push('Los costes no pueden ser negativos.');
+  if(state.cfg.emission<0) errs.push('Las emisiones no pueden ser negativas.');
+  const cont = document.getElementById('cfg-warnings');
+  if(errs.length){
+    cont.innerHTML = errs.map(e=>`<div class="alert error"><span class="icon">!</span>${e}</div>`).join('');
+    return false;
+  }
+  cont.innerHTML='';
+  return true;
+}
+
+/* ============================================================
+   GENERACIÓN DE ESCENARIO
+   ============================================================ */
+function generateScenario(){
+  if(!validateConfig()) return;
+  const s = state.cfg.size;
+
+  // Puntos fijos (ver CONFIG.puntos)
+  const P = CONFIG.puntos;
+  state.depot    = {x:s*P.depot.fx,    y:s*P.depot.fy};
+  state.ccu      = {x:s*P.ccu.fx,      y:s*P.ccu.fy};   // CCU para cross-docking
+  state.microhub = {x:s*P.microhub.fx, y:s*P.microhub.fy};
+
+  // Zonas del mapa (ver CONFIG.zonas)
+  const Z = CONFIG.zonas;
+  state.trafficZones    = Z.trafico.map(z=>({x:s*z.fx, y:s*z.fy, r:s*z.fr}));      // centro
+  state.restrictedZones = Z.restringidas.map(z=>({x:s*z.fx, y:s*z.fy, r:s*z.fr})); // centro histórico
+  state.loadingZones    = Z.carga.map(z=>({x:s*z.fx, y:s*z.fy}));                  // carga/descarga
+
+  generateCustomers();
+  renderMapMain();
+  updateScenarioKPIs();
+  renderClientsTable();
+  // limpiar resultados
+  state.results = {direct:null,ccu:null,microhub:null,night:null};
+  clearMap('map-direct');
+  clearMap('map-ccu');
+  clearMap('map-microhub');
+}
+
+function generateCustomers(){
+  const n = state.cfg.nClients;
+  const s = state.cfg.size;
+  const e = CONFIG.escenario; // rangos aleatorios editables
+  state.customers = [];
+  for(let i=0;i<n;i++){
+    // parte de los clientes concentrados en zona central, el resto periféricos
+    let x,y;
+    if(Math.random()<e.probCentral){
+      x = rnd(s*e.centralX[0], s*e.centralX[1]);
+      y = rnd(s*e.centralY[0], s*e.centralY[1]);
+    } else {
+      x = rnd(s*e.perifX[0], s*e.perifX[1]);
+      y = rnd(s*e.perifY[0], s*e.perifY[1]);
+    }
+    // ventana horaria
+    const wStart = rndInt(e.ventanaInicio[0], e.ventanaInicio[1]);
+    const wEnd = wStart + rndInt(e.ventanaDuracion[0], e.ventanaDuracion[1]);
+    // ¿está en zona restringida o de tráfico?
+    const inRestricted = state.restrictedZones.some(z=>distance({x,y},z,'euclid')<z.r);
+    const inTraffic = state.trafficZones.some(z=>distance({x,y},z,'euclid')<z.r);
+    state.customers.push({
+      id:`C${(i+1).toString().padStart(2,'0')}`,
+      x:+x.toFixed(2),
+      y:+y.toFixed(2),
+      demand: rndInt(e.demanda[0], e.demanda[1]),
+      windowStart: wStart,
+      windowEnd: wEnd,
+      unloadMin: rndInt(e.descargaMin[0], e.descargaMin[1]),
+      priority: rndInt(e.prioridad[0], e.prioridad[1]),
+      reverse: Math.random()<e.probReverse,
+      parking: inRestricted?'difícil':(inTraffic?'media':'fácil'),
+      restricted: inRestricted,
+    });
+  }
+}
+
+function regenerateClients(){
+  if(!state.cfg.size){generateScenario();return}
+  generateCustomers();
+  renderMapMain();
+  updateScenarioKPIs();
+  renderClientsTable();
+  state.results = {direct:null,ccu:null,microhub:null,night:null};
+}
+
+function updateScenarioKPIs(){
+  document.getElementById('kpi-clients').textContent = state.customers.length;
+  const dem = state.customers.reduce((a,c)=>a+c.demand,0);
+  document.getElementById('kpi-demand').firstChild.textContent = dem;
+  document.getElementById('kpi-restricted').textContent = state.customers.filter(c=>c.restricted).length;
+  const maxd = Math.max(...state.customers.map(c=>distance(state.depot,c,state.cfg.metric)));
+  document.getElementById('kpi-maxdist').firstChild.textContent = fmt1(maxd);
+
+  document.getElementById('kpi2-n').textContent = state.customers.length;
+  document.getElementById('kpi2-dem').firstChild.textContent = dem;
+  document.getElementById('kpi2-reverse').firstChild.textContent = state.customers.filter(c=>c.reverse).length;
+}
+
+/* ============================================================
+   MAPAS SVG
+   ============================================================ */
+function mapTransform(s,W=600,H){
+  // Mapeo del espacio km -> px conservando proporción
+  const pad = 30;
+  const ax = (W-pad*2)/s;
+  const ay = (H-pad*2)/s;
+  const a = Math.min(ax,ay);
+  return {pad, a};
+}
+
+function clearMap(id){
+  const svg = document.getElementById(id);
+  if(svg) svg.innerHTML = '';
+}
+
+function renderMapMain(){
+  renderMap('map-main', 600, 500, []);
+}
+
+function renderMap(svgId, W, H, routes){
+  const svg = document.getElementById(svgId);
+  if(!svg) return;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = '';
+  const s = state.cfg.size||10;
+  const {pad,a} = mapTransform(s,W,H);
+
+  // Grid sutil
+  const gridStep = 1; // 1 km
+  for(let g=0; g<=s; g+=gridStep){
+    const px = pad + g*a;
+    const py = pad + g*a;
+    svg.innerHTML += `<line x1="${px}" y1="${pad}" x2="${px}" y2="${pad+s*a}" stroke="#1a2a3d" stroke-width="0.5"/>`;
+    svg.innerHTML += `<line x1="${pad}" y1="${py}" x2="${pad+s*a}" y2="${py}" stroke="#1a2a3d" stroke-width="0.5"/>`;
+  }
+  // borde
+  svg.innerHTML += `<rect x="${pad}" y="${pad}" width="${s*a}" height="${s*a}" fill="none" stroke="#243245" stroke-width="1"/>`;
+
+  // zonas de tráfico
+  state.trafficZones.forEach(z=>{
+    svg.innerHTML += `<circle cx="${pad+z.x*a}" cy="${pad+z.y*a}" r="${z.r*a}" fill="rgba(248,113,113,0.08)" stroke="rgba(248,113,113,0.3)" stroke-dasharray="3,3"/>`;
+  });
+  // zonas restringidas
+  state.restrictedZones.forEach(z=>{
+    svg.innerHTML += `<circle cx="${pad+z.x*a}" cy="${pad+z.y*a}" r="${z.r*a}" fill="rgba(250,204,21,0.08)" stroke="rgba(250,204,21,0.4)" stroke-dasharray="5,2"/>`;
+  });
+  // zonas de carga/descarga
+  state.loadingZones.forEach(z=>{
+    const cx = pad+z.x*a, cy = pad+z.y*a;
+    svg.innerHTML += `<rect x="${cx-5}" y="${cy-5}" width="10" height="10" fill="rgba(34,211,238,0.4)" stroke="rgba(34,211,238,0.7)"/>`;
+  });
+
+  // rutas
+  routes.forEach(r=>{
+    const pts = r.points.map(p=>`${pad+p.x*a},${pad+p.y*a}`).join(' ');
+    svg.innerHTML += `<polyline points="${pts}" fill="none" stroke="${r.color||'#22d3ee'}" stroke-width="${r.width||2}" stroke-linejoin="round" stroke-dasharray="${r.dash||'none'}" opacity="${r.opacity||0.85}"/>`;
+  });
+
+  // depósito
+  const dx = pad+state.depot.x*a, dy = pad+state.depot.y*a;
+  svg.innerHTML += `<rect x="${dx-8}" y="${dy-8}" width="16" height="16" fill="#22d3ee" stroke="#0a1018" stroke-width="1.5"/>`;
+  svg.innerHTML += `<text x="${dx}" y="${dy-12}" fill="#22d3ee" font-size="9" font-family="monospace" text-anchor="middle">DEPÓSITO</text>`;
+
+  // CCU
+  const cx = pad+state.ccu.x*a, cy = pad+state.ccu.y*a;
+  svg.innerHTML += `<polygon points="${cx},${cy-9} ${cx+8},${cy+6} ${cx-8},${cy+6}" fill="#4ade80" stroke="#0a1018"/>`;
+  svg.innerHTML += `<text x="${cx}" y="${cy-12}" fill="#4ade80" font-size="9" font-family="monospace" text-anchor="middle">CCU</text>`;
+
+  // microhub
+  const mx = pad+state.microhub.x*a, my = pad+state.microhub.y*a;
+  svg.innerHTML += `<circle cx="${mx}" cy="${my}" r="7" fill="#a855f7" stroke="#0a1018" stroke-width="1.5"/>`;
+  svg.innerHTML += `<text x="${mx}" y="${my-12}" fill="#a855f7" font-size="9" font-family="monospace" text-anchor="middle">MICROHUB</text>`;
+
+  // clientes
+  state.customers.forEach((c,i)=>{
+    const ccx = pad+c.x*a, ccy = pad+c.y*a;
+    const col = c.restricted? '#fb923c' : (c.reverse? '#facc15' : '#facc15');
+    svg.innerHTML += `<circle cx="${ccx}" cy="${ccy}" r="5" fill="${col}" stroke="#0a1018" stroke-width="1"/>`;
+    svg.innerHTML += `<text x="${ccx+7}" y="${ccy+3}" fill="#8aa0b8" font-size="8" font-family="monospace">${c.id}</text>`;
+  });
+}
+
+/* ============================================================
+   TABLA DE CLIENTES
+   ============================================================ */
+function renderClientsTable(){
+  const tbody = document.getElementById('clients-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = state.customers.map((c,i)=>`
+    <tr>
+      <td><strong>${c.id}</strong></td>
+      <td><input type="number" step="0.1" value="${c.x}" onchange="updateClient(${i},'x',this.value)"></td>
+      <td><input type="number" step="0.1" value="${c.y}" onchange="updateClient(${i},'y',this.value)"></td>
+      <td><input type="number" value="${c.demand}" onchange="updateClient(${i},'demand',this.value)"></td>
+      <td>
+        <input type="number" value="${c.windowStart}" style="width:45px" onchange="updateClient(${i},'windowStart',this.value)">
+        –
+        <input type="number" value="${c.windowEnd}" style="width:45px" onchange="updateClient(${i},'windowEnd',this.value)">
+      </td>
+      <td><input type="number" value="${c.unloadMin}" onchange="updateClient(${i},'unloadMin',this.value)"></td>
+      <td>
+        <select onchange="updateClient(${i},'priority',this.value)" style="background:transparent;border:1px solid transparent;color:var(--text);font-family:var(--mono);font-size:12px">
+          <option value="1" ${c.priority==1?'selected':''}>1 baja</option>
+          <option value="2" ${c.priority==2?'selected':''}>2 media</option>
+          <option value="3" ${c.priority==3?'selected':''}>3 alta</option>
+        </select>
+      </td>
+      <td>${c.reverse?'<span class="badge warn">SÍ</span>':'<span class="badge neutral">no</span>'}</td>
+      <td>${badgeParking(c.parking)}</td>
+      <td><button class="btn danger small" onclick="removeClient(${i})">×</button></td>
+    </tr>
+  `).join('');
+}
+function badgeParking(p){
+  if(p==='difícil') return '<span class="badge err">DIFÍCIL</span>';
+  if(p==='media') return '<span class="badge warn">MEDIA</span>';
+  return '<span class="badge ok">FÁCIL</span>';
+}
+function updateClient(i,field,val){
+  const c = state.customers[i];
+  if(['x','y','demand','windowStart','windowEnd','unloadMin','priority'].includes(field)){
+    c[field] = parseFloat(val);
+  } else {
+    c[field] = val;
+  }
+  renderMapMain();
+  updateScenarioKPIs();
+}
+function removeClient(i){
+  state.customers.splice(i,1);
+  renderMapMain();
+  updateScenarioKPIs();
+  renderClientsTable();
+}
+function addCustomer(){
+  const s = state.cfg.size||10;
+  state.customers.push({
+    id:`C${(state.customers.length+1).toString().padStart(2,'0')}`,
+    x:+(s*0.5).toFixed(2),y:+(s*0.5).toFixed(2),
+    demand:8,windowStart:9,windowEnd:13,unloadMin:10,
+    priority:2,reverse:false,parking:'media',restricted:false,
+  });
+  renderMapMain();
+  updateScenarioKPIs();
+  renderClientsTable();
+}
+
+function validateClients(){
+  const errs=[];
+  const warns=[];
+  state.customers.forEach(c=>{
+    if(c.demand<=0) errs.push(`${c.id}: demanda no positiva.`);
+    if(c.windowEnd<=c.windowStart) errs.push(`${c.id}: ventana horaria imposible (${c.windowStart}–${c.windowEnd}).`);
+    if(c.unloadMin<=0) errs.push(`${c.id}: tiempo de descarga no positivo.`);
+    if(c.x<0||c.y<0||c.x>state.cfg.size||c.y>state.cfg.size) errs.push(`${c.id}: fuera de los límites de la ciudad.`);
+  });
+  const totalDem = state.customers.reduce((a,c)=>a+c.demand,0);
+  const cap = state.cfg.capacity * state.cfg.vehicles;
+  if(totalDem>cap) warns.push(`Demanda total (${totalDem}) supera la capacidad de flota (${cap}). Se necesitarán viajes múltiples.`);
+
+  const ratio = totalDem / state.customers.length;
+  if(ratio<5) warns.push(`Drop size pequeño (media ${ratio.toFixed(1)} uds/cliente): puede convenir consolidación o microhub.`);
+
+  const cont = document.getElementById('client-validation');
+  let html='';
+  errs.forEach(e=>html+=`<div class="alert error"><span class="icon">×</span>${e}</div>`);
+  warns.forEach(w=>html+=`<div class="alert warn"><span class="icon">!</span>${w}</div>`);
+  if(!errs.length && !warns.length) html=`<div class="alert success"><span class="icon">✓</span>Sin errores ni avisos.</div>`;
+  cont.innerHTML = html;
+  return errs.length===0;
+}
+
+/* ============================================================
+   RUTA DIRECTA - HEURÍSTICA NN CON VENTANAS
+   ============================================================ */
+function nearestNeighborRoute(origin, customers, metric){
+  const remaining = [...customers];
+  const order = [];
+  let current = origin;
+  while(remaining.length){
+    // Ponderar por distancia + urgencia de ventana
+    let bestI=0, bestScore=Infinity;
+    remaining.forEach((c,i)=>{
+      const d = distance(current,c,metric);
+      // urgencia: cuanto antes cierra, mejor visitarlo
+      const urgency = c.windowEnd * 0.3;
+      const priorityBoost = (4-c.priority)*0.5;
+      const score = d + urgency + priorityBoost;
+      if(score<bestScore){bestScore=score;bestI=i}
+    });
+    const next = remaining.splice(bestI,1)[0];
+    order.push(next);
+    current = next;
+  }
+  return order;
+}
+
+function simulateRoute(stops, origin, vehicle, startHour, trafficFactor){
+  // vehicle: {speed, costKm, costH, emission, capacity, fixed}
+  let timeH = startHour;
+  let totalDist=0, totalWait=0, totalUnload=0;
+  let onTime=0, late=0;
+  let totalDemand=0;
+  const log = [];
+  let current = origin;
+  stops.forEach(c=>{
+    const d = distance(current,c,state.cfg.metric);
+    totalDist += d;
+    const driveH = (d/vehicle.speed) * trafficFactor;
+    timeH += driveH;
+    const arrival = timeH;
+    let wait=0;
+    if(arrival < c.windowStart){
+      wait = c.windowStart - arrival;
+      timeH = c.windowStart;
+    }
+    const lateBy = Math.max(0, timeH - c.windowEnd);
+    const isLate = lateBy > 0;
+    const unloadH = c.unloadMin/60;
+    totalUnload += unloadH;
+    totalWait += wait;
+    timeH += unloadH;
+    totalDemand += c.demand;
+    if(isLate) late++; else onTime++;
+    log.push({id:c.id,arrival,wait,unload:c.unloadMin,late:isLate,lateBy,window:[c.windowStart,c.windowEnd]});
+    current = c;
+  });
+  // vuelta al origen
+  const dBack = distance(current,origin,state.cfg.metric);
+  totalDist += dBack;
+  const backH = (dBack/vehicle.speed)*trafficFactor;
+  timeH += backH;
+
+  const totalDriveH = (totalDist/vehicle.speed)*trafficFactor;
+  const totalTimeH = totalDriveH + totalUnload + totalWait;
+  return {
+    totalDist,
+    totalDriveH,
+    totalUnloadH: totalUnload,
+    totalWaitH: totalWait,
+    totalTimeH,
+    onTime, late, totalDemand,
+    log,
+    endHour: timeH,
+  };
+}
+
+function computeDirect(){
+  if(!state.customers.length){alert('Genera un escenario primero.');return}
+  if(!validateClients()) return;
+  const cfg = state.cfg;
+  const penalty = parseFloat(document.getElementById('dir-penalty').value)||15;
+  const order = nearestNeighborRoute(state.depot, state.customers, cfg.metric);
+  const vehicle = {speed:cfg.speed,costKm:cfg.costKm,costH:cfg.costH,emission:cfg.emission,capacity:cfg.capacity};
+
+  // Capacidad: partir la ruta en viajes (cada uno sale y vuelve al depósito).
+  // Así distancia, tiempo, coste y CO2 reflejan de verdad los viajes de varios camiones.
+  const tripsArr = [];
+  let curStops = [], curLoad = 0;
+  order.forEach(c=>{
+    if(curStops.length && curLoad + c.demand > cfg.capacity){ tripsArr.push(curStops); curStops=[]; curLoad=0; }
+    curStops.push(c); curLoad += c.demand;
+  });
+  if(curStops.length) tripsArr.push(curStops);
+  const trips = tripsArr.length;
+
+  // Simular cada viaje encadenando la hora de inicio y agregar
+  let startH = cfg.startHour;
+  const sims = tripsArr.map(stops=>{ const s=simulateRoute(stops, state.depot, vehicle, startH, cfg.traffic); startH=s.endHour; return s; });
+  const sumF = k => sims.reduce((a,s)=>a+s[k],0);
+  const sim = {
+    totalDist: sumF('totalDist'), totalDriveH: sumF('totalDriveH'), totalUnloadH: sumF('totalUnloadH'),
+    totalWaitH: sumF('totalWaitH'), totalTimeH: sumF('totalTimeH'),
+    onTime: sumF('onTime'), late: sumF('late'), totalDemand: sumF('totalDemand'),
+    log: sims.flatMap(s=>s.log), endHour: startH,
+  };
+  // Coste
+  const driveCost = sim.totalDist*cfg.costKm;
+  const timeCost = sim.totalTimeH*cfg.costH;
+  // Penalización por retraso
+  const latePenalty = sim.log.reduce((a,l)=>a+l.lateBy,0)*penalty;
+  const totalCost = driveCost + timeCost + latePenalty;
+  const co2 = sim.totalDist*cfg.emission;
+  const service = sim.onTime/state.customers.length*100;
+
+  // Mostrar
+  document.getElementById('dir-dist').firstChild.textContent = fmt1(sim.totalDist);
+  document.getElementById('dir-time').firstChild.textContent = fmt(sim.totalTimeH,2);
+  document.getElementById('dir-time-detail').textContent = `cond ${fmt1(sim.totalDriveH)}h · desc ${fmt1(sim.totalUnloadH)}h · esp ${fmt1(sim.totalWaitH)}h`;
+  document.getElementById('dir-cost').firstChild.textContent = fmt(totalCost,0);
+  document.getElementById('dir-co2').firstChild.textContent = fmt(co2,2);
+  document.getElementById('dir-service').firstChild.textContent = fmt(service,0);
+  document.getElementById('dir-pen').firstChild.textContent = fmt(latePenalty,1);
+
+  // Tabla
+  const tbody = document.getElementById('direct-route-tbody');
+  tbody.innerHTML = sim.log.map((l,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><strong>${l.id}</strong></td>
+      <td>${hourFmt(l.arrival)}</td>
+      <td>${l.window[0]}h–${l.window[1]}h</td>
+      <td>${l.wait>0?fmt(l.wait,2)+'h':'—'}</td>
+      <td>${l.unload}min</td>
+      <td>${l.late?`<span class="badge err">RETRASO ${fmt(l.lateBy,2)}h</span>`:'<span class="badge ok">A TIEMPO</span>'}</td>
+    </tr>
+  `).join('');
+
+  // Dibujar: un color por viaje (cada camión / viaje al depósito)
+  const tripColors = ['#22d3ee','#f59e0b','#a78bfa','#34d399','#f472b6','#60a5fa'];
+  const routes = tripsArr.map((stops,i)=>({points:[state.depot,...stops,state.depot], color:tripColors[i%tripColors.length], width:2}));
+  renderMap('map-direct',600,400,routes);
+
+  // warnings
+  const w = [];
+  if(trips>1) w.push(`La demanda total (${sim.totalDemand}) supera la capacidad (${cfg.capacity}): se realizan ${trips} viajes al depósito, ya incluidos en distancia, tiempo, coste y emisiones. Cada viaje aparece en un color en el mapa.`);
+  if(service<80) w.push(`Nivel de servicio bajo (${fmt(service,0)}%): muchos clientes fuera de ventana horaria.`);
+  if(sim.totalWaitH>1.5) w.push(`Esperas elevadas (${fmt1(sim.totalWaitH)}h): se llega antes de ventana en varios clientes.`);
+  document.getElementById('dir-warnings').innerHTML = w.map(x=>`<div class="alert warn"><span class="icon">!</span>${x}</div>`).join('');
+
+  state.results.direct = {
+    name:'Ruta directa',
+    dist:sim.totalDist,
+    time:sim.totalTimeH,
+    cost:totalCost,
+    co2,
+    onTime:sim.onTime,
+    late:sim.late,
+    service,
+    penalty:latePenalty,
+    trips,
+    order,
+  };
+}
+
+function exportRouteDirect(){
+  if(!state.results.direct){alert('Calcula la ruta primero.');return}
+  const list = state.results.direct.order.map((c,i)=>`${i+1}. ${c.id} (${c.x},${c.y}) dem=${c.demand} vent=${c.windowStart}-${c.windowEnd}`).join('\n');
+  alert('Orden de visita (NN + ventanas):\n\n'+list+'\n\n'+`Vuelta al depósito → distancia total ${fmt1(state.results.direct.dist)} km`);
+}
+
+function hourFmt(h){
+  const hh = Math.floor(h);
+  const mm = Math.round((h-hh)*60);
+  return `${hh.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}`;
+}
+
+/* ============================================================
+   CCU
+   ============================================================ */
+function computeCCU(){
+  if(!state.customers.length){alert('Genera un escenario primero.');return}
+  if(!state.results.direct) computeDirect();
+  const cfg = state.cfg;
+  const fixed = parseFloat(document.getElementById('ccu-fixed').value)||0;
+  const unit = parseFloat(document.getElementById('ccu-unit').value)||0;
+  const consT = (parseFloat(document.getElementById('ccu-time').value)||0)/60;
+  const trafficReduce = parseFloat(document.getElementById('ccu-traffic-reduce').value)||0.75;
+
+  // Tramo 1: depósito -> CCU (camión grande, sin tráfico urbano)
+  const distDtoC = distance(state.depot, state.ccu, cfg.metric);
+  const timeDtoC = distDtoC/cfg.speed; // sin factor tráfico (fuera de ciudad)
+  const costDtoC = distDtoC*cfg.costKm + timeDtoC*cfg.costH;
+  const co2DtoC = distDtoC*cfg.emission;
+
+  // Tramo 2: CCU -> clientes -> CCU (vehículo más pequeño/eficiente; mismo coste para simplificar pero con tráfico reducido)
+  const order = nearestNeighborRoute(state.ccu, state.customers, cfg.metric);
+  const vehicle = {speed:cfg.speed,costKm:cfg.costKm*0.85,emission:cfg.emission*0.85,capacity:cfg.capacity};
+  const sim = simulateRoute(order, state.ccu, vehicle, cfg.startHour + consT, cfg.traffic*trafficReduce);
+  const driveCost = sim.totalDist*vehicle.costKm;
+  const timeCost = sim.totalTimeH*cfg.costH;
+  const ccuOpsCost = fixed + sim.totalDemand*unit;
+  const penalty = sim.log.reduce((a,l)=>a+l.lateBy,0)*15;
+  const totalCost = costDtoC + driveCost + timeCost + ccuOpsCost + penalty;
+  const co2 = co2DtoC + sim.totalDist*vehicle.emission;
+  const totalDist = distDtoC + sim.totalDist + distDtoC; // ida y vuelta al CCU desde el depósito
+  // Realmente: depósito → CCU (entrega masiva) y vuelta. La ida-vuelta dentro de la ciudad la hace el vehículo urbano desde CCU.
+  // Para mantenerlo simple, computamos la distancia depósito-CCU dos veces (ida del camión).
+  const totalTime = timeDtoC*2 + consT + sim.totalTimeH;
+  const service = sim.onTime/state.customers.length*100;
+  const kmAhorradosUrbanos = Math.max(0, state.results.direct.dist - sim.totalDist);
+
+  // Mostrar
+  document.getElementById('ccu-dist').firstChild.textContent = fmt1(totalDist);
+  document.getElementById('ccu-time-r').firstChild.textContent = fmt(totalTime,2);
+  document.getElementById('ccu-cost').firstChild.textContent = fmt(totalCost,0);
+  document.getElementById('ccu-co2').firstChild.textContent = fmt(co2,2);
+  document.getElementById('ccu-saved').firstChild.textContent = fmt1(kmAhorradosUrbanos);
+  document.getElementById('ccu-service').firstChild.textContent = fmt(service,0);
+
+  // VS directa
+  const d = state.results.direct;
+  document.getElementById('ccu-dist-vs').textContent = vsLabel(totalDist, d.dist, 'km');
+  document.getElementById('ccu-time-vs').textContent = vsLabel(totalTime, d.time, 'h');
+  document.getElementById('ccu-cost-vs').textContent = vsLabel(totalCost, d.cost, '€');
+  document.getElementById('ccu-co2-vs').textContent = vsLabel(co2, d.co2, 'kgCO₂');
+
+  // Mapa
+  const points1 = [state.depot, state.ccu];
+  const points2 = [state.ccu, ...order, state.ccu];
+  renderMap('map-ccu',600,400,[
+    {points:points1,color:'#4ade80',width:2.5,dash:'6,3'},
+    {points:points2,color:'#22d3ee',width:2},
+  ]);
+
+  // Diagnóstico
+  const diag=[];
+  if(totalCost < d.cost) diag.push({type:'success',msg:`CCU reduce el coste total en ${fmt(d.cost-totalCost,1)}€.`});
+  else diag.push({type:'warn',msg:`CCU es ${fmt(totalCost-d.cost,1)}€ más caro: los costes fijos no compensan.`});
+  if(co2 < d.co2) diag.push({type:'success',msg:`CCU reduce emisiones en ${fmt(d.co2-co2,2)} kgCO₂.`});
+  if(kmAhorradosUrbanos>0) diag.push({type:'info',msg:`Se ahorran ${fmt1(kmAhorradosUrbanos)} km urbanos: menos vehículos pesados en el centro.`});
+
+  document.getElementById('ccu-diagnosis').innerHTML = diag.map(x=>`<div class="alert ${x.type}"><span class="icon">▸</span>${x.msg}</div>`).join('');
+
+  state.results.ccu = {name:'CCU',dist:totalDist,time:totalTime,cost:totalCost,co2,onTime:sim.onTime,late:sim.late,service,penalty,trips:1};
+}
+
+function vsLabel(a,b,unit){
+  const diff = a-b;
+  if(b===0) return '';
+  const pct = (diff/b)*100;
+  const sign = diff>=0?'+':'';
+  const cls = diff>=0?'red':'green';
+  return `vs directa: ${sign}${fmt(diff,1)} ${unit} (${sign}${fmt(pct,0)}%)`;
+}
+
+/* ============================================================
+   MICROHUB
+   ============================================================ */
+function updateVehiclePreset(){
+  const t = document.getElementById('mh-vehicle').value;
+  const presets = {
+    van: {cap:80,speed:25,costkm:0.45,em:0.27,fixed:30},
+    ev: {cap:40,speed:22,costkm:0.18,em:0.05,fixed:60},
+    cargo: {cap:15,speed:14,costkm:0.08,em:0.0,fixed:25},
+  };
+  const p = presets[t];
+  document.getElementById('mh-cap').value = p.cap;
+  document.getElementById('mh-speed').value = p.speed;
+  document.getElementById('mh-costkm').value = p.costkm;
+  document.getElementById('mh-em').value = p.em;
+  document.getElementById('mh-fixed').value = p.fixed;
+}
+
+function computeMicrohub(){
+  if(!state.customers.length){alert('Genera un escenario primero.');return}
+  if(!state.results.direct) computeDirect();
+  const cfg = state.cfg;
+  const vType = document.getElementById('mh-vehicle').value;
+  const cap = parseFloat(document.getElementById('mh-cap').value)||40;
+  const speed = parseFloat(document.getElementById('mh-speed').value)||22;
+  const costKm = parseFloat(document.getElementById('mh-costkm').value)||0.18;
+  const em = parseFloat(document.getElementById('mh-em').value)||0.05;
+  const fixed = parseFloat(document.getElementById('mh-fixed').value)||60;
+
+  // tramo depósito -> microhub (vehículo grande)
+  const distDtoM = distance(state.depot, state.microhub, cfg.metric);
+  const timeDtoM = distDtoM/cfg.speed;
+  const costDtoM = distDtoM*cfg.costKm + timeDtoM*cfg.costH;
+  const co2DtoM = distDtoM*cfg.emission;
+
+  // total demand y nº viajes desde el microhub
+  const totalDem = state.customers.reduce((a,c)=>a+c.demand,0);
+  const trips = Math.ceil(totalDem/cap);
+
+  // Dividir clientes en grupos por viajes (orden por distancia al microhub)
+  const sorted = [...state.customers].sort((a,b)=>distance(state.microhub,a,cfg.metric)-distance(state.microhub,b,cfg.metric));
+  // Empaquetado simple por capacidad
+  const groups = [];
+  let group=[], gDem=0;
+  sorted.forEach(c=>{
+    if(gDem + c.demand > cap){ groups.push(group); group=[c]; gDem=c.demand; }
+    else { group.push(c); gDem+=c.demand; }
+  });
+  if(group.length) groups.push(group);
+
+  let totalDist=0, totalTime=0, totalOnTime=0, totalLate=0, totalCost=fixed, totalCo2=co2DtoM, totalPenalty=0;
+  const allRoutes = [];
+  const vehicle = {speed,costKm,costH:cfg.costH,emission:em,capacity:cap};
+
+  // restricción: vehículos eco-friendly tienen menos penalización por tráfico (acceso libre)
+  const trafficFactor = (vType==='cargo'?0.6:(vType==='ev'?0.85:cfg.traffic));
+
+  groups.forEach((g,i)=>{
+    const order = nearestNeighborRoute(state.microhub, g, cfg.metric);
+    const sim = simulateRoute(order, state.microhub, vehicle, cfg.startHour + i*0.5, trafficFactor);
+    const driveCost = sim.totalDist*costKm;
+    const timeCost = sim.totalTimeH*cfg.costH;
+    const pen = sim.log.reduce((a,l)=>a+l.lateBy,0)*15;
+    totalDist += sim.totalDist;
+    totalTime += sim.totalTimeH;
+    totalOnTime += sim.onTime;
+    totalLate += sim.late;
+    totalCost += driveCost + timeCost + pen;
+    totalCo2 += sim.totalDist*em;
+    totalPenalty += pen;
+    allRoutes.push({points:[state.microhub,...order,state.microhub], color:i===0?'#a855f7':'#c084fc',width:2});
+  });
+
+  totalCost += costDtoM;
+  totalDist += distDtoM*2; // ida y vuelta camión
+  totalTime += timeDtoM*2 + 0.5; // tiempo trasvase
+  const service = totalOnTime/state.customers.length*100;
+
+  // Mostrar
+  document.getElementById('mh-trips').textContent = trips;
+  document.getElementById('mh-dist').firstChild.textContent = fmt1(totalDist);
+  document.getElementById('mh-time').firstChild.textContent = fmt(totalTime,2);
+  document.getElementById('mh-cost').firstChild.textContent = fmt(totalCost,0);
+  document.getElementById('mh-co2').firstChild.textContent = fmt(totalCo2,2);
+  document.getElementById('mh-service').firstChild.textContent = fmt(service,0);
+
+  // Mapa
+  const allLayers = [
+    {points:[state.depot,state.microhub],color:'#4ade80',width:2.5,dash:'6,3'},
+    ...allRoutes,
+  ];
+  renderMap('map-microhub',600,400,allLayers);
+
+  // Warnings + diagnosis
+  const w=[];
+  if(vType==='cargo' && totalDem > cap*4) w.push(`Bicicleta de carga insuficiente: demanda ${totalDem} requiere ${trips} viajes. Considera furgoneta eléctrica.`);
+  if(trips>3) w.push(`${trips} viajes desde el microhub: capacidad limitada para la demanda agregada.`);
+  if(service<state.results.direct.service-10) w.push(`Servicio cae respecto a la ruta directa por velocidad/capacidad limitada.`);
+  document.getElementById('mh-warnings').innerHTML = w.map(x=>`<div class="alert warn"><span class="icon">!</span>${x}</div>`).join('');
+
+  const d = state.results.direct;
+  const diag = [];
+  diag.push({type:'info', msg:`Emisiones: ${fmt(totalCo2,2)} kgCO₂ (vs ${fmt(d.co2,2)} de la directa).`});
+  if(totalCo2 < d.co2*0.5) diag.push({type:'success', msg:`Reducción >50% de emisiones gracias al vehículo eco.`});
+  if(vType==='cargo') diag.push({type:'info', msg:`Acceso libre a zonas restringidas: la bicicleta no se ve afectada por restricciones del centro.`});
+  if(trips>1) diag.push({type:'warn', msg:`Necesitan ${trips} viajes desde el microhub. Si el drop size es grande, el coste de tiempo sube.`});
+
+  document.getElementById('mh-diagnosis').innerHTML = diag.map(x=>`<div class="alert ${x.type}"><span class="icon">▸</span>${x.msg}</div>`).join('');
+
+  state.results.microhub = {name:'Microhub',dist:totalDist,time:totalTime,cost:totalCost,co2:totalCo2,onTime:totalOnTime,late:totalLate,service,penalty:totalPenalty,trips,vehicle:vType};
+}
+
+/* ============================================================
+   ENTREGA NOCTURNA
+   ============================================================ */
+function computeNight(){
+  if(!state.customers.length){alert('Genera un escenario primero.');return}
+  if(!state.results.direct) computeDirect();
+  const cfg = state.cfg;
+  const trafficF = parseFloat(document.getElementById('nig-traffic').value);
+  const waitF = parseFloat(document.getElementById('nig-wait').value);
+  const extraH = parseFloat(document.getElementById('nig-extra').value)||0;
+  const startN = parseFloat(document.getElementById('nig-start').value)||22;
+  const pct = (parseFloat(document.getElementById('nig-pct').value)||70)/100;
+
+  // % clientes que admiten nocturno
+  const nNight = Math.floor(state.customers.length*pct);
+  const nightClients = state.customers.slice(0,nNight).map(c=>({
+    ...c, windowStart:startN, windowEnd: startN+8>24?startN+8-24+24:startN+8,
+  }));
+  const dayClients = state.customers.slice(nNight);
+
+  // Ruta nocturna
+  const orderN = nearestNeighborRoute(state.depot, nightClients, cfg.metric);
+  const vehicle = {speed:cfg.speed*1.15,costKm:cfg.costKm,costH:cfg.costH+extraH,emission:cfg.emission,capacity:cfg.capacity};
+  const simN = simulateRoute(orderN, state.depot, vehicle, startN, cfg.traffic*trafficF);
+  // sustituir waits
+  simN.totalWaitH *= waitF;
+  simN.totalTimeH = simN.totalDriveH + simN.totalUnloadH + simN.totalWaitH;
+
+  // Ruta diurna remanente
+  let dayResult = {totalDist:0,totalTimeH:0,onTime:0,late:0,log:[]};
+  if(dayClients.length){
+    const orderD = nearestNeighborRoute(state.depot, dayClients, cfg.metric);
+    dayResult = simulateRoute(orderD, state.depot, {speed:cfg.speed,costKm:cfg.costKm,costH:cfg.costH,emission:cfg.emission,capacity:cfg.capacity}, cfg.startHour, cfg.traffic);
+  }
+
+  const totalDist = simN.totalDist + dayResult.totalDist;
+  const totalTime = simN.totalTimeH + dayResult.totalTimeH;
+  const driveCostN = simN.totalDist*cfg.costKm;
+  const timeCostN = simN.totalTimeH*(cfg.costH+extraH);
+  const driveCostD = dayResult.totalDist*cfg.costKm;
+  const timeCostD = dayResult.totalTimeH*cfg.costH;
+  const penN = simN.log.reduce((a,l)=>a+l.lateBy,0)*15;
+  const penD = dayResult.log? dayResult.log.reduce((a,l)=>a+l.lateBy,0)*15:0;
+  const totalCost = driveCostN+timeCostN+driveCostD+timeCostD+penN+penD;
+  const co2 = totalDist*cfg.emission;
+  const service = (simN.onTime+dayResult.onTime)/state.customers.length*100;
+  const waitSaved = state.results.direct.time - totalTime;
+
+  document.getElementById('nig-dist').firstChild.textContent = fmt1(totalDist);
+  document.getElementById('nig-time').firstChild.textContent = fmt(totalTime,2);
+  document.getElementById('nig-cost').firstChild.textContent = fmt(totalCost,0);
+  document.getElementById('nig-co2').firstChild.textContent = fmt(co2,2);
+  document.getElementById('nig-wait-saved').firstChild.textContent = fmt(Math.max(0,state.results.direct.time*0.2-simN.totalWaitH),2);
+  document.getElementById('nig-service').firstChild.textContent = fmt(service,0);
+
+  const d = state.results.direct;
+  document.getElementById('nig-time-vs').textContent = vsLabel(totalTime,d.time,'h');
+  document.getElementById('nig-cost-vs').textContent = vsLabel(totalCost,d.cost,'€');
+
+  const diag=[];
+  if(pct<0.5) diag.push({type:'warn',msg:`Solo el ${(pct*100).toFixed(0)}% de clientes admite nocturno. El ahorro es parcial.`});
+  if(totalTime < d.time) diag.push({type:'success',msg:`Tiempo total reducido en ${fmt(d.time-totalTime,2)}h gracias al menor tráfico.`});
+  if(totalCost > d.cost) diag.push({type:'info',msg:`Coste algo mayor (+${fmt(totalCost-d.cost,1)}€) por recargo nocturno. Compensa si el servicio mejora o se descongestiona.`});
+  diag.push({type:'info',msg:`Recomendado para clientes con grandes superficies, ventanas flexibles y zonas saturadas durante el día.`});
+  document.getElementById('nig-diagnosis').innerHTML = diag.map(x=>`<div class="alert ${x.type}"><span class="icon">▸</span>${x.msg}</div>`).join('');
+
+  state.results.night = {name:'Nocturna',dist:totalDist,time:totalTime,cost:totalCost,co2,onTime:simN.onTime+dayResult.onTime,late:simN.late+dayResult.late,service,penalty:penN+penD,trips:1};
+}
+
+/* ============================================================
+   COMPARADOR
+   ============================================================ */
+function computeAllAndCompare(){
+  if(!state.customers.length){alert('Genera un escenario primero.');return}
+  computeDirect();
+  computeCCU();
+  computeMicrohub();
+  computeNight();
+  renderComparator();
+}
+
+function renderComparator(){
+  const r = state.results;
+  if(!r.direct){
+    document.getElementById('cmp-tbody').innerHTML = `<tr><td colspan="9" class="muted">Pulsa "Recalcular todos y comparar".</td></tr>`;
+    document.getElementById('cmp-cards').innerHTML='';
+    document.getElementById('cmp-recommend').innerHTML='';
+    document.getElementById('cmp-diagnosis').innerHTML='';
+    return;
+  }
+  const scenarios = ['direct','ccu','microhub','night'].filter(k=>r[k]);
+  const criterion = document.getElementById('cmp-criterion').value;
+
+  // Computar puntuación
+  const scores = scenarios.map(k=>{
+    const x = r[k];
+    let score;
+    if(criterion==='cost') score = -x.cost;
+    else if(criterion==='time') score = -x.time;
+    else if(criterion==='co2') score = -x.co2;
+    else if(criterion==='service') score = x.service;
+    else { // balance: normalizar y combinar
+      const maxC = Math.max(...scenarios.map(s=>r[s].cost));
+      const maxT = Math.max(...scenarios.map(s=>r[s].time));
+      const maxE = Math.max(...scenarios.map(s=>r[s].co2));
+      score = -((x.cost/maxC)*0.3 + (x.time/maxT)*0.25 + (x.co2/maxE)*0.25) + (x.service/100)*0.2;
+    }
+    return {key:k, score, data:x};
+  });
+  scores.sort((a,b)=>b.score-a.score);
+  const winner = scores[0].key;
+
+  // Tabla
+  const tbody = document.getElementById('cmp-tbody');
+  tbody.innerHTML = scenarios.map(k=>{
+    const x = r[k];
+    const isWin = k===winner;
+    return `<tr ${isWin?'style="background:rgba(74,222,128,0.06)"':''}>
+      <td><strong>${x.name}</strong>${isWin?' <span class="badge ok">MEJOR</span>':''}</td>
+      <td>${fmt1(x.dist)}</td>
+      <td>${fmt(x.time,2)}</td>
+      <td>${fmt(x.cost,0)}</td>
+      <td>${fmt(x.co2,2)}</td>
+      <td>${x.onTime}/${state.customers.length}</td>
+      <td>${fmt(x.penalty,1)}</td>
+      <td>${fmt(x.service,0)}%</td>
+      <td>${x.trips}</td>
+    </tr>`;
+  }).join('');
+
+  // Cards
+  document.getElementById('cmp-cards').innerHTML = scenarios.map(k=>{
+    const x = r[k];
+    const isWin = k===winner;
+    return `<div class="scenario-card ${isWin?'best':''}">
+      <h4>${x.name} ${isWin?'<span class="badge ok">★</span>':''}</h4>
+      <div class="metric"><span class="k">Coste</span><span class="v">${fmt(x.cost,0)} €</span></div>
+      <div class="metric"><span class="k">Tiempo</span><span class="v">${fmt(x.time,2)} h</span></div>
+      <div class="metric"><span class="k">Emisiones</span><span class="v">${fmt(x.co2,2)} kgCO₂</span></div>
+      <div class="metric"><span class="k">Servicio</span><span class="v">${fmt(x.service,0)}%</span></div>
+      <div class="metric"><span class="k">Viajes</span><span class="v">${x.trips}</span></div>
+    </div>`;
+  }).join('');
+
+  // Chart coste / emisiones / tiempo
+  renderCmpChart(scenarios.map(k=>r[k]));
+
+  // Recomendación + diagnóstico
+  const w = r[winner];
+  const criterionTxt = {cost:'mínimo coste',time:'mínimo tiempo',co2:'mínimas emisiones',service:'máximo nivel de servicio',balance:'equilibrio general'}[criterion];
+  document.getElementById('cmp-recommend').innerHTML = `
+    <div class="recommend-box">
+      <div class="label">Escenario recomendado · Criterio: ${criterionTxt}</div>
+      <div class="winner">${w.name}</div>
+      <div class="reason">${recommendReason(w,r,criterion)}</div>
+    </div>`;
+
+  // Diagnóstico automático
+  const diag = autoDiagnosis(r);
+  document.getElementById('cmp-diagnosis').innerHTML = diag.map(d=>`<div class="alert ${d.type}"><span class="icon">▸</span>${d.msg}</div>`).join('');
+}
+
+function recommendReason(w,r,criterion){
+  const direct = r.direct;
+  if(w.name==='Ruta directa') return `Para el criterio elegido, el reparto tradicional sigue siendo el más eficiente. Coste ${fmt(w.cost,0)}€, tiempo ${fmt(w.time,2)}h, emisiones ${fmt(w.co2,2)} kgCO₂.`;
+  if(w.name==='CCU') return `El centro de consolidación reduce kilómetros urbanos y se beneficia de la consolidación de cargas. Se ahorran ${fmt1(Math.max(0,direct.dist-w.dist))} km vs. ruta directa.`;
+  if(w.name==='Microhub') return `El reparto desde microhub con vehículo sostenible reduce emisiones a ${fmt(w.co2,2)} kgCO₂ (${fmt((1-w.co2/direct.co2)*100,0)}% menos) y mejora el acceso a zonas restringidas.`;
+  if(w.name==='Nocturna') return `La entrega nocturna evita el tráfico y reduce esperas. Tiempo total ${fmt(w.time,2)}h (${fmt(direct.time-w.time,2)}h menos que diurna).`;
+  return '';
+}
+
+function autoDiagnosis(r){
+  const diag = [];
+  const d = r.direct, c = r.ccu, m = r.microhub, n = r.night;
+  if(c && c.cost < d.cost){
+    diag.push({type:'success', msg:`El CCU reduce coste en ${fmt(d.cost-c.cost,1)}€ y kilómetros urbanos.`});
+  } else if(c){
+    diag.push({type:'warn', msg:`El CCU añade ${fmt(c.cost-d.cost,1)}€ de coste fijo; conviene solo con mayor volumen o congestión.`});
+  }
+  if(m && m.co2 < d.co2*0.6){
+    diag.push({type:'success', msg:`El microhub baja las emisiones un ${fmt((1-m.co2/d.co2)*100,0)}%, pero requiere ${m.trips} viajes.`});
+  }
+  if(n && n.time < d.time*0.85){
+    diag.push({type:'info', msg:`La entrega nocturna reduce tiempo en ${fmt(d.time-n.time,2)}h; útil con tráfico alto, pero puede tener restricciones de ruido.`});
+  }
+  if(d.service<80){
+    diag.push({type:'warn', msg:`El nivel de servicio de la ruta directa es bajo (${fmt(d.service,0)}%): revisa ventanas horarias.`});
+  }
+  return diag;
+}
+
+function renderCmpChart(arr){
+  const svg = document.getElementById('cmp-chart');
+  const W = 700, H = 280;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const padL=60, padR=20, padT=20, padB=50;
+  const cw = W-padL-padR, ch = H-padT-padB;
+  const maxCost = Math.max(...arr.map(x=>x.cost))*1.1;
+  const maxCo2 = Math.max(...arr.map(x=>x.co2))*1.1;
+  const maxTime = Math.max(...arr.map(x=>x.time))*1.1;
+
+  // ejes
+  let html = '';
+  html += `<rect x="${padL}" y="${padT}" width="${cw}" height="${ch}" fill="#0a1018" stroke="#243245"/>`;
+  // Bars: por escenario, 3 barras (coste, co2, time normalizadas)
+  const groupW = cw / arr.length;
+  arr.forEach((x,i)=>{
+    const gx = padL + i*groupW + 10;
+    const barW = (groupW-30)/3;
+    const hCost = (x.cost/maxCost)*ch;
+    const hCo2 = (x.co2/maxCo2)*ch;
+    const hTime = (x.time/maxTime)*ch;
+    html += `<rect x="${gx}" y="${padT+ch-hCost}" width="${barW}" height="${hCost}" fill="#facc15" opacity="0.85"/>`;
+    html += `<rect x="${gx+barW+3}" y="${padT+ch-hCo2}" width="${barW}" height="${hCo2}" fill="#4ade80" opacity="0.85"/>`;
+    html += `<rect x="${gx+(barW+3)*2}" y="${padT+ch-hTime}" width="${barW}" height="${hTime}" fill="#22d3ee" opacity="0.85"/>`;
+    html += `<text x="${gx + (groupW-20)/2}" y="${padT+ch+18}" text-anchor="middle" fill="#8aa0b8" font-family="monospace" font-size="11">${x.name}</text>`;
+    // valores
+    html += `<text x="${gx+barW/2}" y="${padT+ch-hCost-3}" text-anchor="middle" fill="#facc15" font-family="monospace" font-size="9">${fmt(x.cost,0)}€</text>`;
+    html += `<text x="${gx+barW+3+barW/2}" y="${padT+ch-hCo2-3}" text-anchor="middle" fill="#4ade80" font-family="monospace" font-size="9">${fmt(x.co2,1)}</text>`;
+    html += `<text x="${gx+(barW+3)*2+barW/2}" y="${padT+ch-hTime-3}" text-anchor="middle" fill="#22d3ee" font-family="monospace" font-size="9">${fmt(x.time,1)}h</text>`;
+  });
+
+  // leyenda
+  html += `<g transform="translate(${padL},${padT-5})">
+    <rect x="0" y="-10" width="10" height="10" fill="#facc15"/><text x="14" y="-1" fill="#8aa0b8" font-family="monospace" font-size="11">Coste €</text>
+    <rect x="80" y="-10" width="10" height="10" fill="#4ade80"/><text x="94" y="-1" fill="#8aa0b8" font-family="monospace" font-size="11">CO₂ kg</text>
+    <rect x="160" y="-10" width="10" height="10" fill="#22d3ee"/><text x="174" y="-1" fill="#8aa0b8" font-family="monospace" font-size="11">Tiempo h</text>
+  </g>`;
+
+  svg.innerHTML = html;
+}
+
+/* ============================================================
+   GENERADOR DE EJERCICIOS
+   ============================================================ */
+const EXERCISE_TYPES = ['route','ccu','night','vehicle','constraint','window','cost','case'];
+
+function generateExercise(){
+  let type = document.getElementById('ex-type').value;
+  const difficulty = document.getElementById('ex-difficulty').value;
+  if(type==='random') type = EXERCISE_TYPES[rndInt(0,EXERCISE_TYPES.length-1)];
+
+  // Generar datos realistas
+  const n = difficulty==='easy'?rndInt(4,6):(difficulty==='med'?rndInt(7,10):rndInt(10,15));
+  const data = {
+    n,
+    dist:+(rnd(20,80)).toFixed(1),
+    time:+(rnd(3,9)).toFixed(1),
+    cost:+(rnd(180,520)).toFixed(0),
+    co2:+(rnd(8,32)).toFixed(1),
+    trafficLevel: rndInt(2,4)===2?'bajo':(rndInt(0,1)?'alto':'medio'),
+    dropSize:+(rnd(2,18)).toFixed(0),
+    capacity: rndInt(40,100),
+    restricted: rndInt(0,1),
+    speed: rndInt(15,35),
+    costKm:+(rnd(0.3,0.6)).toFixed(2),
+    costH: rndInt(18,28),
+    em:+(rnd(0.15,0.32)).toFixed(2),
+  };
+
+  const ex = buildExercise(type, data, difficulty);
+  state.currentExercise = ex;
+  renderExercise(ex);
+}
+
+function buildExercise(type, d, diff){
+  let ex = {type, data:d, hintsUsed:0, answered:false};
+
+  if(type==='route'){
+    const correct = +(d.dist * d.costKm + d.time*d.costH).toFixed(0);
+    const opts = shuffleOpts(correct, [correct*0.7, correct*1.25, correct*1.5]);
+    ex.statement = `Una empresa hace una ruta directa con ${d.n} clientes. Distancia total ${d.dist} km, tiempo total ${d.time} h, coste por km ${d.costKm} €/km, coste por hora ${d.costH} €/h. ¿Cuál es el coste operativo aproximado (sin penalizaciones)?`;
+    ex.format='mcq';
+    ex.options = opts.options.map((v,i)=>({label:'abcd'[i], text:`${fmt(v,0)} €`, value:v}));
+    ex.correctIndex = opts.correctIndex;
+    ex.hints = [
+      'El problema principal es calcular el coste total = coste por km × km + coste por hora × horas.',
+      'Multiplica la distancia por el coste por km y súmale tiempo × coste hora.',
+      `Distancia × €/km = ${fmt(d.dist*d.costKm,1)} €. Tiempo × €/h = ${fmt(d.time*d.costH,1)} €.`,
+    ];
+    ex.solution = [
+      {t:'Datos relevantes', d:`distancia=${d.dist} km, tiempo=${d.time} h, costeKm=${d.costKm}, costeH=${d.costH}.`},
+      {t:'Cálculo distancia', d:`${d.dist} × ${d.costKm} = ${fmt(d.dist*d.costKm,2)} €.`},
+      {t:'Cálculo tiempo', d:`${d.time} × ${d.costH} = ${fmt(d.time*d.costH,2)} €.`},
+      {t:'Coste total', d:`${fmt(d.dist*d.costKm,2)} + ${fmt(d.time*d.costH,2)} = ${correct} €.`},
+      {t:'Interpretación', d:`Es una aproximación: faltan penalizaciones por retraso, coste fijo y emisiones.`},
+    ];
+  }
+
+  else if(type==='ccu'){
+    const distDirecta = d.dist;
+    const distCCU = +(d.dist*0.7).toFixed(1);
+    const costDirecta = +(distDirecta*d.costKm + d.time*d.costH).toFixed(0);
+    const costCCU = +(distCCU*d.costKm + d.time*d.costH*0.9 + 80).toFixed(0); // coste fijo 80
+    const correct = costCCU < costDirecta ? 0 : 1;
+    ex.statement = `Una empresa hace ${d.n} entregas. Ruta directa: ${distDirecta} km, ${d.time} h. Alternativa: CCU con coste fijo 80€, reduce kilómetros urbanos un 30% y tiempo un 10%. €/km=${d.costKm}, €/h=${d.costH}. ¿Qué opción minimiza el coste total?`;
+    ex.format='mcq';
+    ex.options = [
+      {label:'a', text:`Ruta directa (${costDirecta} €)`, value:0},
+      {label:'b', text:`CCU (${costCCU} €)`, value:1},
+      {label:'c', text:'Igual coste, decide servicio', value:2},
+      {label:'d', text:'No se puede determinar', value:3},
+    ];
+    ex.correctIndex = correct;
+    ex.hints = [
+      'El CCU añade coste fijo pero reduce kilómetros urbanos y tiempo.',
+      'Calcula cada coste por separado y compáralos.',
+      `Directa: ${distDirecta}×${d.costKm}+${d.time}×${d.costH}=${costDirecta}€. CCU: ${distCCU}×${d.costKm}+${d.time*0.9}×${d.costH}+80=${costCCU}€.`,
+    ];
+    ex.solution = [
+      {t:'Comparar opciones', d:'Calcular coste total de cada alternativa.'},
+      {t:'Ruta directa', d:`${distDirecta} × ${d.costKm} + ${d.time} × ${d.costH} = ${costDirecta} €.`},
+      {t:'CCU', d:`${distCCU} × ${d.costKm} + ${(d.time*0.9).toFixed(2)} × ${d.costH} + 80 (fijo) = ${costCCU} €.`},
+      {t:'Decisión', d:`${correct===0?'Ruta directa':'CCU'} es más económica (${Math.abs(costDirecta-costCCU)}€ de diferencia).`},
+      {t:'Recordar', d:'CCU conviene si el coste fijo se amortiza con reducción de km urbanos y menor congestión.'},
+    ];
+  }
+
+  else if(type==='night'){
+    const direct = d.cost;
+    const nightCost = +(direct*0.92 + d.time*0.3*5).toFixed(0); // recargo 5€/h por 30% del tiempo
+    const correct = (d.trafficLevel==='alto' || direct>nightCost) ? 0 : 1;
+    ex.statement = `Reparto en zona con tráfico ${d.trafficLevel}. Diurna: ${direct}€, ${d.time}h. Nocturna: tráfico ×0.45, recargo nocturno 5€/h, pero solo el 60% de clientes admite nocturno. ¿Recomendarías la entrega nocturna?`;
+    ex.format='mcq';
+    ex.options = [
+      {label:'a', text:'Sí, siempre que el tráfico sea alto', value:0},
+      {label:'b', text:'No, el recargo nocturno no compensa', value:1},
+      {label:'c', text:'Solo si hay restricciones de ruido', value:2},
+      {label:'d', text:'Depende del cliente final', value:3},
+    ];
+    ex.correctIndex = d.trafficLevel==='alto'?0:(d.trafficLevel==='medio'?3:1);
+    ex.hints = [
+      'La nocturna reduce tráfico y esperas, pero añade recargo de coste por hora.',
+      'Solo conviene si el ahorro en tiempo compensa el recargo y si hay clientes suficientes que la admitan.',
+      'Si el tráfico es alto y hay muchos clientes con ventana flexible, sí compensa.',
+    ];
+    ex.solution = [
+      {t:'Datos relevantes', d:`Tráfico ${d.trafficLevel}, %clientes 60%, recargo 5€/h.`},
+      {t:'Ventajas nocturna', d:'Menor tráfico (×0.45), menor espera, menos congestión.'},
+      {t:'Desventajas', d:'Recargo nocturno, restricciones de ruido, solo 60% de clientes.'},
+      {t:'Análisis', d:`Si el tráfico diurno es alto, la nocturna gana en tiempo y absorbe el recargo. Si es bajo, el recargo no se compensa.`},
+      {t:'Recomendación', d:`Para tráfico ${d.trafficLevel}: ${d.trafficLevel==='alto'?'SÍ recomendar nocturna':d.trafficLevel==='medio'?'depende del cliente':'no conviene'}.`},
+    ];
+  }
+
+  else if(type==='vehicle'){
+    const dem = d.dropSize*d.n;
+    const totalCo2Conv = +(d.dist*d.em).toFixed(1);
+    const totalCo2EV = +(d.dist*0.05).toFixed(1);
+    ex.statement = `${d.n} clientes con drop size medio ${d.dropSize}, demanda total ${dem} uds. Furgón convencional (cap. ${d.capacity}, ${d.em} kgCO₂/km) vs furgoneta eléctrica (cap. 40, 0.05 kgCO₂/km). Distancia urbana estimada ${d.dist} km. ¿Cuál es la diferencia de emisiones?`;
+    const diff = +(totalCo2Conv-totalCo2EV).toFixed(1);
+    const opts = shuffleOpts(diff,[diff*0.5,diff*1.5,diff*2.2]);
+    ex.format='mcq';
+    ex.options = opts.options.map((v,i)=>({label:'abcd'[i],text:`${fmt(v,1)} kgCO₂`,value:v}));
+    ex.correctIndex = opts.correctIndex;
+    ex.hints = [
+      'Calcula emisiones = km × factor de emisión, para cada vehículo.',
+      'Resta ambas para obtener la diferencia.',
+      `Conv: ${d.dist}×${d.em}=${totalCo2Conv}. EV: ${d.dist}×0.05=${totalCo2EV}. Diferencia ${diff}.`,
+    ];
+    ex.solution = [
+      {t:'Emisiones convencional', d:`${d.dist} × ${d.em} = ${totalCo2Conv} kgCO₂.`},
+      {t:'Emisiones EV', d:`${d.dist} × 0.05 = ${totalCo2EV} kgCO₂.`},
+      {t:'Diferencia', d:`${totalCo2Conv} − ${totalCo2EV} = ${diff} kgCO₂.`},
+      {t:'Capacidad', d:`Demanda ${dem} uds; el EV (cap 40) necesitaría ${Math.ceil(dem/40)} viajes, el convencional ${Math.ceil(dem/d.capacity)}.`},
+      {t:'Trade-off', d:'El EV emite menos por km pero puede necesitar más viajes; evaluar km totales finales.'},
+    ];
+  }
+
+  else if(type==='constraint'){
+    const constraints = [
+      {name:'Capacidad de vehículo', desc:'demanda agregada supera capacidad'},
+      {name:'Ventanas horarias estrechas', desc:'no se puede visitar todo a tiempo'},
+      {name:'Restricciones de acceso al centro', desc:'zona ZBE/peatonal'},
+      {name:'Drop size pequeño', desc:'muchos clientes con pedidos pequeños'},
+      {name:'Tráfico congestionado', desc:'baja velocidad media urbana'},
+    ];
+    const idx = rndInt(0,constraints.length-1);
+    const correct = constraints[idx];
+    ex.statement = `Escenario: ${d.n} clientes en centro urbano, ${d.dropSize} uds/cliente medio, capacidad vehículo ${d.capacity}, tráfico ${d.trafficLevel}. ${idx===2?'Zona de bajas emisiones en el centro. ':''}${idx===1?'Ventanas horarias de 10–13h muy ajustadas. ':''}${idx===0?`Demanda total ${d.dropSize*d.n} (capacidad ${d.capacity}). `:''}¿Cuál es la restricción dominante?`;
+    ex.format='mcq';
+    ex.options = constraints.map((c,i)=>({label:'abcd'[i%4],text:c.name,value:i}));
+    ex.options = ex.options.slice(0,4);
+    if(idx>=4) ex.options[3]=constraints[idx];
+    ex.correctIndex = ex.options.findIndex(o=>o.value===idx);
+    if(ex.correctIndex<0) ex.correctIndex = 0;
+    ex.hints = [
+      'Identifica el cuello de botella: ¿capacidad, tiempo, acceso, drop size o tráfico?',
+      'Lee qué dato del enunciado destaca como crítico.',
+      `La pista clave está en: "${correct.desc}".`,
+    ];
+    ex.solution = [
+      {t:'Detectar el cuello de botella', d:`Restricción dominante: ${correct.name}.`},
+      {t:'Por qué', d:correct.desc+'.'},
+      {t:'Implicación logística', d:'Esa restricción condiciona la elección de vehículo, ruta o estrategia (CCU, microhub, nocturna).'},
+      {t:'Estrategia', d:idx===2?'Necesitas vehículo eco-friendly o microhub.':idx===0?'Necesitas más vehículos o consolidación previa.':idx===1?'Replantear ventanas o usar nocturna.':idx===3?'Considera CCU para consolidar.':'Considera nocturna o vías alternativas.'},
+    ];
+  }
+
+  else if(type==='window'){
+    const tStart = rndInt(8,11);
+    const tEnd = tStart + rndInt(2,3);
+    const arrival = +(rnd(tStart-1,tEnd+1.5)).toFixed(1);
+    const isLate = arrival > tEnd;
+    const isEarly = arrival < tStart;
+    ex.statement = `Cliente con ventana horaria ${tStart}:00–${tEnd}:00. Hora de llegada estimada: ${hourFmt(arrival)}. Tiempo de descarga 12 min. Penalización por retraso 15€/h. ¿Qué ocurre?`;
+    ex.format='mcq';
+    ex.options = [
+      {label:'a',text:'Entrega a tiempo, sin coste extra',value:0},
+      {label:'b',text:`Espera de ${fmt(tStart-arrival,2)}h hasta apertura`,value:1},
+      {label:'c',text:`Retraso de ${fmt(arrival-tEnd,2)}h con penalización`,value:2},
+      {label:'d',text:'Necesita reprogramación',value:3},
+    ];
+    ex.correctIndex = isLate?2:(isEarly?1:0);
+    ex.hints = [
+      'Compara la hora de llegada con la ventana horaria del cliente.',
+      'Si llegas antes de la apertura, esperas. Si llegas después del cierre, hay retraso.',
+      `Hora de llegada ${arrival}, ventana ${tStart}–${tEnd}.`,
+    ];
+    ex.solution = [
+      {t:'Comparación', d:`Llegada ${hourFmt(arrival)} vs ventana ${tStart}–${tEnd}.`},
+      {t:'Resultado', d:isLate?`Retraso de ${fmt(arrival-tEnd,2)} h.`:(isEarly?`Espera de ${fmt(tStart-arrival,2)} h hasta apertura.`:'Entrega dentro de ventana.')},
+      {t:'Impacto', d:isLate?`Penalización: ${fmt((arrival-tEnd)*15,2)}€.`:(isEarly?'No hay coste directo pero el conductor pierde tiempo.':'Sin impacto.')},
+      {t:'Aprendizaje', d:'Las ventanas horarias condicionan el orden de visita y obligan a planificar tiempos de conducción.'},
+    ];
+  }
+
+  else if(type==='cost'){
+    const totalCost = +(d.dist*d.costKm + d.time*d.costH).toFixed(0);
+    const totalCo2 = +(d.dist*d.em).toFixed(2);
+    ex.statement = `Ruta: ${d.dist} km, ${d.time} h, €/km=${d.costKm}, €/h=${d.costH}, factor emisión ${d.em} kgCO₂/km. Calcula coste y emisiones totales.`;
+    ex.format='open';
+    ex.expectedCost = totalCost;
+    ex.expectedCo2 = totalCo2;
+    ex.hints = [
+      'Coste total = €/km × km + €/h × horas.',
+      'Emisiones = km × factor de emisión.',
+      `Coste = ${d.dist}×${d.costKm}+${d.time}×${d.costH} = ${totalCost} €.`,
+    ];
+    ex.solution = [
+      {t:'Cálculo de coste', d:`${d.dist} × ${d.costKm} + ${d.time} × ${d.costH} = ${totalCost} €.`},
+      {t:'Cálculo de emisiones', d:`${d.dist} × ${d.em} = ${totalCo2} kgCO₂.`},
+      {t:'Interpretación', d:'Estos valores no incluyen penalizaciones por retraso ni coste fijo. Si los hay, súmalos.'},
+    ];
+  }
+
+  else if(type==='case'){
+    const escenarios = ['centro histórico con ZBE','polígono industrial periférico','barrio residencial denso','zona comercial peatonal'];
+    const sc = escenarios[rndInt(0,escenarios.length-1)];
+    ex.statement = `Caso abierto: una empresa entrega ${d.n} clientes en ${sc}. Drop size medio ${d.dropSize} uds, tráfico ${d.trafficLevel}. Justifica qué estrategia logística (directa, CCU, microhub o nocturna) recomendarías y por qué. Considera coste, tiempo, emisiones y servicio.`;
+    ex.format='case';
+    ex.hints = [
+      'Identifica primero la restricción dominante: tráfico, acceso, drop size, ventanas.',
+      'Cada estrategia ataca un problema distinto: CCU reduce km urbanos, microhub mejora sostenibilidad, nocturna evita tráfico.',
+      `Para ${sc} con tráfico ${d.trafficLevel} y drop size ${d.dropSize}, piensa: ¿hay restricciones de acceso? ¿hay congestión? ¿el drop es pequeño?`,
+    ];
+    let rec='';
+    if(sc.includes('histórico')||sc.includes('peatonal')) rec='microhub con bicicleta de carga o furgoneta eléctrica (acceso a zona restringida)';
+    else if(d.trafficLevel==='alto') rec='entrega nocturna (evitar congestión) o CCU (reducir km urbanos)';
+    else if(d.dropSize<6) rec='CCU (drop size pequeño justifica consolidación previa)';
+    else rec='ruta directa con vehículo eficiente';
+    ex.solution = [
+      {t:'Restricción dominante', d:sc.includes('histórico')||sc.includes('peatonal')?'Acceso restringido al centro.':(d.trafficLevel==='alto'?'Congestión.':'Drop size y dispersión.')},
+      {t:'Estrategia recomendada', d:rec.toUpperCase()+'.'},
+      {t:'Justificación coste', d:'Reduce kilómetros urbanos y/o evita penalizaciones por retraso.'},
+      {t:'Justificación tiempo', d:'Mejora velocidad media efectiva al evitar tráfico o reducir distancia urbana.'},
+      {t:'Justificación emisiones', d:'Vehículo eco-friendly o menos km totales.'},
+      {t:'Justificación servicio', d:'Cumplimiento de ventanas y acceso garantizado a la zona.'},
+    ];
+  }
+
+  return ex;
+}
+
+function shuffleOpts(correct, distractors){
+  const arr = [correct, ...distractors].map(v=>+v.toFixed(0));
+  // shuffle
+  for(let i=arr.length-1;i>0;i--){
+    const j=rndInt(0,i);[arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return {options:arr, correctIndex:arr.indexOf(+correct.toFixed(0))};
+}
+
+function renderExercise(ex){
+  const area = document.getElementById('exercise-area');
+  let html = `<div class="exercise-card">
+    <h4>Ejercicio · ${ex.type.toUpperCase()}</h4>
+    <div class="exercise-statement">${ex.statement}</div>`;
+
+  if(ex.format==='mcq'){
+    html += ex.options.map((o,i)=>`
+      <div class="option-row" data-i="${i}" onclick="selectOption(${i})">
+        <span class="letter">${o.label})</span><span>${o.text}</span>
+      </div>
+    `).join('');
+  } else if(ex.format==='open'){
+    html += `
+      <div class="field-row">
+        <div class="field"><label>Coste total (€)</label><input type="number" id="ex-ans-cost" step="0.01"></div>
+        <div class="field"><label>Emisiones (kgCO₂)</label><input type="number" id="ex-ans-co2" step="0.01"></div>
+      </div>`;
+  } else if(ex.format==='case'){
+    html += `
+      <div class="field">
+        <label>Respuesta abierta — justificación</label>
+        <textarea id="ex-ans-case" rows="4" style="width:100%;background:var(--bg-2);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:5px;font-family:var(--mono);font-size:12px" placeholder="Explica qué estrategia recomiendas y por qué (mín. 40 caracteres)..."></textarea>
+      </div>`;
+  }
+
+  html += `
+    <div class="btn-row">
+      <button class="btn green" onclick="checkExercise()">Comprobar</button>
+      <button class="btn yellow" onclick="askHint()">Pedir pista</button>
+      <button class="btn secondary" onclick="showSolution()">Ver solución</button>
+      <button class="btn secondary" onclick="generateExercise()">Generar otro parecido</button>
+    </div>
+    <div id="ex-feedback"></div>
+    <div id="ex-hints"></div>
+    <div id="ex-solution"></div>
+  </div>`;
+  area.innerHTML = html;
+}
+
+function selectOption(i){
+  document.querySelectorAll('.option-row').forEach(el=>el.classList.remove('selected'));
+  document.querySelector(`.option-row[data-i="${i}"]`).classList.add('selected');
+  state.currentExercise.selected = i;
+}
+
+function checkExercise(){
+  const ex = state.currentExercise;
+  if(!ex) return;
+  const fb = document.getElementById('ex-feedback');
+  if(ex.format==='mcq'){
+    if(ex.selected==null){fb.innerHTML=`<div class="alert warn"><span class="icon">!</span>Selecciona una opción.</div>`;return}
+    document.querySelectorAll('.option-row').forEach((el,i)=>{
+      el.classList.remove('correct','incorrect','selected');
+      if(i===ex.correctIndex) el.classList.add('correct');
+      if(i===ex.selected && i!==ex.correctIndex) el.classList.add('incorrect');
+    });
+    if(ex.selected===ex.correctIndex){
+      fb.innerHTML = `<div class="alert success"><span class="icon">✓</span>Correcto. Has identificado la opción correcta.</div>`;
+    } else {
+      fb.innerHTML = `<div class="alert error"><span class="icon">×</span>Incorrecto. La opción correcta es <strong>${ex.options[ex.correctIndex].label})</strong>. Mira la solución para entender el razonamiento.</div>`;
+    }
+  } else if(ex.format==='open'){
+    const c = parseFloat(document.getElementById('ex-ans-cost').value);
+    const e = parseFloat(document.getElementById('ex-ans-co2').value);
+    if(isNaN(c)||isNaN(e)){fb.innerHTML=`<div class="alert warn"><span class="icon">!</span>Rellena ambos campos.</div>`;return}
+    const okC = Math.abs(c-ex.expectedCost) < ex.expectedCost*0.03 + 1;
+    const okE = Math.abs(e-ex.expectedCo2) < ex.expectedCo2*0.05 + 0.2;
+    if(okC && okE){
+      fb.innerHTML = `<div class="alert success"><span class="icon">✓</span>Ambos valores correctos. Coste esperado ${ex.expectedCost}€, emisiones ${ex.expectedCo2} kgCO₂.</div>`;
+    } else {
+      fb.innerHTML = `<div class="alert error"><span class="icon">×</span>Coste ${okC?'OK':'incorrecto'} (esperado ${ex.expectedCost}€) · Emisiones ${okE?'OK':'incorrecto'} (esperado ${ex.expectedCo2} kgCO₂).</div>`;
+    }
+  } else if(ex.format==='case'){
+    const a = document.getElementById('ex-ans-case').value.trim();
+    if(a.length<40){fb.innerHTML=`<div class="alert warn"><span class="icon">!</span>Justificación demasiado corta. Desarrolla al menos 40 caracteres.</div>`;return}
+    fb.innerHTML = `<div class="alert info"><span class="icon">▸</span>Respuesta abierta registrada. Compara con la solución paso a paso para autoevaluarte.</div>`;
+  }
+}
+
+function askHint(){
+  const ex = state.currentExercise;
+  if(!ex) return;
+  if(ex.hintsUsed >= ex.hints.length){
+    document.getElementById('ex-hints').innerHTML = `<div class="hint-box">No hay más pistas. Pulsa "Ver solución" para el desarrollo completo.</div>`;
+    return;
+  }
+  const hint = ex.hints[ex.hintsUsed];
+  ex.hintsUsed++;
+  const container = document.getElementById('ex-hints');
+  container.innerHTML += `<div class="hint-box"><strong>Pista ${ex.hintsUsed}/${ex.hints.length}:</strong> ${hint}</div>`;
+}
+
+function showSolution(){
+  const ex = state.currentExercise;
+  if(!ex) return;
+  const html = `<div class="solution-box">
+    <strong style="color:var(--green);font-family:var(--mono);font-size:11px;text-transform:uppercase">Solución paso a paso</strong>
+    ${ex.solution.map((s,i)=>`<div class="step" style="margin-top:8px"><strong>Paso ${i+1}: ${s.t}</strong>${s.d}</div>`).join('')}
+  </div>`;
+  document.getElementById('ex-solution').innerHTML = html;
+}
+
+/* ============================================================
+   INIT & TABS
+   ============================================================ */
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='comparador') renderComparator();
+  });
+});
+
+// Auto-init
+window.addEventListener('load',()=>{
+  generateScenario();
+});
+</script>
+</body>
+</html>

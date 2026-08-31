@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratorio de Bonos · IOI</title>
+<style>
+:root {
+  --ink:  #0f172a;
+  --ink2: #1e293b;
+  --txt:  #334155;
+  --sub:  #64748b;
+  --dim:  #94a3b8;
+  --bg:   #f8fafc;
+  --srf:  #ffffff;
+  --bdr:  #e2e8f0;
+  --bdr2: #cbd5e1;
+  --blue: #1d4ed8;
+  --blu2: #1e40af;
+  --blul: #eff6ff;
+  --blum: #dbeafe;
+  --grn:  #16a34a;
+  --grnl: #f0fdf4;
+  --amb:  #b45309;
+  --ambl: #fffbeb;
+  --red:  #dc2626;
+  --redl: #fef2f2;
+  --r: 6px;
+  --shd: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+  background: var(--bg); color: var(--txt);
+  font-size: 14px; line-height: 1.6; min-height: 100vh;
+}
+h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: -.02em; }
+p { color: var(--txt); }
+
+/* ---------- inputs ---------- */
+input[type=number], input[type=text], textarea, select {
+  font-family: inherit; font-size: .875rem;
+  border: 1px solid var(--bdr2); border-radius: var(--r);
+  padding: .38rem .6rem; outline: none;
+  transition: border-color .12s, box-shadow .12s;
+  width: 100%; background: var(--srf); color: var(--ink);
+}
+input:focus, textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(29,78,216,.12);
+}
+textarea { resize: vertical; }
+label { font-size: .76rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; color: var(--sub); display: block; margin-bottom: .25rem; }
+
+/* ---------- header ---------- */
+header {
+  background: var(--ink); color: #fff;
+  padding: .85rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem;
+}
+header small { color: #94a3b8; font-size: .78rem; display: block; margin-top: .1rem; }
+.exam-lbl {
+  display: flex; align-items: center; gap: .5rem;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px; padding: .35rem .85rem;
+  color: #fff; font-size: .8rem; font-weight: 600; cursor: pointer;
+}
+.exam-lbl input { width: auto; cursor: pointer; accent-color: #fff; }
+body.exam header { background: #7f1d1d; }
+
+/* ---------- exam banner ---------- */
+.xbanner {
+  display: none; background: #7f1d1d; color: #fecaca;
+  text-align: center; padding: .28rem; font-size: .75rem; font-weight: 600;
+  letter-spacing: .04em; position: sticky; top: 0; z-index: 30;
+}
+body.exam .xbanner { display: block; }
+body.exam .hide-exam { display: none !important; }
+
+/* ---------- tabs ---------- */
+.nav {
+  background: var(--srf); border-bottom: 1px solid var(--bdr);
+  display: flex; overflow-x: auto;
+  position: sticky; top: 0; z-index: 20;
+  box-shadow: 0 1px 0 var(--bdr);
+}
+body.exam .nav { top: 26px; }
+.nav button {
+  background: none; border: none;
+  border-bottom: 2px solid transparent; border-radius: 0;
+  padding: .7rem 1.1rem; color: var(--sub); font-weight: 500;
+  white-space: nowrap; margin-bottom: -1px; font-size: .84rem;
+  letter-spacing: .01em; transition: color .12s;
+}
+.nav button.on { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+.nav button:hover:not(.on) { color: var(--ink2); background: var(--bg); }
+
+/* ---------- panels ---------- */
+.panel { display: none; padding: 1.25rem; max-width: 1200px; margin: 0 auto; }
+.panel.on { display: block; }
+
+/* ---------- cards ---------- */
+.card {
+  background: var(--srf); border-radius: var(--r);
+  padding: 1.1rem; box-shadow: var(--shd);
+  border: 1px solid var(--bdr); margin-bottom: 1rem;
+}
+.sect {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--dim); margin-bottom: .8rem;
+}
+
+/* ---------- grid ---------- */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; }
+.lab { display: grid; grid-template-columns: 290px 1fr; gap: 1rem; align-items: start; }
+@media (max-width: 860px) { .lab, .g2, .g3 { grid-template-columns: 1fr; } }
+.i2 { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+
+/* ---------- field ---------- */
+.fld { margin-bottom: .65rem; }
+
+/* ---------- buttons ---------- */
+button { cursor: pointer; font-family: inherit; font-size: .84rem; border: none; border-radius: var(--r); padding: .4rem .85rem; transition: all .12s; line-height: 1.4; }
+.btn-p { background: var(--blue); color: #fff; font-weight: 600; }
+.btn-p:hover { background: var(--blu2); }
+.btn-g { background: var(--grn); color: #fff; font-weight: 600; }
+.btn-g:hover { filter: brightness(.92); }
+.btn-o { background: var(--srf); color: var(--txt); border: 1px solid var(--bdr2); }
+.btn-o:hover { background: var(--bg); border-color: var(--sub); }
+.btn-sm { padding: .28rem .65rem; font-size: .78rem; }
+.btn-full { width: 100%; padding: .5rem; }
+.btn-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .6rem; }
+
+/* ---------- result numbers ---------- */
+.rnum { font-size: 1.85rem; font-weight: 800; letter-spacing: -.03em; color: var(--blue); line-height: 1; }
+.rlbl { font-size: .72rem; color: var(--sub); margin-top: .22rem; }
+
+/* ---------- badges ---------- */
+.bdg { display: inline-block; padding: .15rem .6rem; border-radius: 3px; font-size: .74rem; font-weight: 700; letter-spacing: .02em; }
+.b-bajo { background: var(--redl); color: var(--red); }
+.b-par  { background: var(--grnl); color: var(--grn); }
+.b-sob  { background: var(--ambl); color: var(--amb); }
+
+/* ---------- alerts ---------- */
+.al { padding: .65rem .9rem; border-radius: var(--r); font-size: .84rem; margin: .4rem 0; }
+.al-i { background: var(--blul); border-left: 3px solid var(--blue); color: var(--ink2); }
+.al-g { background: var(--grnl); border-left: 3px solid var(--grn); color: #14532d; }
+.al-a { background: var(--ambl); border-left: 3px solid var(--amb); color: #78350f; }
+.al-r { background: var(--redl); border-left: 3px solid var(--red); color: #7f1d1d; }
+
+/* ---------- prediction widget ---------- */
+.pred-q { font-size: .84rem; font-weight: 500; color: var(--ink2); margin-bottom: .5rem; }
+.pred-opts { display: flex; gap: .4rem; flex-wrap: wrap; }
+.pred-opts button { padding: .3rem .75rem; font-size: .8rem; }
+.pred-opts button.sel { background: var(--blue); color: #fff; border-color: var(--blue); }
+.pred-sep { height: 1px; background: var(--bdr); margin: .75rem 0; }
+.pred-row { display: flex; align-items: baseline; gap: .75rem; padding: .45rem 0; border-bottom: 1px solid var(--bdr); }
+.pred-row:last-child { border-bottom: none; }
+.pred-row .lbl { font-size: .8rem; color: var(--sub); flex-shrink: 0; width: 130px; }
+.pred-row .val { font-size: .84rem; font-weight: 600; }
+.pred-ok  { color: var(--grn); }
+.pred-err { color: var(--red); }
+.pred-mark { font-size: .75rem; font-weight: 700; margin-left: .4rem; }
+
+/* ---------- chart ---------- */
+#bondChart { width: 100%; border-radius: 4px; display: block; }
+.slider-row { display: flex; align-items: center; gap: .9rem; margin-top: .75rem; }
+.slider-row label { margin: 0; font-size: .78rem; white-space: nowrap; }
+.slider-row input[type=range] { flex: 1; min-width: 100px; accent-color: var(--blue); }
+#sv { font-size: .84rem; font-weight: 700; color: var(--blue); min-width: 3rem; text-align: right; }
+#sprice { font-size: .8rem; color: var(--sub); margin-top: .4rem; }
+
+/* ---------- chat ---------- */
+.chat {
+  display: flex; flex-direction: column; gap: .55rem;
+  max-height: 360px; overflow-y: auto;
+  padding: .7rem; background: var(--bg);
+  border-radius: var(--r); border: 1px solid var(--bdr);
+}
+.msg { max-width: 84%; padding: .55rem .8rem; border-radius: var(--r); font-size: .84rem; line-height: 1.55; word-break: break-word; }
+.m-t  { background: var(--blul); color: var(--ink2); align-self: flex-start; border-bottom-left-radius: 2px; }
+.m-u  { background: var(--blue); color: #fff; align-self: flex-end; border-bottom-right-radius: 2px; }
+.m-h  { background: var(--ambl); color: #78350f; align-self: flex-start; font-size: .8rem; border-bottom-left-radius: 2px; }
+.m-ok { background: var(--grnl); color: #14532d; align-self: flex-start; border-bottom-left-radius: 2px; }
+.m-er { background: var(--redl); color: #7f1d1d; align-self: flex-start; border-bottom-left-radius: 2px; }
+.m-f  { background: var(--ink); color: #7dd3fc; align-self: stretch; font-family: 'Courier New', monospace; font-size: .78rem; white-space: pre-wrap; border-radius: var(--r); padding: .75rem 1rem; }
+.cin { display: flex; gap: .5rem; margin-top: .6rem; }
+.cin textarea { flex: 1; min-height: 56px; max-height: 90px; }
+
+/* ---------- progress dots ---------- */
+.pdots { display: flex; gap: .3rem; margin: .4rem 0; }
+.pdot { width: 1.15rem; height: 1.15rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+
+/* ---------- step list ---------- */
+.steps { counter-reset: s; list-style: none; margin: .5rem 0; }
+.steps li { counter-increment: s; padding: .45rem .6rem .45rem 2.2rem; position: relative; background: var(--bg); border-radius: var(--r); margin: .28rem 0; font-size: .84rem; }
+.steps li::before { content: counter(s); position: absolute; left: .45rem; top: .45rem; background: var(--blue); color: #fff; width: 1.2rem; height: 1.2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .68rem; font-weight: 700; }
+
+/* ---------- error cards ---------- */
+.ecard { border-left: 3px solid var(--red); }
+.etitle { color: var(--red); font-weight: 700; font-size: .88rem; margin-bottom: .3rem; }
+.efix { color: var(--grn); font-weight: 600; margin-top: .35rem; font-size: .82rem; }
+
+/* ---------- formula block ---------- */
+.fmla { background: var(--ink); color: #7dd3fc; padding: .7rem .9rem; border-radius: var(--r); font-family: 'Courier New', monospace; font-size: .8rem; white-space: pre; overflow-x: auto; margin: .4rem 0; }
+
+/* ---------- summary ---------- */
+.si { display: flex; gap: .65rem; align-items: flex-start; padding: .6rem; background: var(--bg); border-radius: var(--r); margin: .3rem 0; }
+.siico { font-size: .95rem; line-height: 1.6; flex-shrink: 0; color: var(--sub); }
+.tagrow { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .5rem; }
+.tag { background: var(--blum); color: var(--blue); border-radius: 3px; padding: .1rem .45rem; font-size: .73rem; font-weight: 700; letter-spacing: .02em; }
+
+/* ---------- ex table ---------- */
+.exdt { background: var(--bg); padding: .6rem .8rem; border-radius: var(--r); margin: .5rem 0; font-size: .84rem; }
+.exdt table { width: 100%; border-collapse: collapse; }
+.exdt td { padding: .2rem .3rem; }
+.exdt td:first-child { color: var(--sub); font-size: .78rem; }
+.exdt td:last-child { font-weight: 600; }
+
+/* ---------- utils ---------- */
+.hidden { display: none !important; }
+hr { border: none; border-top: 1px solid var(--bdr); margin: .7rem 0; }
+.mt1 { margin-top: .5rem; } .mt2 { margin-top: 1rem; }
+.mb1 { margin-bottom: .5rem; }
+.tc { text-align: center; }
+.dim { color: var(--sub); font-size: .8rem; }
+.bold { font-weight: 700; }
+.num { color: var(--blue); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="xbanner">MODO EXAMEN — Sin soluciones directas. Razona antes de responder.</div>
+
+<header>
+  <div>
+    <h1>Laboratorio de Bonos y Valores</h1>
+    <small>Ingeniería en Organización Industrial · Dirección Financiera</small>
+  </div>
+  <label class="exam-lbl">
+    <input type="checkbox" id="xToggle" onchange="setExam(this.checked)">
+    Modo Examen
+  </label>
+</header>
+
+<nav class="nav">
+  <button class="on" onclick="goTab('lab',this)">Laboratorio</button>
+  <button onclick="goTab('tutor',this)">Tutor Socrático</button>
+  <button onclick="goTab('exs',this)">Ejercicios</button>
+  <button onclick="goTab('errs',this)">Errores Frecuentes</button>
+  <button onclick="goTab('sum',this)">Conceptos Clave</button>
+</nav>
+
+<!-- ===== LABORATORIO ===== -->
+<div id="tab-lab" class="panel on">
+  <div class="lab">
+
+    <div>
+      <div class="card">
+        <div class="sect">Parámetros del bono</div>
+        <div class="fld"><label>Nominal (€)</label><input type="number" id="pN" value="1000" min="1" oninput="liveChart()"></div>
+        <div class="i2">
+          <div class="fld"><label>Cupón anual (%)</label><input type="number" id="pC" value="5" min="0" max="50" step="0.1" oninput="liveChart()"></div>
+          <div class="fld"><label>Años vencimiento</label><input type="number" id="pN2" value="5" min="1" max="30" oninput="liveChart()"></div>
+        </div>
+        <div class="fld"><label>Rentabilidad exigida (%)</label><input type="number" id="pR" value="5" min="0.1" max="30" step="0.1" oninput="liveChart()"></div>
+        <hr>
+        <div class="sect" style="margin-bottom:.5rem">Venta anticipada (opcional)</div>
+        <div class="fld"><label>Precio de compra (€) · 0 = calcular automático</label><input type="number" id="pBP" value="0" min="0" step="0.01"></div>
+        <div class="i2">
+          <div class="fld"><label>Año de venta</label><input type="number" id="pSY" value="3" min="1"></div>
+          <div class="fld"><label>Rentab. en venta (%)</label><input type="number" id="pSR" value="6" min="0.1" step="0.1"></div>
+        </div>
+      </div>
+
+      <!-- PREDICCIÓN -->
+      <div class="card" id="predCard">
+        <div class="sect">Predicción — razona antes de calcular</div>
+        <div class="pred-q">¿Cómo estará el precio respecto al nominal?</div>
+        <div class="pred-opts" id="pCls">
+          <button class="btn-o" onclick="setPred('cls','bajo')">Bajo la par</button>
+          <button class="btn-o" onclick="setPred('cls','par')">A la par</button>
+          <button class="btn-o" onclick="setPred('cls','sobre')">Sobre la par</button>
+        </div>
+        <div class="pred-sep"></div>
+        <div class="pred-q">Si la rentabilidad exigida sube 2 puntos, el precio...</div>
+        <div class="pred-opts" id="pDir">
+          <button class="btn-o" onclick="setPred('dir','sube')">Subirá</button>
+          <button class="btn-o" onclick="setPred('dir','igual')">No cambiará</button>
+          <button class="btn-o" onclick="setPred('dir','baja')">Bajará</button>
+        </div>
+        <div class="mt1">
+          <button class="btn-p btn-full" onclick="calcAll()">Calcular y comparar predicción</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="g3" id="resGrid">
+        <div class="card tc">
+          <div class="sect">Precio del bono</div>
+          <div class="rnum" id="rPrice">—</div>
+          <div class="rlbl" id="rPriceLbl">Introduce parámetros</div>
+          <div class="mt1" id="rBadge"></div>
+        </div>
+        <div class="card tc">
+          <div class="sect">Beneficio total</div>
+          <div class="rnum" id="rProfit" style="color:var(--grn)">—</div>
+          <div class="rlbl" id="rProfLbl">Hasta la venta</div>
+        </div>
+        <div class="card tc">
+          <div class="sect">TAE</div>
+          <div class="rnum" id="rTae" style="font-size:1.5rem">—</div>
+          <div class="rlbl">Tasa Anual Equivalente</div>
+        </div>
+      </div>
+
+      <!-- Predicción resultado -->
+      <div class="card hidden" id="predRes">
+        <div class="sect">Predicción vs. resultado</div>
+        <div id="predFb"></div>
+      </div>
+
+      <!-- Interpretación -->
+      <div class="card hidden" id="interpCard">
+        <div class="sect">Interpretación</div>
+        <div id="interpTxt"></div>
+      </div>
+
+      <!-- Gráfico -->
+      <div class="card">
+        <div class="sect">Relación precio — rentabilidad exigida</div>
+        <canvas id="bondChart" height="260"></canvas>
+        <div class="slider-row">
+          <label>Mover r:</label>
+          <input type="range" id="slider" min="0.5" max="20" step="0.1" value="5" oninput="onSlider(this.value)">
+          <span id="sv">5.0%</span>
+        </div>
+        <div class="dim mt1" id="sprice">Desliza para explorar la relación inversa precio–rentabilidad</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TUTOR SOCRÁTICO ===== -->
+<div id="tab-tutor" class="panel">
+  <div class="g2 mb1">
+    <div class="card">
+      <div class="sect">Escenario activo</div>
+      <div id="tScen" class="exdt"><p class="dim">Sincroniza con el Laboratorio para trabajar sobre parámetros concretos.</p></div>
+      <button class="btn-o btn-sm mt1" onclick="syncScen()">Sincronizar con Laboratorio</button>
+    </div>
+    <div class="card">
+      <div class="sect">Progreso</div>
+      <div id="tProg" class="mb1"></div>
+      <div class="btn-row">
+        <button class="btn-p" onclick="tStart()">Iniciar diálogo</button>
+        <button class="btn-o btn-sm" onclick="tReset()">Reiniciar</button>
+        <button class="btn-o btn-sm hide-exam" onclick="tHint()">Pista</button>
+        <button class="btn-o btn-sm hide-exam" onclick="tFormula()">Fórmula</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sect">Diálogo socrático</div>
+    <div class="chat" id="chatArea">
+      <div class="msg m-t">Haz clic en <strong>Iniciar diálogo</strong>. Trabajarás el bono que tienes en el Laboratorio respondiendo cinco preguntas. No hay respuestas correctas escritas en la pantalla: tienes que razonarlas tú.</div>
+    </div>
+    <div class="cin mt1">
+      <textarea id="chatIn" placeholder="Escribe tu respuesta… (Ctrl+↵ para enviar)" onkeydown="if(event.ctrlKey&&event.key==='Enter')sendChat()"></textarea>
+      <button class="btn-p" style="align-self:flex-end;white-space:nowrap" onclick="sendChat()">Enviar</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-o btn-sm" onclick="tNext()">Siguiente pregunta</button>
+      <button class="btn-o btn-sm hide-exam" onclick="tSol()">Solución completa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EJERCICIOS ===== -->
+<div id="tab-exs" class="panel">
+  <div class="card">
+    <div class="sect">Generador de ejercicios</div>
+    <p class="dim mb1">Elige tipo o genera uno aleatorio. En modo examen no verás la solución hasta solicitarla.</p>
+    <div class="btn-row mb1">
+      <span class="dim" style="align-self:center">Dificultad:</span>
+      <button class="btn-o btn-sm" id="dif-facil" onclick="setDif('facil')">Fácil</button>
+      <button class="btn-p btn-sm" id="dif-medio" onclick="setDif('medio')">Media</button>
+      <button class="btn-o btn-sm" id="dif-dificil" onclick="setDif('dificil')">Difícil</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-p" onclick="genEx()">Aleatorio</button>
+      <button class="btn-o btn-sm" onclick="genEx('bajo')">Bajo la par</button>
+      <button class="btn-o btn-sm" onclick="genEx('sobre')">Sobre la par</button>
+      <button class="btn-o btn-sm" onclick="genEx('par')">A la par</button>
+      <button class="btn-o btn-sm" onclick="genEx('venta')">Venta anticipada</button>
+      <button class="btn-o btn-sm" onclick="genEx('cambio')">Cambio de r</button>
+      <button class="btn-o btn-sm" onclick="genEx('benef')">Beneficio</button>
+      <button class="btn-o btn-sm" onclick="genEx('tae')">TAE</button>
+    </div>
+  </div>
+  <div id="exArea"></div>
+</div>
+
+<!-- ===== ERRORES FRECUENTES ===== -->
+<div id="tab-errs" class="panel">
+  <div class="al al-a mb2" style="font-size:.82rem">Los siete errores más frecuentes en examen. Estúdialos y usa el mini-test para comprobar que los distingues.</div>
+  <div class="g2" id="errGrid"></div>
+  <div class="card mt2">
+    <div class="sect">Mini-test — detecta el error del alumno</div>
+    <div id="errQuiz"></div>
+    <button class="btn-o btn-sm mt1" onclick="nextEQ()">Siguiente caso</button>
+  </div>
+</div>
+
+<!-- ===== CONCEPTOS CLAVE ===== -->
+<div id="tab-sum" class="panel">
+  <div class="g2">
+    <div>
+      <div class="card">
+        <div class="sect">Conceptos fundamentales</div>
+        <div class="si"><div class="siico">→</div><div><strong>Precio del bono</strong><br><span class="dim">Valor actual de todos los flujos futuros (cupones + nominal) descontados a r.</span></div></div>
+        <div class="si"><div class="siico">→</div><div><strong>Relación inversa precio–rentabilidad</strong><br><span class="dim">Si r↑ → P↓. Si r↓ → P↑. Sin excepciones.</span></div></div>
+        <div class="si"><div class="siico">→</div><div><strong>Clasificación por el par</strong><br><span class="dim">r &gt; c → bajo la par &nbsp;·&nbsp; r = c → a la par &nbsp;·&nbsp; r &lt; c → sobre la par</span></div></div>
+        <div class="si"><div class="siico">→</div><div><strong>Venta anticipada</strong><br><span class="dim">P_venta = P(r_mercado, años restantes). Beneficio = cupones cobrados + P_venta − P_compra.</span></div></div>
+        <div class="si"><div class="siico">→</div><div><strong>TAE vs. rentabilidad simple</strong><br><span class="dim">La TAE es la TIR: tasa que iguala el precio de compra con los flujos futuros descontados.</span></div></div>
+      </div>
+      <div class="card">
+        <div class="sect">Fórmula</div>
+        <div class="fmla">P = C · [1-(1+r)^(-n)] / r  +  N · (1+r)^(-n)
+
+  C  =  N × c%       cupón anual en euros
+  r  =  rentabilidad exigida (decimal)
+  n  =  años hasta vencimiento
+  N  =  nominal
+
+Caso especial:  si c = r  →  P = N  (a la par, siempre)</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="sect">Razonamientos que debes dominar</div>
+        <div class="al al-i mt1"><strong>1.</strong> El precio es el único valor que garantiza al inversor exactamente la rentabilidad r que exige.</div>
+        <div class="al al-i"><strong>2.</strong> El cupón es fijo (lo fija el emisor). La r varía con el mercado. Su diferencia determina la prima o descuento.</div>
+        <div class="al al-i"><strong>3.</strong> Al vencimiento siempre se cobra el nominal. El precio converge a N conforme se acerca el vencimiento.</div>
+        <div class="al al-i"><strong>4.</strong> Mayor duración → mayor sensibilidad al cambio de r. Un bono a 20 años cambia más de precio que uno a 2 años ante la misma variación de r.</div>
+        <div class="al al-i"><strong>5.</strong> La TAE no es beneficio/inversión/años. Hay que resolver la ecuación implícita del valor actual.</div>
+      </div>
+      <div class="card">
+        <div class="sect">Pregunta de comprensión</div>
+        <p class="mb1">Bono con cupón <strong>4%</strong>, nominal <strong>1.000 €</strong>, rentabilidad exigida <strong>7%</strong>.</p>
+        <p class="mb1 bold">¿El precio es mayor, igual o menor que 1.000 €? ¿Por qué? ¿Qué ocurre si r baja al 4%?</p>
+        <textarea id="finalAns" rows="4" placeholder="Escribe tu razonamiento…" style="margin-top:.4rem"></textarea>
+        <button class="btn-p btn-sm mt1" onclick="chkFinal()">Comprobar razonamiento</button>
+        <div id="finalFb" class="mt1"></div>
+      </div>
+      <div class="card">
+        <div class="sect">Qué practicar a continuación</div>
+        <div class="tagrow">
+          <span class="tag">Duración de Macaulay</span><span class="tag">Duration modificada</span>
+          <span class="tag">Bonos cupón cero</span><span class="tag">Estructura temporal</span>
+          <span class="tag">Convexidad</span><span class="tag">Riesgo de crédito</span>
+          <span class="tag">Bonos callable</span><span class="tag">Inmunización</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN — DATOS EDITABLES DE LOS EJERCICIOS
+   ------------------------------------------------------------
+   Aquí están centralizadas las "pilas de datos" del prototipo:
+   el valor nominal (dato fijo) y los rangos aleatorios de cada
+   tipo de ejercicio. Para cambiarlos se edita SOLO este bloque;
+   las fórmulas financieras (objeto Calc) no se tocan.
+
+   Formato de los rangos: rn(min,max[,decimales]) para decimales
+   y ri(min,max) para enteros, tal como los usan esas funciones.
+
+   Mapa de datos editables:
+     • nominal ...... valor nominal de los bonos (dato fijo)      [aquí]
+     • ejercicios ... rangos aleatorios por tipo de ejercicio     [aquí]
+   Los parámetros del laboratorio (nominal, cupón, r, etc.) los
+   introduce el usuario en pantalla (ver getP). Los enunciados,
+   pistas y pasos van interpolados con los cálculos dentro de cada
+   generador (objeto EX); el texto del recorrido guiado está en STEPS.
+   ============================================================ */
+const CONFIG = {
+
+  nominal: 1000, // valor nominal de los bonos (datos fijos)
+
+  /* --- PILA DE DATOS ALEATORIOS: rangos por tipo de ejercicio --- */
+  ejercicios: {
+    bajo:   { cupon:[3,6.5], anios:[3,8],  spread:[1.5,5] },   // r = cupón + spread
+    sobre:  { cupon:[6,10],  anios:[3,8],  spread:[1.5,4] },   // r = cupón − spread (mín. 0.5)
+    par:    { cupon:[4,8],   anios:[3,8] },                    // r = cupón
+    venta:  { cupon:[4,8],   anios:[5,10], rCompra:[3,8], cambioR:[-3,3] }, // años venta = ri(2, n−1)
+    cambio: { cupon:[4,8],   anios:[3,10], r0:[3,8], salto:[1.5,4] },       // el salto es ± al azar
+    benef:  { cupon:[4,8],   anios:[3,8],  r:[3,9] },
+    tae:    { cupon:[4,8],   anios:[5,9],  rCompra:[3,8], cambioR:[-2,2] }
+  },
+
+  /* --- NIVELES DE DIFICULTAD: vencimiento y amplitud de las variaciones de r --- */
+  dificultad: {
+    facil:   { anios:[3,5],   swing:0.6 },  // pocos años, variaciones suaves
+    medio:   { anios:null,    swing:1   },  // usa el rango propio de cada tipo (sin cambios)
+    dificil: { anios:[10,15], swing:1.7 }   // vencimientos largos, variaciones amplias
+  }
+
+};
+
+// ============================================================
+// CÁLCULOS
+// ============================================================
+const Calc = {
+  price(N, c, n, r) {
+    if (n <= 0) return N;
+    const C = N * c / 100, rate = r / 100;
+    if (rate < 1e-8) return N + C * n;
+    const d = Math.pow(1 + rate, -n);
+    return C * (1 - d) / rate + N * d;
+  },
+  classify(p, N) {
+    const d = (p - N) / N;
+    if (Math.abs(d) < 0.005) return 'par';
+    return p < N ? 'bajo' : 'sobre';
+  },
+  profit(pB, pS, C, yrs) { return pS + C * yrs - pB; },
+  tae(pB, C, pS, yrs) {
+    if (yrs <= 0) return NaN;
+    const f = r => {
+      let v = -pB;
+      for (let t = 1; t <= yrs; t++) v += C / Math.pow(1 + r, t);
+      return v + pS / Math.pow(1 + r, yrs);
+    };
+    let lo = -0.95, hi = 10;
+    if (Math.sign(f(lo)) === Math.sign(f(hi))) return NaN;
+    for (let i = 0; i < 80; i++) {
+      const m = (lo + hi) / 2;
+      f(m) * f(lo) < 0 ? hi = m : lo = m;
+    }
+    return (lo + hi) / 2 * 100;
+  }
+};
+
+// ============================================================
+// ESTADO
+// ============================================================
+const S = {
+  dif: 'medio',
+  exam: false,
+  pred: { cls: null, dir: null },
+  tStep: -1, tP: null,
+  ex: null, exH: 0,
+  eqIdx: 0
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+function $i(id) { return document.getElementById(id); }
+function fmt(v, d = 2) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return v.toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function getP() {
+  return {
+    N: +$i('pN').value || 1000,
+    c: +$i('pC').value || 5,
+    n: +$i('pN2').value || 5,
+    r: +$i('pR').value || 5,
+    bp: +$i('pBP').value || 0,
+    sy: +$i('pSY').value || 3,
+    sr: +$i('pSR').value || 5
+  };
+}
+function goTab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('on'));
+  $i('tab-' + id).classList.add('on');
+  if (btn) btn.classList.add('on');
+  if (id === 'errs') buildErrors();
+  if (id === 'tutor') syncScen();
+}
+function setExam(on) {
+  S.exam = on;
+  document.body.classList.toggle('exam', on);
+}
+function badge(cls) {
+  const L = { bajo: 'Bajo la par', par: 'A la par', sobre: 'Sobre la par' };
+  const C = { bajo: 'b-bajo', par: 'b-par', sobre: 'b-sob' };
+  return `<span class="bdg ${C[cls]}">${L[cls]}</span>`;
+}
+
+// ============================================================
+// PREDICCIÓN
+// ============================================================
+function setPred(type, val) {
+  S.pred[type] = val;
+  const grpId = type === 'cls' ? 'pCls' : 'pDir';
+  $i(grpId).querySelectorAll('button').forEach(b => {
+    const isThis = b.getAttribute('onclick').includes(`'${val}'`);
+    b.classList.toggle('sel', isThis);
+    b.classList.toggle('btn-o', !isThis);
+    b.classList.toggle('btn-p', isThis);
+  });
+}
+
+function showPredResult(price, cls) {
+  if (!S.pred.cls && !S.pred.dir) return;
+  const p = getP();
+  const newPr = Calc.price(p.N, p.c, p.n, p.r + 2);
+  const actualDir = newPr < price ? 'baja' : newPr > price ? 'sube' : 'igual';
+  const clsLabel = { bajo: 'Bajo la par', par: 'A la par', sobre: 'Sobre la par' };
+  const dirLabel = { sube: 'Subirá', igual: 'No cambiará', baja: 'Bajará' };
+
+  let rows = '';
+  if (S.pred.cls) {
+    const ok = S.pred.cls === cls;
+    rows += `<div class="pred-row">
+      <span class="lbl">Clasificación</span>
+      <span class="val">Predijiste <em>${clsLabel[S.pred.cls]}</em> — resultado <em>${clsLabel[cls]}</em>
+      <span class="pred-mark ${ok ? 'pred-ok' : 'pred-err'}">${ok ? '✓ Correcto' : '✗ Incorrecto'}</span></span>
+    </div>`;
+    if (!ok) rows += `<p class="dim" style="padding:.3rem .6rem;font-size:.78rem">Regla: si r ${p.r > p.c ? '>' : p.r < p.c ? '<' : '='} c → bono ${p.r > p.c ? 'bajo' : p.r < p.c ? 'sobre' : 'a'} la par.</p>`;
+  }
+  if (S.pred.dir) {
+    const ok = S.pred.dir === actualDir;
+    rows += `<div class="pred-row">
+      <span class="lbl">Si r sube 2pp</span>
+      <span class="val">Predijiste <em>${dirLabel[S.pred.dir]}</em> — resultado <em>${dirLabel[actualDir]}</em>
+      <span class="pred-mark ${ok ? 'pred-ok' : 'pred-err'}">${ok ? '✓ Correcto' : '✗ Incorrecto'}</span></span>
+    </div>`;
+    if (!ok) rows += `<p class="dim" style="padding:.3rem .6rem;font-size:.78rem">La relación es siempre inversa: r↑ → P↓.</p>`;
+  }
+
+  $i('predFb').innerHTML = rows;
+  $i('predRes').classList.remove('hidden');
+}
+
+// ============================================================
+// CÁLCULO PRINCIPAL
+// ============================================================
+function liveChart() {
+  const p = getP();
+  drawChart(p);
+  $i('slider').value = p.r;
+  $i('sv').textContent = p.r.toFixed(1) + '%';
+}
+
+function calcAll() {
+  const p = getP();
+  const price = Calc.price(p.N, p.c, p.n, p.r);
+  const cls = Calc.classify(price, p.N);
+  const C = p.N * p.c / 100;
+  const sY = Math.min(p.sy, p.n);
+  const rem = p.n - sY;
+  const pSell = Calc.price(p.N, p.c, rem, p.sr);
+  const pBuy = p.bp > 0 ? p.bp : price;
+  const prof = Calc.profit(pBuy, pSell, C, sY);
+  const taeV = Calc.tae(pBuy, C, pSell, sY);
+
+  $i('rPrice').textContent = fmt(price) + ' €';
+  $i('rPriceLbl').textContent = `N: ${fmt(p.N)} € · C: ${fmt(C)} €/año`;
+  $i('rBadge').innerHTML = badge(cls);
+
+  $i('rProfit').textContent = (prof >= 0 ? '+' : '') + fmt(prof) + ' €';
+  $i('rProfit').style.color = prof >= 0 ? 'var(--grn)' : 'var(--red)';
+  $i('rProfLbl').textContent = `Compra: ${fmt(pBuy)} € → Año ${sY}: ${fmt(pSell)} €`;
+
+  $i('rTae').textContent = isNaN(taeV) ? '—' : fmt(taeV) + '%';
+  $i('rTae').style.color = isNaN(taeV) || taeV >= 0 ? 'var(--blue)' : 'var(--red)';
+
+  $i('interpCard').classList.remove('hidden');
+  $i('interpTxt').innerHTML = buildInterp(p, price, cls, C, pBuy, pSell, prof, taeV, sY);
+
+  showPredResult(price, cls);
+  drawChart(p);
+  $i('slider').value = p.r;
+  $i('sv').textContent = p.r.toFixed(1) + '%';
+}
+
+function buildInterp(p, price, cls, C, pBuy, pSell, prof, taeV, sY) {
+  const diff = price - p.N;
+  let h = '';
+  if (cls === 'par') {
+    h += `<div class="al al-g">El bono cotiza <strong>a la par</strong>: cupón (${p.c}%) = r exigida (${p.r}%) → precio = nominal exacto.</div>`;
+  } else if (cls === 'bajo') {
+    h += `<div class="al al-a">Bono <strong>bajo la par</strong>: r (${p.r}%) &gt; cupón (${p.c}%). Descuento de ${fmt(Math.abs(diff))} € (${fmt(Math.abs(diff/p.N)*100)}%).</div>`;
+  } else {
+    h += `<div class="al al-i">Bono <strong>sobre la par</strong>: cupón (${p.c}%) &gt; r (${p.r}%). Prima de ${fmt(diff)} € (${fmt(diff/p.N*100)}%).</div>`;
+  }
+  if (!S.exam) {
+    const rate = p.r / 100, d = Math.pow(1 + rate, -p.n);
+    h += `<div class="fmla" style="margin-top:.5rem;font-size:.76rem">P = ${fmt(C)} × [1-(1+${rate.toFixed(4)})^(-${p.n})] / ${rate.toFixed(4)}  +  ${p.N} × (1+${rate.toFixed(4)})^(-${p.n})
+  = ${fmt(C*(1-d)/rate)} + ${fmt(p.N*d)}  =  ${fmt(price)} €</div>`;
+  }
+  if (sY > 0) {
+    h += `<div class="al al-i mt1">Precio venta (año ${sY}, r=${p.sr}%): <strong>${fmt(pSell)} €</strong> · Beneficio: <strong>${(prof>=0?'+':'')+fmt(prof)} €</strong>${isNaN(taeV)?'':' · TAE: <strong>'+fmt(taeV)+'%</strong>'}</div>`;
+  }
+  return h;
+}
+
+// ============================================================
+// GRÁFICO (Canvas — limpio)
+// ============================================================
+function drawChart(p) {
+  const cv = $i('bondChart');
+  if (!cv) return;
+  const W = cv.parentElement.clientWidth || 600;
+  cv.width = W;
+  const H = cv.height;
+  const ctx = cv.getContext('2d');
+  const pad = { t: 16, r: 16, b: 40, l: 62 };
+  const cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
+
+  const maxR = Math.max(20, p.r * 1.7), minR = 0.5;
+  const pts = [];
+  for (let i = 0; i <= 120; i++) {
+    const yr = minR + (maxR - minR) * i / 120;
+    pts.push({ yr, pr: Calc.price(p.N, p.c, p.n, yr) });
+  }
+  const allP = pts.map(x => x.pr);
+  const minP = Math.min(...allP) * 0.94, maxP = Math.max(...allP) * 1.06;
+
+  const tx = yr => pad.l + (yr - minR) / (maxR - minR) * cW;
+  const ty = pr => pad.t + (1 - (pr - minP) / (maxP - minP)) * cH;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid — very light
+  ctx.strokeStyle = '#f1f5f9';
+  ctx.lineWidth = 1;
+  [5, 10, 15, 20].filter(v => v <= maxR).forEach(yr => {
+    const x = tx(yr);
+    ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + cH); ctx.stroke();
+  });
+  const pRng = maxP - minP;
+  const pGap = pRng > 3000 ? 1000 : pRng > 1500 ? 500 : pRng > 600 ? 200 : 100;
+  const pSt = Math.ceil(minP / pGap) * pGap;
+  for (let pr = pSt; pr <= maxP; pr += pGap) {
+    const y = ty(pr);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cW, y); ctx.stroke();
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+  [5, 10, 15, 20].filter(v => v <= maxR).forEach(yr => {
+    ctx.fillText(yr + '%', tx(yr), H - 8);
+  });
+  ctx.textAlign = 'right';
+  for (let pr = pSt; pr <= maxP; pr += pGap) {
+    ctx.fillText(Math.round(pr), pad.l - 4, ty(pr) + 3);
+  }
+
+  // Nominal line — dashed, subtle
+  const ny = ty(p.N);
+  if (ny >= pad.t && ny <= pad.t + cH) {
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.l, ny); ctx.lineTo(pad.l + cW, ny); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText('N = ' + p.N, pad.l + 4, ny - 3);
+  }
+  ctx.setLineDash([]);
+
+  // Curve — thin, clean
+  ctx.strokeStyle = '#1d4ed8'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  pts.forEach(({ yr, pr }, i) => i === 0 ? ctx.moveTo(tx(yr), ty(pr)) : ctx.lineTo(tx(yr), ty(pr)));
+  ctx.stroke();
+
+  // Current point
+  const cx = tx(p.r), cp = Calc.price(p.N, p.c, p.n, p.r), cy = ty(cp);
+
+  // Subtle crosshair
+  ctx.strokeStyle = 'rgba(220,38,38,.2)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(cx, pad.t); ctx.lineTo(cx, pad.t + cH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pad.l, cy); ctx.lineTo(pad.l + cW, cy); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Dot with ring
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI * 2); ctx.fill();
+
+  // Tooltip — minimal, clean
+  const ttX = cx > W * .62 ? cx - 118 : cx + 10;
+  const ttY = cy > H * .55 ? cy - 50 : cy + 8;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(ttX, ttY, 110, 42);
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  ctx.strokeRect(ttX, ttY, 110, 42);
+  ctx.fillStyle = '#334155'; ctx.font = '11px system-ui'; ctx.textAlign = 'left';
+  ctx.fillText('r = ' + p.r.toFixed(1) + '%', ttX + 8, ttY + 16);
+  ctx.fillStyle = '#1d4ed8'; ctx.font = 'bold 12px system-ui';
+  ctx.fillText('P = ' + fmt(cp) + ' €', ttX + 8, ttY + 33);
+
+  // Axes
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, pad.t + cH); ctx.lineTo(pad.l + cW, pad.t + cH);
+  ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle = '#64748b'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText('Rentabilidad exigida (%)', pad.l + cW / 2, H - 1);
+  ctx.save(); ctx.translate(11, pad.t + cH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Precio (€)', 0, 0); ctx.restore();
+}
+
+function onSlider(v) {
+  $i('sv').textContent = parseFloat(v).toFixed(1) + '%';
+  $i('pR').value = v;
+  const p = getP();
+  const pr = Calc.price(p.N, p.c, p.n, p.r);
+  const cls = Calc.classify(pr, p.N);
+  $i('sprice').innerHTML = `Precio: <span class="num">${fmt(pr)} €</span>&ensp;${badge(cls)}&ensp;<span class="dim">(r = ${parseFloat(v).toFixed(1)}%)</span>`;
+  drawChart(p);
+}
+
+// ============================================================
+// TUTOR SOCRÁTICO
+// ============================================================
+const STEPS = [
+  {
+    q: '<strong>Paso 1.</strong> ¿Qué pagos concretos promete este bono? Enuméralos: tipos, importes, momentos.',
+    k: ['cupón','nominal','anual','vencimiento','pago','interés','flujo','cobra'],
+    ok: 'Correcto. Dos tipos de flujos: cupones anuales fijos (N × tipo cupón) y la devolución del nominal al vencimiento.',
+    fail: 'Faltan elementos. Hay cupones anuales (N × c%) y el nominal al vencimiento. Son los únicos dos flujos.',
+    hint: '¿En cuántos años cobra el bonista? ¿Cuál es el último cobro?',
+    f: null
+  },
+  {
+    q: '<strong>Paso 2.</strong> El cupón es fijo. La rentabilidad exigida la fija el mercado. ¿Son lo mismo? ¿Qué consecuencias tiene la diferencia?',
+    k: ['fijo','fija','mercado','emisor','no son','diferent','distint','varía','cambia','contract'],
+    ok: 'Exacto. El cupón es contractual e inmutable. La r exigida varía con el mercado, el riesgo, los tipos de interés.',
+    fail: 'Son distintos aunque coincidan numéricamente. El cupón lo fija el emisor al emitir y no cambia. La r la fija el mercado cada día.',
+    hint: '¿Quién fija cada uno? ¿Cuál puede variar durante la vida del bono?',
+    f: null
+  },
+  {
+    q: '<strong>Paso 3.</strong> Si la rentabilidad exigida sube, los cupones no cambian. ¿Qué ocurrirá con el precio? Justifica antes de ver el gráfico.',
+    k: ['baj','descend','meno','atractiv','inversa','inverso','compens','descuent'],
+    ok: 'Relación inversa: r↑ → P↓. El bono paga cupones fijos; si el mercado exige más, el precio baja para compensar.',
+    fail: 'Relación inversa: r↑ → P↓. Si el mercado exige más y los cupones son fijos, la única palanca es el precio de compra.',
+    hint: '¿Si el mercado exige 8% y el bono paga solo cupones del 5%, alguien lo compraría al nominal?',
+    f: 'r↑  →  factores de descuento (1+r)^(-t) menores\n    →  valor actual de cada flujo baja  →  P baja\n\nP = C·[1-(1+r)^(-n)]/r  +  N·(1+r)^(-n)'
+  },
+  {
+    q: '<strong>Paso 4.</strong> Compara ahora el cupón y la r exigida del escenario actual. ¿Por encima o por debajo del nominal estará el precio? ¿Por qué exactamente?',
+    k: ['mayor','menor','igual','par','sobre','bajo','porque','supera','inferior','superior'],
+    ok: 'Correcto. La comparación directa c vs. r te da la clasificación sin calcular.',
+    fail: 'Regla directa: c > r → sobre la par; c = r → a la par; c < r → bajo la par. ¿Cuál es el caso aquí?',
+    hint: 'Una sola comparación: ¿el cupón es mayor, igual o menor que la r exigida?',
+    f: 'Clasificación sin calcular:\n  c > r  →  P > N  (sobre la par)\n  c = r  →  P = N  (a la par)\n  c < r  →  P < N  (bajo la par)'
+  },
+  {
+    q: '<strong>Paso 5.</strong> Tienes el precio calculado. ¿Por qué un inversor racional pagaría exactamente esa cifra y no otra?',
+    k: ['valor actual','descuento','rentabilidad','exige','flujos','equilibrio','compensa','presente','van'],
+    ok: 'Perfecto. El precio es el valor actual de todos los flujos futuros a r. Es el único precio que garantiza al inversor exactamente r.',
+    fail: 'El precio es el valor presente de los flujos (cupones + nominal) descontados a r. A ese precio la inversión rinde exactamente r.',
+    hint: 'Si el precio fuera más alto, ¿obtendría el inversor la r que exige? ¿Y si fuera más bajo?',
+    f: 'P = Σ [C/(1+r)^t]  +  N/(1+r)^n  ,  t = 1..n\n\nEs el único P con VAN = 0 → rinde exactamente r'
+  }
+];
+
+function syncScen() {
+  const p = getP();
+  S.tP = p;
+  const price = Calc.price(p.N, p.c, p.n, p.r);
+  $i('tScen').innerHTML = `<table>
+    <tr><td>Nominal</td><td>${fmt(p.N)} €</td></tr>
+    <tr><td>Cupón anual</td><td>${p.c}%&ensp;→&ensp;${fmt(p.N * p.c / 100)} €/año</td></tr>
+    <tr><td>Vencimiento</td><td>${p.n} años</td></tr>
+    <tr><td>Rentab. exigida</td><td>${p.r}%</td></tr>
+    <tr><td style="color:var(--blue)">Precio calculado</td><td style="color:var(--blue);font-weight:700">${fmt(price)} €</td></tr>
+  </table>`;
+  updProg();
+}
+
+function updProg() {
+  const n = STEPS.length, done = Math.max(0, S.tStep);
+  const dots = STEPS.map((_, i) => {
+    const bg = i < done ? 'var(--grn)' : i === done && done < n ? 'var(--blue)' : 'var(--bdr2)';
+    return `<span class="pdot" style="background:${bg}">${i+1}</span>`;
+  }).join('');
+  $i('tProg').innerHTML = `<span class="dim" style="font-size:.76rem">Pasos: ${done}/${n}</span><div class="pdots mt1">${dots}</div>`;
+}
+
+function chatMsg(cls, html) {
+  const c = $i('chatArea');
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls;
+  d.innerHTML = html;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+function tStart() {
+  S.tStep = 0;
+  syncScen();
+  $i('chatArea').innerHTML = '';
+  chatMsg('m-t', 'Iniciando diálogo socrático. Responde con tus propias palabras; el tutor no dará la respuesta directa, solo evaluará tu razonamiento.');
+  setTimeout(() => chatMsg('m-t', STEPS[0].q), 350);
+  $i('chatIn').focus();
+}
+
+function tReset() {
+  S.tStep = -1;
+  $i('chatArea').innerHTML = '<div class="msg m-t">Conversación reiniciada. Haz clic en <strong>Iniciar diálogo</strong>.</div>';
+  updProg();
+}
+
+function sendChat() {
+  const inp = $i('chatIn');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  chatMsg('m-u', txt.replace(/</g, '&lt;'));
+  inp.value = '';
+  if (S.tStep < 0 || S.tStep >= STEPS.length) {
+    chatMsg('m-t', 'Haz clic en <strong>Iniciar diálogo</strong> para comenzar.'); return;
+  }
+  const st = STEPS[S.tStep];
+  const low = txt.toLowerCase();
+  const hits = st.k.filter(k => low.includes(k)).length;
+  setTimeout(() => {
+    if (hits >= 2) {
+      chatMsg('m-ok', st.ok);
+      S.tStep++;
+      updProg();
+      if (S.tStep < STEPS.length) setTimeout(() => chatMsg('m-t', STEPS[S.tStep].q), 500);
+      else setTimeout(() => {
+        chatMsg('m-ok', 'Has completado los cinco pasos del diálogo socrático. Has razonado los conceptos clave del bono sin que el tutor te diera las respuestas.');
+        if (!S.exam) setTimeout(() => chatMsg('m-f', buildSol()), 400);
+      }, 500);
+    } else {
+      chatMsg('m-er', st.fail);
+      if (!S.exam) setTimeout(() => chatMsg('m-h', 'Pista: ' + st.hint), 300);
+    }
+  }, 220);
+}
+
+function tNext() {
+  if (S.tStep < 0) { tStart(); return; }
+  if (S.tStep < STEPS.length) chatMsg('m-t', STEPS[S.tStep].q);
+  else chatMsg('m-t', 'Has completado todos los pasos.');
+}
+function tHint() {
+  if (S.tStep < 0 || S.tStep >= STEPS.length) return;
+  chatMsg('m-h', 'Pista: ' + STEPS[S.tStep].hint);
+}
+function tFormula() {
+  if (S.exam) return;
+  if (S.tStep < 0 || S.tStep >= STEPS.length) return;
+  const f = STEPS[S.tStep].f;
+  chatMsg('m-f', f || 'No hay fórmula específica para este paso.');
+}
+function tSol() {
+  if (S.exam) return;
+  chatMsg('m-f', buildSol());
+}
+function buildSol() {
+  const p = S.tP || getP();
+  const C = p.N * p.c / 100, r = p.r / 100;
+  const price = Calc.price(p.N, p.c, p.n, p.r);
+  const d = Math.pow(1 + r, -p.n);
+  const cls = Calc.classify(price, p.N);
+  const L = { bajo: 'BAJO LA PAR', par: 'A LA PAR', sobre: 'SOBRE LA PAR' };
+  return `SOLUCIÓN — N=${p.N}€, c=${p.c}%, n=${p.n} años, r=${p.r}%
+──────────────────────────────────
+C = ${p.N} × ${p.c}/100 = ${fmt(C)} €
+r = ${r.toFixed(4)}   ·   (1+r)^(-n) = ${d.toFixed(6)}
+
+PV cupones = ${fmt(C)} × [1 - ${d.toFixed(6)}] / ${r.toFixed(4)} = ${fmt(C*(1-d)/r)} €
+PV nominal = ${p.N} × ${d.toFixed(6)} = ${fmt(p.N*d)} €
+
+P = ${fmt(C*(1-d)/r)} + ${fmt(p.N*d)} = ${fmt(price)} €
+    → ${L[cls]}  (r=${p.r}% ${p.r>p.c?'>':p.r<p.c?'<':'='} c=${p.c}%)`;
+}
+
+// ============================================================
+// EJERCICIOS
+// ============================================================
+function rn(a, b, d = 1) { return parseFloat((Math.random() * (b - a) + a).toFixed(d)); }
+function ri(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+function effE(type){
+  const base=CONFIG.ejercicios[type], D=CONFIG.dificultad[S.dif||'medio'], E=Object.assign({},base);
+  if(D.anios) E.anios=D.anios.slice();
+  const k=D.swing||1;
+  ['spread','salto','cambioR'].forEach(key=>{ if(E[key]) E[key]=E[key].map(v=>parseFloat((v*k).toFixed(2))); });
+  return E;
+}
+
+const EX = {
+  bajo() {
+    const E=effE('bajo');
+    const N=CONFIG.nominal, c=rn(...E.cupon), n=ri(...E.anios), r=c+rn(...E.spread);
+    const C=N*c/100, price=Calc.price(N,c,n,r);
+    return {
+      title:'Bono Bajo la Par', answer:price, tol:.5,
+      enun:`Bono: nominal <strong>${N} €</strong>, cupón <strong>${c}%</strong>, vencimiento <strong>${n} años</strong>, rentabilidad exigida <strong>${r.toFixed(1)}%</strong>.`,
+      cq:`El cupón es ${c}% y r exigida es ${r.toFixed(1)}%. Antes de calcular: ¿el precio estará por encima o por debajo del nominal? ¿Por qué?`,
+      preg:'Calcula el precio del bono.',
+      hints:[`Compara: ${c}% (cupón) vs ${r.toFixed(1)}% (r exigida). ¿Cuál es mayor?`,`r > c → el bono rinde menos de lo exigido → precio < nominal.`,`P = C·[1-(1+r)^(-n)]/r + N·(1+r)^(-n),  C=${fmt(C)}, r=${(r/100).toFixed(4)}, n=${n}`],
+      steps:[`C = ${N}×${c}/100 = ${fmt(C)} €`,`r = ${(r/100).toFixed(4)}`,`PV cupones = ${fmt(C*(1-Math.pow(1+r/100,-n))/(r/100))} €`,`PV nominal = ${fmt(N*Math.pow(1+r/100,-n))} €`,`P = ${fmt(price)} € → BAJO LA PAR (r > c) ✓`]
+    };
+  },
+  sobre() {
+    const E=effE('sobre');
+    const N=CONFIG.nominal, c=rn(...E.cupon), n=ri(...E.anios), r=Math.max(.5,c-rn(...E.spread));
+    const C=N*c/100, price=Calc.price(N,c,n,r);
+    return {
+      title:'Bono Sobre la Par', answer:price, tol:.5,
+      enun:`Bono: nominal <strong>${N} €</strong>, cupón <strong>${c}%</strong>, vencimiento <strong>${n} años</strong>, rentabilidad exigida <strong>${r.toFixed(1)}%</strong>.`,
+      cq:`El cupón (${c}%) supera la r exigida (${r.toFixed(1)}%). ¿Qué significa eso para el precio?`,
+      preg:'¿Cuál es el precio del bono?',
+      hints:[`El bono paga MÁS de lo que exige el mercado → es muy atractivo.`,`Los inversores competirán por él y subirán el precio por encima del nominal.`,`P = C·[1-(1+r)^(-n)]/r + N·(1+r)^(-n),  C=${fmt(C)}, r=${(r/100).toFixed(4)}, n=${n}`],
+      steps:[`C = ${fmt(C)} €, r = ${(r/100).toFixed(4)}, n = ${n}`,`PV cupones = ${fmt(C*(1-Math.pow(1+r/100,-n))/(r/100))} €`,`PV nominal = ${fmt(N*Math.pow(1+r/100,-n))} €`,`P = ${fmt(price)} € → SOBRE LA PAR (c > r) ✓`]
+    };
+  },
+  par() {
+    const E=effE('par');
+    const N=CONFIG.nominal, c=rn(...E.cupon), n=ri(...E.anios), r=c;
+    return {
+      title:'Bono A la Par', answer:N, tol:1,
+      enun:`Bono: nominal <strong>${N} €</strong>, cupón <strong>${c}%</strong>, vencimiento <strong>${n} años</strong>. Rentabilidad exigida también <strong>${r}%</strong>.`,
+      cq:`Cupón = r exigida = ${c}%. ¿Puedes deducir el precio sin calcular? Justifícalo algebraicamente.`,
+      preg:'¿Cuál es el precio? Intenta demostrarlo sin calculadora.',
+      hints:[`Cuando c = r, el bono ni premia ni penaliza al inversor. ¿Cuánto vale?`,`Sustituye C = r·N en la fórmula y simplifica.`,`P = N·[1-(1+r)^(-n)] + N·(1+r)^(-n) = N`],
+      steps:[`Como c = r, C = c·N = r·N`,`P = r·N·[1-(1+r)^(-n)]/r  +  N·(1+r)^(-n)`,`P = N·[1-(1+r)^(-n)]  +  N·(1+r)^(-n)  =  N`,`✓ Siempre que c = r, P = N = ${N} €`]
+    };
+  },
+  venta() {
+    const E=effE('venta');
+    const N=CONFIG.nominal, c=rn(...E.cupon), n=ri(...E.anios);
+    const rB=rn(...E.rCompra), sy=ri(2,n-1), rS=Math.max(.5,rB+rn(...E.cambioR));
+    const C=N*c/100, pB=Calc.price(N,c,n,rB);
+    const rem=n-sy, pS=Calc.price(N,c,rem,rS);
+    const prof=Calc.profit(pB,pS,C,sy), taeV=Calc.tae(pB,C,pS,sy);
+    return {
+      title:'Venta Antes del Vencimiento', answer:prof, tol:1,
+      enun:`Compras un bono (nominal <strong>${N} €</strong>, cupón <strong>${c}%</strong>, <strong>${n} años</strong>) con r = <strong>${rB}%</strong>. Tras <strong>${sy} años</strong> la r ha cambiado a <strong>${rS.toFixed(1)}%</strong> y decides vender.`,
+      cq:`¿Cuántos flujos cobras entre compra y venta? ¿Cómo calculas el precio de venta si al nuevo comprador le quedan ${rem} años?`,
+      preg:'Calcula: precio de compra, precio de venta, beneficio total y TAE.',
+      hints:[`P_compra: fórmula con r=${rB}%, n=${n} → ${fmt(pB)} €.`,`P_venta: fórmula con r=${rS.toFixed(1)}% y los ${rem} años restantes.`,`Beneficio = P_venta + ${sy}×${fmt(C)} (cupones cobrados) − P_compra`],
+      steps:[`P_compra = ${fmt(pB)} € (r=${rB}%, n=${n})`,`Cupones cobrados: ${sy}×${fmt(C)} = ${fmt(C*sy)} €`,`Años restantes: ${n}−${sy} = ${rem}`,`P_venta = ${fmt(pS)} € (r=${rS.toFixed(1)}%, n=${rem})`,`Beneficio = ${fmt(pS)} + ${fmt(C*sy)} − ${fmt(pB)} = ${fmt(prof)} €`,`TAE = ${isNaN(taeV)?'—':fmt(taeV)+'%'}`]
+    };
+  },
+  cambio() {
+    const E=effE('cambio');
+    const N=CONFIG.nominal, c=rn(...E.cupon), n=ri(...E.anios);
+    const r0=rn(...E.r0), dr=rn(...E.salto)*(Math.random()>.5?1:-1);
+    const r1=Math.max(.5,r0+dr);
+    const p0=Calc.price(N,c,n,r0), p1=Calc.price(N,c,n,r1);
+    const chg=p1-p0;
+    return {
+      title:'Sensibilidad al Cambio de r', answer:p1, tol:.5,
+      enun:`Bono: nominal <strong>${N} €</strong>, cupón <strong>${c}%</strong>, <strong>${n} años</strong>. Precio actual: <strong>${fmt(p0)} €</strong> (r = ${r0}%). La r ${dr>0?'sube':'baja'} a <strong>${r1.toFixed(1)}%</strong>.`,
+      cq:`La r ${dr>0?'sube':'baja'} ${Math.abs(dr).toFixed(1)} pp. Antes de calcular: ¿en qué dirección se moverá el precio? ¿Cuánto crees que cambiará con ${n} años de vencimiento?`,
+      preg:'Calcula el nuevo precio y la variación en € y en %.',
+      hints:[`Relación inversa: r${dr>0?'↑':'↓'} → P${dr>0?'↓':'↑'}`,`P = C·[1-(1+r_nuevo)^(-n)]/r_nuevo + N·(1+r_nuevo)^(-n)`,`Variación % = (P_nuevo − P_inicial) / P_inicial × 100`],
+      steps:[`P₀ = ${fmt(p0)} € (r=${r0}%)`,`P₁ = ${fmt(p1)} € (r=${r1.toFixed(1)}%)`,`Δ = ${chg>=0?'+':''}${fmt(chg)} € (${(chg/p0*100>=0?'+':'')}${fmt(chg/p0*100)}%)`,`Dirección: r${dr>0?'↑':'↓'} → P${dr>0?'↓':'↑'} — relación inversa ✓`]
+    };
+  },
+  benef() {
+    const E=effE('benef');
+    const N=CONFIG.nominal, c=rn(...E.cupon), n=ri(...E.anios), r=rn(...E.r);
+    const C=N*c/100, pB=Calc.price(N,c,n,r);
+    const prof=Calc.profit(pB,N,C,n);
+    return {
+      title:'Beneficio Total (hasta vencimiento)', answer:prof, tol:.5,
+      enun:`Compras un bono a precio de mercado. Nominal <strong>${N} €</strong>, cupón <strong>${c}%</strong>, vencimiento <strong>${n} años</strong>, r = <strong>${r}%</strong>. Mantienes hasta el vencimiento.`,
+      cq:`Lista todos los cobros que recibirás desde hoy hasta el vencimiento: tipos, importes y años.`,
+      preg:'Calcula el beneficio total de la operación.',
+      hints:[`Precio de compra: aplica la fórmula → ${fmt(pB)} €`,`Recibirás ${n} cupones de ${fmt(C)} € + el nominal de ${N} € al vencimiento.`,`Beneficio = total cobrado − precio pagado = (${n}×${fmt(C)} + ${N}) − ${fmt(pB)}`],
+      steps:[`P_compra = ${fmt(pB)} €`,`Total cupones: ${n}×${fmt(C)} = ${fmt(C*n)} €`,`Nominal al vencimiento: ${N} €`,`Total cobrado: ${fmt(C*n+N)} €`,`Beneficio = ${fmt(C*n+N)} − ${fmt(pB)} = ${fmt(prof)} €`]
+    };
+  },
+  tae() {
+    const E=effE('tae');
+    const N=CONFIG.nominal, c=rn(...E.cupon), n=ri(...E.anios);
+    const rB=rn(...E.rCompra), sy=ri(2,n-1), rS=Math.max(.5,rB+rn(...E.cambioR));
+    const C=N*c/100, pB=Calc.price(N,c,n,rB);
+    const pS=Calc.price(N,c,n-sy,rS), taeV=Calc.tae(pB,C,pS,sy);
+    const simp=Calc.profit(pB,pS,C,sy)/pB/sy*100;
+    return {
+      title:'Cálculo de TAE', answer:taeV, tol:.15,
+      enun:`Compras un bono (nominal <strong>${N} €</strong>, cupón <strong>${c}%</strong>, <strong>${n} años</strong>) con r = <strong>${rB}%</strong>. Lo vendes tras <strong>${sy} años</strong> cuando r = <strong>${rS.toFixed(1)}%</strong>.`,
+      cq:`¿Qué diferencia hay entre rentabilidad simple anual y TAE? ¿Por qué puede ser diferente el resultado?`,
+      preg:'Calcula la TAE de esta inversión.',
+      hints:[`TAE = TIR. Resuelve: P_compra = Σ[C/(1+TAE)^t] + P_venta/(1+TAE)^${sy}`,`P_venta = ${fmt(pS)} € (r=${rS.toFixed(1)}%, n=${n-sy}).`,`La TAE no es beneficio/inversión/años. Hay que resolver la ecuación implícita.`],
+      steps:[`P_compra = ${fmt(pB)} €`,`P_venta = ${fmt(pS)} € (r=${rS.toFixed(1)}%, n=${n-sy})`,`Ecuación: ${fmt(pB)} = Σ[${fmt(C)}/(1+TAE)^t] + ${fmt(pS)}/(1+TAE)^${sy}`,`TAE ≈ ${isNaN(taeV)?'—':fmt(taeV)+'%'} (bisección / Newton-Raphson)`,`Rent. simple anual ≈ ${fmt(simp)}% — diferente de TAE`]
+    };
+  }
+};
+
+function setDif(d){
+  S.dif=d;
+  ['facil','medio','dificil'].forEach(x=>{const b=$i('dif-'+x); if(b)b.className='btn-sm '+(x===d?'btn-p':'btn-o');});
+  if(S.ex&&S.exType) genEx(S.exType);   // regenera con la nueva dificultad si hay ejercicio
+}
+function genEx(type) {
+  const types=['bajo','sobre','par','venta','cambio','benef','tae'];
+  const t = type || types[ri(0, types.length-1)];
+  if (!EX[t]) return;
+  S.ex = EX[t](); S.exH = 0; S.exType = t;
+  renderEx(S.ex);
+}
+
+function renderEx(ex) {
+  $i('exArea').innerHTML = `
+  <div class="card">
+    <div class="sect">${ex.title}</div>
+    <div class="al al-i mb1">${ex.enun}</div>
+    <div class="al al-a mb1">${ex.cq}</div>
+    <p class="bold mb1">${ex.preg}</p>
+    <div class="i2">
+      <div class="fld"><label>Tu respuesta</label><input type="number" id="exAns" step="0.01" placeholder="Resultado numérico…"></div>
+      <div class="fld" style="display:flex;align-items:flex-end"><button class="btn-g btn-full" onclick="chkEx()">Comprobar</button></div>
+    </div>
+    <div class="fld"><label>Justificación</label><textarea id="exJust" rows="3" placeholder="Escribe tu razonamiento paso a paso…"></textarea></div>
+    <div id="exFb"></div>
+    <div class="btn-row mt1">
+      <button class="btn-o btn-sm" onclick="exHint()">Pista (<span id="hc">0</span>/${ex.hints.length})</button>
+      <button class="btn-o btn-sm hide-exam" onclick="exSol()">Solución paso a paso</button>
+    </div>
+    <div id="exHints"></div>
+    <div id="exSol" class="hidden"></div>
+  </div>`;
+  if (S.exam) setExam(true);
+}
+
+function chkEx() {
+  const ex = S.ex; if (!ex) return;
+  const val = parseFloat($i('exAns').value);
+  const fb = $i('exFb');
+  if (isNaN(val)) { fb.innerHTML = '<div class="al al-a">Introduce un valor numérico.</div>'; return; }
+  if (S.exam && !$i('exJust').value.trim()) { fb.innerHTML = '<div class="al al-a">En modo examen debes escribir la justificación antes de comprobar.</div>'; return; }
+  const diff = Math.abs(val - ex.answer);
+  const pct = isNaN(ex.answer) ? Infinity : diff / Math.abs(ex.answer || 1) * 100;
+  if (pct <= 0.5 || diff <= ex.tol) {
+    fb.innerHTML = `<div class="al al-g">Correcto. Resultado esperado: ${fmt(ex.answer)} (error: ${fmt(pct,2)}%).</div>`;
+  } else if (pct <= 5) {
+    fb.innerHTML = `<div class="al al-a">Muy cerca. Tu resultado: ${fmt(val)}. Correcto: ${fmt(ex.answer)}. Error: ${fmt(pct,1)}%. Revisa decimales.</div>`;
+  } else {
+    fb.innerHTML = `<div class="al al-r">Incorrecto. Tu resultado: ${fmt(val)}. Correcto: ${fmt(ex.answer)}. Pide una pista para revisar el planteamiento.</div>`;
+  }
+}
+
+function exHint() {
+  const ex = S.ex; if (!ex) return;
+  if (S.exH >= ex.hints.length) { $i('exHints').innerHTML += '<div class="al al-a mt1">Ya viste todas las pistas disponibles.</div>'; return; }
+  $i('exHints').innerHTML += `<div class="al al-a mt1">Pista ${S.exH+1}: ${ex.hints[S.exH]}</div>`;
+  S.exH++;
+  $i('hc').textContent = S.exH;
+}
+
+function exSol() {
+  if (S.exam) return;
+  const ex = S.ex; if (!ex) return;
+  $i('exSol').classList.remove('hidden');
+  $i('exSol').innerHTML = `<div class="sect mt2">Solución paso a paso</div><ol class="steps">${ex.steps.map(s=>`<li>${s}</li>`).join('')}</ol>`;
+}
+
+// ============================================================
+// ERRORES FRECUENTES
+// ============================================================
+const ERRS = [
+  { title:'Confundir cupón con r exigida', wrong:'Calcular el precio usando el cupón (5%) como tasa de descuento cuando r = 8%.', right:'La tasa de descuento es siempre r exigida. El cupón solo calcula el flujo anual: C = N × 5%.', ex:'Con r=8% y c=5%: precio ≈ 880 €. Con r=5%: precio = 1.000 € (error).' },
+  { title:'Olvidar el nominal al vencimiento', wrong:'Calcular P = PV(cupones) únicamente, sin añadir PV(nominal).', right:'P = PV(cupones) + PV(nominal). Ambos componentes son obligatorios.', ex:'Sin el nominal, el precio calculado sería aprox. el 40-50% del real.' },
+  { title:'Invertir la relación precio–rentabilidad', wrong:'"La r bajó, por tanto el precio también bajó."', right:'Relación inversa: r↓ → P↑. Si el mercado exige menos, el bono vale más.', ex:'Bono c=6%. Si r baja de 8% a 4%, el precio sube de ~900 € a ~1.100 €.' },
+  { title:'No descontar los cupones', wrong:'P = C×n + N (suma de flujos nominales sin actualizar).', right:'Todos los flujos futuros deben descontarse con (1+r)^(−t).', ex:'Un cupón de 50 € dentro de 5 años vale 50/(1.05)^5 = 39,18 €, no 50 €.' },
+  { title:'Confundir precio de compra y precio de venta', wrong:'En venta anticipada, usar el nominal (1.000 €) como precio de venta.', right:'El precio de venta = P(r_mercado_en_ese_momento, años restantes). No es el nominal.', ex:'Si r cambia al vender, el precio de venta puede ser muy diferente del nominal.' },
+  { title:'Confundir rentabilidad simple y TAE', wrong:'TAE = beneficio / (precio × años).', right:'La TAE resuelve: P = Σ[C/(1+TAE)^t] + P_final/(1+TAE)^n. Considera el interés compuesto.', ex:'200 € de beneficio en 4 años sobre 1.000 € → rent. simple: 5%/año. TAE ≠ 5%.' },
+  { title:'Clasificar mal (bajo/sobre/a la par)', wrong:'"Está bajo la par porque tiene muchos años" o "porque la empresa tiene riesgo."', right:'Solo depende de: r > c → bajo la par · r = c → a la par · r < c → sobre la par.', ex:'Bono a 30 años con c=8% y r=5% → sobre la par. El plazo no determina la clasificación.' }
+];
+
+const EQ = [
+  { t:'Carmen suma los cupones sin descontar: P = 50×5 + 1.000 = 1.250 €.', e:'No actualiza los flujos. Cada cupón debe descontarse por (1+r)^t.', f:'P = 50·[1-(1,08)^(−5)]/0,08 + 1.000·(1,08)^(−5) ≈ 920 €.' },
+  { t:'Tomás concluye: "La r subió del 5% al 9%, por tanto el precio subió."', e:'Invierte la relación. r↑ → P↓ siempre (relación inversa).', f:'Si r sube, el precio baja. El cupón es fijo; mayor exigencia = precio más bajo.' },
+  { t:'Elena usa el cupón (7%) como tasa de descuento cuando r exigida = 10%.', e:'Confunde cupón con r. El cupón calcula el flujo; r descuenta los flujos.', f:'P = 70·[1-(1+0,10)^(−n)]/0,10 + 1.000·(1+0,10)^(−n). Resultado < 1.000 €.' },
+  { t:'Pablo calcula beneficio = solo los cupones cobrados, ignorando la diferencia de precios.', e:'Olvida la ganancia/pérdida de capital: precio_venta − precio_compra.', f:'Beneficio = Σcupones cobrados + precio_venta − precio_compra.' },
+  { t:'Lucía dice: "TAE = 150 € de beneficio / 1.000 € / 3 años = 5% anual."', e:'Calcula rentabilidad simple, no TAE. No considera el valor temporal del dinero ni el interés compuesto.', f:'Hay que resolver: 1.000 = Σ[C/(1+TAE)^t] + P_final/(1+TAE)^3.' }
+];
+
+function buildErrors() {
+  const g = $i('errGrid');
+  if (g.children.length > 0) return;
+  g.innerHTML = ERRS.map(e => `
+    <div class="card ecard">
+      <div class="etitle">${e.title}</div>
+      <p class="dim mb1">${e.wrong}</p>
+      <p class="efix">Correcto: ${e.right}</p>
+      <div class="al al-i" style="font-size:.78rem;margin-top:.5rem">${e.ex}</div>
+    </div>`).join('');
+  renderEQ();
+}
+
+function renderEQ() {
+  const q = EQ[S.eqIdx];
+  $i('errQuiz').innerHTML = `
+    <div class="al al-a mb1">${q.t}</div>
+    <div class="fld"><label>¿Qué error comete? ¿Cómo lo corriges?</label>
+    <textarea id="eqAns" rows="3" placeholder="Identifica el error y propón la corrección…"></textarea></div>
+    <button class="btn-p btn-sm mt1" onclick="chkEQ()">Ver corrección</button>
+    <div id="eqFb"></div>`;
+}
+
+function chkEQ() {
+  const q = EQ[S.eqIdx];
+  $i('eqFb').innerHTML = `
+    <div class="al al-r mt1"><strong>Error:</strong> ${q.e}</div>
+    <div class="al al-g mt1"><strong>Corrección:</strong> ${q.f}</div>`;
+}
+
+function nextEQ() {
+  S.eqIdx = (S.eqIdx + 1) % EQ.length;
+  $i('eqFb') && ($i('eqFb').innerHTML = '');
+  renderEQ();
+}
+
+// ============================================================
+// PREGUNTA FINAL
+// ============================================================
+function chkFinal() {
+  const ans = $i('finalAns').value.toLowerCase();
+  const k1 = ['menor','bajo la par','menos que','por debajo','descuento','r mayor'];
+  const k2 = ['igual','a la par','coincide','cupón igual'];
+  const h1 = k1.filter(k => ans.includes(k)).length;
+  const h2 = k2.filter(k => ans.includes(k)).length;
+  const fb = $i('finalFb');
+  if (h1 >= 2 && h2 >= 1) {
+    fb.innerHTML = '<div class="al al-g">Razonamiento correcto. r=7% &gt; c=4% → precio &lt; 1.000 € (bajo la par). Si r baja a 4% = c → precio = 1.000 € exacto (a la par).</div>';
+  } else if (h1 >= 1) {
+    fb.innerHTML = '<div class="al al-a">Bien encaminado, pero incompleto. ¿Qué ocurre exactamente cuando r baja al 4%? Trabaja ambas partes de la pregunta.</div>';
+  } else {
+    fb.innerHTML = '<div class="al al-r">Revisa: r=7% &gt; c=4% → precio &lt; 1.000 € (bajo la par). Si r baja al 4% = c → precio = 1.000 € (a la par). Aplica la regla c vs. r.</div>';
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', () => {
+  calcAll();
+  setExam(false);
+  syncScen();
+});
+window.addEventListener('resize', () => drawChart(getP()));
+</script>
+</body>
+</html>

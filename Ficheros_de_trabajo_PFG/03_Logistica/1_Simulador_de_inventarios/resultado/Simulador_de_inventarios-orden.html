@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Simulador de Inventarios — Logística</title>
+<style>
+  /* === Estética oscura técnica, sobria === */
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330;
+    --border:#30363d; --text:#e6edf3; --muted:#8b949e;
+    --accent:#58a6ff; --ok:#3fb950; --warn:#d29922; --err:#f85149;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.5}
+  header{padding:16px 24px;border-bottom:1px solid var(--border);background:var(--panel)}
+  header h1{margin:0;font-size:18px;font-weight:600;letter-spacing:.3px}
+  header p{margin:4px 0 0;color:var(--muted);font-size:12px}
+  nav{display:flex;flex-wrap:wrap;gap:2px;padding:0 16px;background:var(--panel);
+    border-bottom:1px solid var(--border)}
+  nav button{background:transparent;border:none;color:var(--muted);padding:10px 14px;
+    font-size:13px;cursor:pointer;border-bottom:2px solid transparent;font-family:inherit}
+  nav button:hover{color:var(--text)}
+  nav button.active{color:var(--accent);border-bottom-color:var(--accent)}
+  main{padding:20px 24px;max-width:1200px;margin:0 auto}
+  .tab{display:none}
+  .tab.active{display:block}
+  h2{font-size:16px;margin:0 0 4px;font-weight:600}
+  .desc{color:var(--muted);font-size:12px;margin-bottom:16px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:16px}
+  .panel h3{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);font-weight:600}
+  label{display:block;margin-bottom:10px;font-size:12px}
+  label span{display:block;color:var(--muted);margin-bottom:3px}
+  input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--border);
+    color:var(--text);padding:7px 9px;border-radius:4px;font-family:var(--mono);font-size:13px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  button.btn{background:var(--accent);color:#0d1117;border:none;padding:8px 14px;
+    border-radius:4px;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit}
+  button.btn:hover{filter:brightness(1.1)}
+  button.btn.sec{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+  button.btn.sec:hover{background:#252d3b}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .out{font-family:var(--mono);font-size:13px}
+  .out .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px dashed #2a313c}
+  .out .row:last-child{border:none}
+  .out .row b{color:var(--accent);font-weight:600}
+  .formula{background:var(--bg);border-left:3px solid var(--accent);padding:8px 12px;
+    margin:10px 0;font-family:var(--mono);font-size:12px;color:#c9d1d9;border-radius:0 4px 4px 0}
+  .note{background:#1f2937;border-left:3px solid var(--warn);padding:8px 12px;
+    margin:10px 0;font-size:12px;border-radius:0 4px 4px 0;color:#e6edf3}
+  .err{background:#2d1b1f;border-left:3px solid var(--err);padding:8px 12px;
+    margin:10px 0;font-size:12px;border-radius:0 4px 4px 0;color:#ffb4ab}
+  .ok{background:#0f2a17;border-left:3px solid var(--ok);padding:8px 12px;
+    margin:10px 0;font-size:12px;border-radius:0 4px 4px 0;color:#aff5be}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;margin-top:8px}
+  th,td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--border)}
+  th{background:var(--panel2);color:var(--muted);font-weight:600;text-transform:uppercase;
+    font-size:11px;letter-spacing:.3px}
+  th:first-child,td:first-child{text-align:left}
+  tr.catA td{color:#ff7b72}
+  tr.catB td{color:#d29922}
+  tr.catC td{color:#8b949e}
+  canvas{max-width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;
+    display:block;margin-top:10px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;
+    background:var(--panel2);border:1px solid var(--border);margin-right:6px}
+  .badge.A{background:#3d1418;color:#ff7b72;border-color:#5a1d22}
+  .badge.B{background:#3d2e0f;color:#d29922;border-color:#5a4516}
+  .badge.C{background:#1c2330;color:#8b949e;border-color:#30363d}
+  details{margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:8px 12px}
+  summary{cursor:pointer;color:var(--accent);font-size:12px;font-weight:600;font-family:var(--mono)}
+  details[open] summary{margin-bottom:8px}
+  .step{padding:6px 0;border-bottom:1px dashed #2a313c;font-family:var(--mono);font-size:12px}
+  .step:last-child{border:none}
+  .step b{color:var(--accent)}
+  .enunciado{background:var(--panel2);padding:12px;border-radius:4px;border:1px solid var(--border);
+    margin-bottom:12px;font-size:13px;line-height:1.6}
+  .options label{cursor:pointer;padding:6px 10px;border:1px solid var(--border);border-radius:4px;
+    margin-bottom:6px;background:var(--bg);font-family:var(--mono)}
+  .options label:hover{border-color:var(--accent)}
+  .options input{width:auto;margin-right:8px}
+  .hint{background:#1f2937;border-left:3px solid var(--accent);padding:8px 12px;
+    margin:8px 0;font-size:12px;border-radius:0 4px 4px 0}
+  hr{border:none;border-top:1px solid var(--border);margin:16px 0}
+  .kbd{font-family:var(--mono);background:var(--bg);padding:1px 5px;border:1px solid var(--border);
+    border-radius:3px;font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Simulador de Inventarios</h1>
+  <p>Herramienta educativa de Logística — EOQ, Sistema Q/P, Stock de seguridad, ABC, Risk pooling</p>
+</header>
+
+<nav id="nav">
+  <button data-tab="eoq" class="active">EOQ</button>
+  <button data-tab="q">Sistema Q / ROP</button>
+  <button data-tab="p">Sistema P</button>
+  <button data-tab="ss">Stock de seguridad</button>
+  <button data-tab="abc">Clasificación ABC</button>
+  <button data-tab="pool">Risk pooling</button>
+  <button data-tab="comp">Comparador</button>
+  <button data-tab="gen">Generador de ejercicios</button>
+</nav>
+
+<main>
+
+<!-- ========================= EOQ ========================= -->
+<section id="eoq" class="tab active">
+  <h2>Modelo EOQ — Lote económico de pedido</h2>
+  <p class="desc">Determina el tamaño de lote que minimiza el coste total anual de pedido + mantenimiento.</p>
+  <div class="grid">
+    <div class="panel">
+      <h3>Datos de entrada</h3>
+      <label><span>Demanda</span>
+        <input type="number" id="eoq_D" value="12000" step="any">
+      </label>
+      <label><span>Unidad de la demanda introducida</span>
+        <select id="eoq_unit">
+          <option value="1">Anual</option>
+          <option value="12">Mensual (se multiplicará ×12)</option>
+          <option value="365">Diaria (se multiplicará ×365)</option>
+          <option value="52">Semanal (se multiplicará ×52)</option>
+        </select>
+      </label>
+      <label><span>Coste de lanzar un pedido S (€/pedido)</span>
+        <input type="number" id="eoq_S" value="50" step="any">
+      </label>
+      <label><span>Coste unitario de compra C (€/ud)</span>
+        <input type="number" id="eoq_C" value="20" step="any">
+      </label>
+      <label><span>Tasa anual de mantenimiento i (%)</span>
+        <input type="number" id="eoq_i" value="25" step="any">
+      </label>
+      <label><span>Días laborables al año (para tiempo entre pedidos)</span>
+        <input type="number" id="eoq_dias" value="250" step="1">
+      </label>
+      <div class="btnrow">
+        <button class="btn" onclick="calcEOQ()">Calcular</button>
+        <button class="btn sec" onclick="ejemploEOQ()">Generar caso aleatorio</button>
+      </div>
+      <div id="eoq_err"></div>
+    </div>
+    <div class="panel">
+      <h3>Resultados</h3>
+      <div id="eoq_out" class="out"><span class="desc">Pulsa <span class="kbd">Calcular</span> para ver resultados.</span></div>
+      <div class="formula" id="eoq_formula" style="display:none">
+        Q* = √(2·D·S / (i·C))<br>
+        CT = D·C + S·D/Q + i·C·Q/2
+      </div>
+      <canvas id="eoq_chart" width="500" height="300"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= Sistema Q ========================= -->
+<section id="q" class="tab">
+  <h2>Sistema Q — Punto de reorden (ROP)</h2>
+  <p class="desc">Revisión continua: cuando el inventario cae a ROP, se lanza un pedido de tamaño Q.</p>
+  <div class="grid">
+    <div class="panel">
+      <h3>Datos</h3>
+      <label><span>Demanda media diaria d̄ (ud/día)</span>
+        <input type="number" id="q_d" value="40" step="any"></label>
+      <label><span>Desviación típica de la demanda diaria σ_d (ud/día)</span>
+        <input type="number" id="q_sd" value="8" step="any"></label>
+      <label><span>Lead time medio L (días)</span>
+        <input type="number" id="q_L" value="5" step="any"></label>
+      <label><span>Desv. típica del lead time σ_L (días, opcional)</span>
+        <input type="number" id="q_sL" value="0" step="any"></label>
+      <label><span>Nivel de servicio (%)</span>
+        <select id="q_ns">
+          <option value="0.84">84%  (Z=1.00)</option>
+          <option value="0.90">90%  (Z=1.28)</option>
+          <option value="0.95" selected>95%  (Z=1.65)</option>
+          <option value="0.975">97.5% (Z=1.96)</option>
+          <option value="0.99">99%  (Z=2.33)</option>
+          <option value="0.998">99.8% (Z=3.00)</option>
+        </select>
+      </label>
+      <div class="btnrow">
+        <button class="btn" onclick="calcQ()">Calcular</button>
+        <button class="btn sec" onclick="ejemploQ()">Generar caso aleatorio</button>
+      </div>
+      <div id="q_err"></div>
+    </div>
+    <div class="panel">
+      <h3>Resultados</h3>
+      <div id="q_out" class="out"><span class="desc">Introduce datos y pulsa Calcular.</span></div>
+      <div class="formula">
+        SS = Z · √(L·σ_d² + d̄²·σ_L²)<br>
+        ROP = d̄·L + SS
+      </div>
+      <div class="note">Cuando el inventario disponible cae al nivel ROP, se lanza un pedido. El stock de seguridad protege frente a la variabilidad durante el lead time.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= Sistema P ========================= -->
+<section id="p" class="tab">
+  <h2>Sistema P — Revisión periódica</h2>
+  <p class="desc">Cada P días se revisa el inventario y se pide la diferencia hasta un nivel objetivo.</p>
+  <div class="grid">
+    <div class="panel">
+      <h3>Datos</h3>
+      <label><span>Demanda media diaria d̄ (ud/día)</span>
+        <input type="number" id="p_d" value="40" step="any"></label>
+      <label><span>Desv. típica diaria σ_d</span>
+        <input type="number" id="p_sd" value="8" step="any"></label>
+      <label><span>Periodo de revisión P (días)</span>
+        <input type="number" id="p_P" value="14" step="any"></label>
+      <label><span>Lead time L (días)</span>
+        <input type="number" id="p_L" value="5" step="any"></label>
+      <label><span>Nivel de servicio (%)</span>
+        <select id="p_ns">
+          <option value="0.90">90%</option>
+          <option value="0.95" selected>95%</option>
+          <option value="0.975">97.5%</option>
+          <option value="0.99">99%</option>
+        </select>
+      </label>
+      <label><span>Inventario disponible actual (ud)</span>
+        <input type="number" id="p_inv" value="120" step="any"></label>
+      <div class="btnrow">
+        <button class="btn" onclick="calcP()">Calcular</button>
+        <button class="btn sec" onclick="ejemploP()">Generar caso aleatorio</button>
+      </div>
+      <div id="p_err"></div>
+    </div>
+    <div class="panel">
+      <h3>Resultados</h3>
+      <div id="p_out" class="out"><span class="desc">Introduce datos y pulsa Calcular.</span></div>
+      <div class="formula">
+        Nivel objetivo T = d̄·(P+L) + Z·σ_d·√(P+L)<br>
+        Cantidad a pedir = T − Inventario disponible (≥ 0)
+      </div>
+      <div class="note">El periodo protegido es P+L: durante el tiempo entre revisiones más el lead time hasta recibir el siguiente pedido.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= Stock seguridad ========================= -->
+<section id="ss" class="tab">
+  <h2>Stock de seguridad y nivel de servicio</h2>
+  <p class="desc">Análisis del impacto del nivel de servicio sobre el stock de seguridad.</p>
+  <div class="grid">
+    <div class="panel">
+      <h3>Parámetros</h3>
+      <label><span>Demanda media diaria d̄</span>
+        <input type="number" id="ss_d" value="50" step="any"></label>
+      <label><span>Desv. típica diaria σ_d</span>
+        <input type="number" id="ss_sd" value="10" step="any"></label>
+      <label><span>Lead time L (días)</span>
+        <input type="number" id="ss_L" value="7" step="any"></label>
+      <label><span>Nivel de servicio a evaluar</span>
+        <select id="ss_ns">
+          <option value="0.84">84%</option>
+          <option value="0.90">90%</option>
+          <option value="0.95" selected>95%</option>
+          <option value="0.975">97.5%</option>
+          <option value="0.99">99%</option>
+          <option value="0.998">99.8%</option>
+        </select>
+      </label>
+      <div class="btnrow">
+        <button class="btn" onclick="calcSS()">Calcular</button>
+      </div>
+      <div id="ss_err"></div>
+      <h3 style="margin-top:18px">Tabla Z (referencia)</h3>
+      <table>
+        <thead><tr><th>Nivel servicio</th><th>Z</th></tr></thead>
+        <tbody>
+          <tr><td>84%</td><td>1.00</td></tr>
+          <tr><td>90%</td><td>1.28</td></tr>
+          <tr><td>95%</td><td>1.65</td></tr>
+          <tr><td>97.5%</td><td>1.96</td></tr>
+          <tr><td>99%</td><td>2.33</td></tr>
+          <tr><td>99.8%</td><td>3.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h3>Resultados</h3>
+      <div id="ss_out" class="out"><span class="desc">Pulsa Calcular para ver resultados y curva.</span></div>
+      <div class="formula">SS = Z · σ_d · √L</div>
+      <canvas id="ss_chart" width="500" height="300"></canvas>
+      <div class="note">Al aumentar el nivel de servicio, el stock de seguridad aumenta de forma <b>no proporcional</b>: pasar de 95% a 99% cuesta mucho más en stock que pasar de 84% a 90%.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= ABC ========================= -->
+<section id="abc" class="tab">
+  <h2>Clasificación ABC</h2>
+  <p class="desc">Pareto sobre el valor anual: A ≈ 80%, B ≈ 15%, C ≈ 5% del valor; pocos artículos concentran el valor.</p>
+  <div class="panel">
+    <h3>Productos (introduce los datos o carga ejemplo)</h3>
+    <textarea id="abc_data" rows="10" style="font-family:var(--mono);font-size:12px"
+      placeholder="Una línea por producto: nombre, unidades_anuales, precio_unitario (separados por comas)">P01, 1200, 15
+P02, 200, 80
+P03, 5000, 2
+P04, 100, 200
+P05, 800, 12
+P06, 60, 350
+P07, 3000, 1.5
+P08, 450, 5
+P09, 90, 120
+P10, 1500, 0.8</textarea>
+    <div class="btnrow">
+      <button class="btn" onclick="calcABC()">Clasificar</button>
+      <button class="btn sec" onclick="generarABC()">Generar 12 productos aleatorios</button>
+    </div>
+    <div id="abc_err"></div>
+    <div id="abc_out"></div>
+    <canvas id="abc_chart" width="900" height="320"></canvas>
+    <div class="formula">Valor anual = unidades × precio. Se ordena descendente, se acumula % y se asignan tramos A (≤80%), B (≤95%), C (resto).</div>
+  </div>
+</section>
+
+<!-- ========================= Risk pooling ========================= -->
+<section id="pool" class="tab">
+  <h2>Risk pooling — Centralización vs Descentralización</h2>
+  <p class="desc">Agregar inventarios en menos almacenes reduce el stock de seguridad total por efecto raíz.</p>
+  <div class="grid">
+    <div class="panel">
+      <h3>Datos</h3>
+      <label><span>Número de almacenes n</span>
+        <input type="number" id="rp_n" value="4" step="1" min="2"></label>
+      <label><span>Stock de seguridad por almacén SS_i (ud)</span>
+        <input type="number" id="rp_ss" value="200" step="any"></label>
+      <label><span>Correlación entre demandas ρ (−1 a 1, opcional)</span>
+        <input type="number" id="rp_rho" value="0" step="0.05" min="-1" max="1"></label>
+      <div class="btnrow">
+        <button class="btn" onclick="calcPool()">Calcular</button>
+        <button class="btn sec" onclick="ejemploPool()">Generar caso aleatorio</button>
+      </div>
+      <div id="rp_err"></div>
+    </div>
+    <div class="panel">
+      <h3>Resultados</h3>
+      <div id="rp_out" class="out"><span class="desc">Pulsa Calcular.</span></div>
+      <div class="formula">
+        SS descentralizado total = n · SS_i<br>
+        SS centralizado ≈ SS_i · √(n + n(n−1)·ρ)<br>
+        (con ρ=0 se reduce a SS_i · √n)
+      </div>
+      <div class="note">El beneficio del pooling es máximo cuando las demandas no están correlacionadas (ρ≈0) y la variabilidad relativa es alta. Si ρ=1, no hay beneficio.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= Comparador ========================= -->
+<section id="comp" class="tab">
+  <h2>Comparador de escenarios</h2>
+  <p class="desc">Compara dos escenarios completos (EOQ + Sistema Q) y obtén un diagnóstico.</p>
+  <div class="grid">
+    <div class="panel">
+      <h3>Escenario base</h3>
+      <div id="comp_A"></div>
+    </div>
+    <div class="panel">
+      <h3>Escenario alternativo</h3>
+      <div id="comp_B"></div>
+    </div>
+  </div>
+  <div class="btnrow" style="margin-top:14px">
+    <button class="btn" onclick="calcComp()">Comparar</button>
+    <button class="btn sec" onclick="ejemploComp()">Generar caso aleatorio</button>
+  </div>
+  <div id="comp_out" style="margin-top:14px"></div>
+</section>
+
+<!-- ========================= Generador ========================= -->
+<section id="gen" class="tab">
+  <h2>Generador de ejercicios</h2>
+  <p class="desc">Genera ejercicios aleatorios realistas con pistas progresivas y solución paso a paso.</p>
+  <div class="panel">
+    <label><span>Tipo de ejercicio</span>
+      <select id="gen_tipo">
+        <option value="mix">Mixto (aleatorio entre todos)</option>
+        <option value="eoq">EOQ</option>
+        <option value="eoqf">EOQ + frecuencia de pedido</option>
+        <option value="q">Sistema Q / ROP</option>
+        <option value="ss">Stock de seguridad</option>
+        <option value="p">Sistema P</option>
+        <option value="abc">Clasificación ABC</option>
+        <option value="rp">Risk pooling</option>
+      </select>
+    </label>
+    <label><span>Formato</span>
+      <select id="gen_fmt">
+        <option value="abierto">Respuesta abierta (numérica)</option>
+        <option value="test">Tipo test (a/b/c/d)</option>
+      </select>
+    </label>
+    <div class="btnrow">
+      <button class="btn" onclick="generar()">Generar ejercicio</button>
+      <button class="btn sec" onclick="generarParecido()" id="btn_parecido" disabled>Generar otro parecido</button>
+    </div>
+    <hr>
+    <div id="gen_enunciado"></div>
+    <div id="gen_resp"></div>
+    <div id="gen_feedback"></div>
+    <div id="gen_acciones"></div>
+    <div id="gen_pistas"></div>
+    <div id="gen_solucion"></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN — DATOS EDITABLES DEL SIMULADOR
+   ------------------------------------------------------------
+   Toda la "pila de datos" del prototipo está centralizada aquí.
+   Para cambiar cualquier valor (tabla Z, rangos de los casos
+   aleatorios, productos de ejemplo, etc.) se edita SOLO en este
+   bloque; la lógica de cálculo de más abajo NO hay que tocarla.
+
+   Convenios:
+     [min, max]   → se sortea un número entre ambos extremos.
+     [a, b, c]    → se elige uno de los valores al azar.
+
+   Los datos que escribe el usuario en la propia pantalla
+   (formularios de cada pestaña y el textarea de ABC) NO están
+   aquí: se editan directamente en la herramienta.
+   ============================================================ */
+const CONFIG = {
+
+  /* --- DATOS FIJOS: tabla Z (nivel de servicio → factor Z) --- */
+  tablaZ: {
+    0.84: 1.00, 0.90: 1.28, 0.95: 1.65,
+    0.975: 1.96, 0.99: 2.33, 0.998: 3.00
+  },
+
+  /* --- PILA DE DATOS ALEATORIOS: botones "Generar caso aleatorio" --- */
+  aleatorio: {
+    eoq: {
+      probMensual: 0.4,             // prob. de presentar la demanda en meses
+      demandaMensual: [400, 3000],
+      demandaAnual:   [5000, 30000],
+      S: [20, 150],                 // coste de pedido (€)
+      C: [3, 80],                   // coste unitario (€/ud)
+      i: [15, 20, 22, 25, 28, 30],  // tasa de mantenimiento (%)
+      dias: [220, 240, 250, 260]    // días laborables/año
+    },
+    q: {
+      d: [20, 100], sd: [4, 25], L: [2, 12],
+      probLeadVar: 0.3,             // prob. de generar variabilidad de lead time
+      sL: [0.5, 2],
+      ns: ['0.90', '0.95', '0.975', '0.99']
+    },
+    p: {
+      d: [20, 100], sd: [4, 20],
+      P: [7, 10, 14, 15, 21, 30],   // periodo de revisión (días)
+      L: [2, 8],
+      ns: ['0.95', '0.975', '0.99'],
+      invFraccion: [0.1, 0.8]       // inventario inicial como fracción de d·P
+    },
+    pool: {
+      n: [2, 8], ss: [80, 500],
+      rho: [0, 0, 0, 0.1, 0.3, 0.5, 0.8, -0.2] // el 0 se repite para que salga más
+    },
+    abc: {
+      numProductos: 12,
+      // tramos por valor; prob = umbral acumulado sobre Math.random()
+      tramos: [
+        { prob: 0.20, u: [20, 150],   pr: [80, 400] }, // pocas uds, caro  → posible A
+        { prob: 0.55, u: [200, 1200], pr: [5, 30]   }, // gama media
+        { prob: 1.00, u: [800, 6000], pr: [0.3, 5]  }  // muchas uds, barato → posible C
+      ]
+    },
+    comp: {
+      base: { D: [8000, 20000], S: [30, 100], C: [8, 50], i: [15, 20, 25, 30], L: [3, 8], sd: [5, 15], ns: 95 },
+      tipos: ['servicio', 'volumen', 'logistica', 'mixto'],
+      nsAlto: [99, 99.8],
+      volumen:   { factorD: [1.3, 2], factorS:  [1.2, 1.8] },
+      logistica: { incrL:   [2, 6],   factorSd: [1.3, 2]   },
+      mixto:     { incrL:   [1, 4],   factorS:  [0.6, 0.9] }
+    }
+  },
+
+  /* --- PILA DE DATOS ALEATORIOS: generador de ejercicios --- */
+  generador: {
+    productosEOQ: ['cojinetes', 'tornillos', 'filtros de aceite', 'baterías', 'neumáticos', 'cartuchos', 'cables HDMI'],
+    eoq: { probMensual: 0.4, demanda: [5000, 30000], S: [20, 120], C: [5, 80], i: [15, 20, 22, 25, 28, 30], dias: 250 },
+    q:   { d: [20, 80],  sd: [5, 20], L: [3, 10], ns: [0.90, 0.95, 0.975, 0.99] },
+    ss:  { d: [30, 100], sd: [5, 25], L: [2, 10], ns: [0.90, 0.95, 0.975, 0.99] },
+    p:   { d: [30, 100], sd: [5, 20], P: [7, 21], L: [2, 7], ns: [0.95, 0.975, 0.99] },
+    abc: {
+      numProductos: [8, 12],
+      tramos: [
+        { prob: 0.20, u: [20, 150],   pr: [80, 400] },
+        { prob: 0.55, u: [200, 1200], pr: [5, 30]   },
+        { prob: 1.00, u: [800, 6000], pr: [0.3, 5]  }
+      ]
+    },
+    rp:  { n: [2, 8], ssi: [80, 400] }
+  }
+
+};
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const fmt = (n, d=2) => {
+  if(!isFinite(n) || isNaN(n)) return '—';
+  if(Math.abs(n) >= 1e6) return n.toExponential(2);
+  return Number(n.toFixed(d)).toLocaleString('es-ES', {maximumFractionDigits:d});
+};
+const r = (a,b) => a + Math.random()*(b-a);
+const ri = (a,b) => Math.floor(r(a,b+1));
+const rpick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+// La tabla Z (datos fijos) vive en CONFIG.tablaZ — ver bloque de configuración.
+function Zfor(ns){
+  // Interpolación lineal sobre la tabla, robusta
+  const tablaZ = CONFIG.tablaZ;
+  const keys = Object.keys(tablaZ).map(Number).sort((a,b)=>a-b);
+  if(ns <= keys[0]) return tablaZ[keys[0]];
+  if(ns >= keys[keys.length-1]) return tablaZ[keys[keys.length-1]];
+  for(let i=0;i<keys.length-1;i++){
+    if(ns >= keys[i] && ns <= keys[i+1]){
+      const k1=keys[i], k2=keys[i+1];
+      const z1=tablaZ[k1], z2=tablaZ[k2];
+      return z1 + (z2-z1)*(ns-k1)/(k2-k1);
+    }
+  }
+  return 1.65;
+}
+
+// Validación común
+function validar(obj, reglas){
+  const errs = [];
+  for(const [k,v] of Object.entries(obj)){
+    if(v === '' || v === null || v === undefined || isNaN(v)){
+      errs.push(`Campo "${reglas[k]?.label||k}" vacío o no numérico.`);
+      continue;
+    }
+    if(reglas[k]?.min !== undefined && v < reglas[k].min){
+      errs.push(`"${reglas[k].label}" debe ser ≥ ${reglas[k].min}.`);
+    }
+    if(reglas[k]?.max !== undefined && v > reglas[k].max){
+      errs.push(`"${reglas[k].label}" debe ser ≤ ${reglas[k].max}.`);
+    }
+  }
+  return errs;
+}
+function showErr(id, errs){
+  const el = $(id);
+  if(!errs.length){ el.innerHTML=''; return false; }
+  el.innerHTML = '<div class="err">⚠ ' + errs.join('<br>⚠ ') + '</div>';
+  return true;
+}
+
+/* ============================================================
+   NAVEGACIÓN
+   ============================================================ */
+document.querySelectorAll('#nav button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    $(b.dataset.tab).classList.add('active');
+  };
+});
+
+/* ============================================================
+   1) EOQ
+   ============================================================ */
+function leerEOQ(){
+  const D_in = +$('eoq_D').value;
+  const factor = +$('eoq_unit').value;
+  const D = D_in * factor; // demanda anual
+  return {
+    D_in, factor, D,
+    S: +$('eoq_S').value,
+    C: +$('eoq_C').value,
+    i: +$('eoq_i').value/100,
+    dias: +$('eoq_dias').value
+  };
+}
+function calcEOQ(){
+  const d = leerEOQ();
+  const errs = validar(d, {
+    D_in:{label:'Demanda',min:0.0001},
+    S:{label:'Coste de pedido',min:0},
+    C:{label:'Coste unitario',min:0},
+    i:{label:'Tasa mantenimiento',min:0,max:5},
+    dias:{label:'Días laborables',min:1,max:366}
+  });
+  if(d.i > 1 && d.i <= 5){
+    // i ya está en decimal porque dividimos por 100; si introducen 250% -> 2.5, lo dejamos
+  }
+  if(showErr('eoq_err', errs)) return;
+
+  const {D,S,C,i,dias} = d;
+  const Q = Math.sqrt(2*D*S/(i*C));
+  const Cpedido = S*D/Q;
+  const Cmant = i*C*Q/2;
+  const Ccompra = D*C;
+  const CT = Ccompra + Cpedido + Cmant;
+  const N = D/Q;          // nº pedidos al año
+  const T = dias/N;       // tiempo entre pedidos (días lab.)
+
+  $('eoq_out').innerHTML = `
+    <div class="row"><span>Demanda anual D</span><b>${fmt(D,0)} ud/año</b></div>
+    <div class="row"><span>EOQ Q*</span><b>${fmt(Q,2)} ud</b></div>
+    <div class="row"><span>Coste de pedido anual</span><b>${fmt(Cpedido,2)} €</b></div>
+    <div class="row"><span>Coste de mantenimiento anual</span><b>${fmt(Cmant,2)} €</b></div>
+    <div class="row"><span>Coste de compra anual</span><b>${fmt(Ccompra,2)} €</b></div>
+    <div class="row"><span>Coste total anual (CT)</span><b>${fmt(CT,2)} €</b></div>
+    <div class="row"><span>Nº pedidos al año</span><b>${fmt(N,2)}</b></div>
+    <div class="row"><span>Tiempo entre pedidos</span><b>${fmt(T,1)} días lab.</b></div>
+  `;
+  $('eoq_formula').style.display='block';
+
+  // Aviso útil
+  if(Math.abs(Cpedido - Cmant)/CT > 0.01){
+    $('eoq_err').innerHTML += '<div class="note">En el óptimo, coste de pedido ≈ coste de mantenimiento. La pequeña diferencia indica error de redondeo.</div>';
+  } else {
+    $('eoq_err').innerHTML += '<div class="ok">✓ En Q*, coste de pedido ≈ coste de mantenimiento (verificación correcta).</div>';
+  }
+
+  // Gráfico
+  dibujarCurvaEOQ(D,S,C,i,Q);
+}
+function ejemploEOQ(){
+  // Datos editables: CONFIG.aleatorio.eoq
+  const c = CONFIG.aleatorio.eoq;
+  const mensual = Math.random() < c.probMensual;
+  if(mensual){
+    $('eoq_D').value = ri(c.demandaMensual[0], c.demandaMensual[1]);
+    $('eoq_unit').value = 12;
+  } else {
+    $('eoq_D').value = ri(c.demandaAnual[0], c.demandaAnual[1]);
+    $('eoq_unit').value = 1;
+  }
+  $('eoq_S').value = ri(c.S[0], c.S[1]);
+  $('eoq_C').value = +r(c.C[0], c.C[1]).toFixed(2);
+  $('eoq_i').value = rpick(c.i);
+  $('eoq_dias').value = rpick(c.dias);
+}
+function dibujarCurvaEOQ(D,S,C,i,Qopt){
+  const cv = $('eoq_chart'); const ctx = cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const margin = {l:55,r:15,t:15,b:35};
+  const x0=margin.l, x1=W-margin.r, y0=H-margin.b, y1=margin.t;
+  const Qmin = Qopt*0.2, Qmax = Qopt*2.5;
+  const f = q => ({
+    ped: S*D/q,
+    man: i*C*q/2,
+    tot: S*D/q + i*C*q/2
+  });
+  let yMax = f(Qmin).tot * 1.05;
+  // Ejes
+  ctx.strokeStyle='#30363d'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke();
+  // labels
+  ctx.fillStyle='#8b949e'; ctx.font='11px monospace';
+  ctx.fillText('Q (ud)', (x0+x1)/2-15, H-8);
+  ctx.save(); ctx.translate(12, (y0+y1)/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Coste (€/año)', -30, 0); ctx.restore();
+  // ticks X
+  for(let k=0;k<=5;k++){
+    const q = Qmin + (Qmax-Qmin)*k/5;
+    const x = x0 + (x1-x0)*k/5;
+    ctx.fillText(fmt(q,0), x-12, y0+14);
+    ctx.strokeStyle='#1c2330'; ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke();
+  }
+  // ticks Y
+  for(let k=0;k<=4;k++){
+    const v = yMax*k/4;
+    const y = y0 - (y0-y1)*k/4;
+    ctx.fillStyle='#8b949e';
+    ctx.fillText(fmt(v,0), 8, y+3);
+  }
+
+  const draw = (color, key) => {
+    ctx.strokeStyle=color; ctx.lineWidth=2; ctx.beginPath();
+    let first=true;
+    for(let p=0;p<=100;p++){
+      const q = Qmin + (Qmax-Qmin)*p/100;
+      const y = y0 - (y0-y1)*(f(q)[key]/yMax);
+      const x = x0 + (x1-x0)*p/100;
+      if(first){ctx.moveTo(x,y); first=false;} else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  };
+  draw('#d29922','ped');  // pedido
+  draw('#3fb950','man');  // mantenimiento
+  draw('#58a6ff','tot');  // total
+
+  // Punto EOQ
+  const xQ = x0 + (x1-x0)*(Qopt-Qmin)/(Qmax-Qmin);
+  const yQ = y0 - (y0-y1)*(f(Qopt).tot/yMax);
+  ctx.fillStyle='#f85149'; ctx.beginPath(); ctx.arc(xQ,yQ,5,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#f85149'; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(xQ,y0); ctx.lineTo(xQ,yQ); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#e6edf3'; ctx.fillText('Q*='+fmt(Qopt,0), xQ+6, yQ-6);
+
+  // leyenda
+  const leg = [['#d29922','Coste pedido'],['#3fb950','Coste mantenimiento'],['#58a6ff','Coste total']];
+  leg.forEach((l,k)=>{
+    ctx.fillStyle=l[0]; ctx.fillRect(x1-130, y1+4+k*14, 10, 10);
+    ctx.fillStyle='#e6edf3'; ctx.fillText(l[1], x1-115, y1+13+k*14);
+  });
+}
+
+/* ============================================================
+   2) Sistema Q / ROP
+   ============================================================ */
+function calcQ(){
+  const d = {
+    d:+$('q_d').value, sd:+$('q_sd').value, L:+$('q_L').value,
+    sL:+$('q_sL').value, ns:+$('q_ns').value
+  };
+  const errs = validar(d, {
+    d:{label:'Demanda diaria',min:0},
+    sd:{label:'σ_d',min:0}, L:{label:'Lead time',min:0},
+    sL:{label:'σ_L',min:0}, ns:{label:'Nivel servicio',min:0.5,max:0.9999}
+  });
+  if(showErr('q_err', errs)) return;
+  const Z = Zfor(d.ns);
+  const muL = d.d*d.L;
+  const sigmaL = Math.sqrt(d.L*d.sd*d.sd + d.d*d.d*d.sL*d.sL);
+  const SS = Z*sigmaL;
+  const ROP = muL + SS;
+  $('q_out').innerHTML = `
+    <div class="row"><span>Z (nivel servicio ${(d.ns*100).toFixed(1)}%)</span><b>${fmt(Z,3)}</b></div>
+    <div class="row"><span>Demanda esperada durante L</span><b>${fmt(muL,2)} ud</b></div>
+    <div class="row"><span>σ de demanda durante L</span><b>${fmt(sigmaL,2)} ud</b></div>
+    <div class="row"><span>Stock de seguridad SS</span><b>${fmt(SS,2)} ud</b></div>
+    <div class="row"><span>Punto de reorden ROP</span><b>${fmt(ROP,2)} ud</b></div>
+  `;
+}
+function ejemploQ(){
+  // Datos editables: CONFIG.aleatorio.q
+  const c = CONFIG.aleatorio.q;
+  $('q_d').value = ri(c.d[0], c.d[1]);
+  $('q_sd').value = ri(c.sd[0], c.sd[1]);
+  $('q_L').value = ri(c.L[0], c.L[1]);
+  // una parte de los casos incluye variabilidad de lead time
+  $('q_sL').value = Math.random() < c.probLeadVar ? +r(c.sL[0], c.sL[1]).toFixed(1) : 0;
+  $('q_ns').value = rpick(c.ns);
+}
+
+/* ============================================================
+   3) Sistema P
+   ============================================================ */
+function calcP(){
+  const d = {
+    d:+$('p_d').value, sd:+$('p_sd').value,
+    P:+$('p_P').value, L:+$('p_L').value,
+    ns:+$('p_ns').value, inv:+$('p_inv').value
+  };
+  const errs = validar(d,{
+    d:{label:'Demanda diaria',min:0},
+    sd:{label:'σ_d',min:0}, P:{label:'Periodo P',min:0.1},
+    L:{label:'Lead time L',min:0}, ns:{label:'Nivel servicio',min:0.5,max:0.9999},
+    inv:{label:'Inventario disponible'}
+  });
+  if(showErr('p_err', errs)) return;
+  const Z = Zfor(d.ns);
+  const PL = d.P + d.L;
+  const muPL = d.d*PL;
+  const SS = Z*d.sd*Math.sqrt(PL);
+  const T = muPL + SS;
+  const pedir = Math.max(0, T - d.inv);
+  $('p_out').innerHTML = `
+    <div class="row"><span>Periodo protegido P+L</span><b>${fmt(PL,1)} días</b></div>
+    <div class="row"><span>Demanda media en P+L</span><b>${fmt(muPL,2)} ud</b></div>
+    <div class="row"><span>Stock de seguridad SS</span><b>${fmt(SS,2)} ud</b></div>
+    <div class="row"><span>Nivel objetivo T</span><b>${fmt(T,2)} ud</b></div>
+    <div class="row"><span>Inventario disponible</span><b>${fmt(d.inv,2)} ud</b></div>
+    <div class="row"><span>Cantidad a pedir</span><b>${fmt(pedir,2)} ud</b></div>
+  `;
+  if(T - d.inv < 0){
+    $('p_err').innerHTML = '<div class="note">El inventario actual ya supera el nivel objetivo: no procede pedir en esta revisión.</div>';
+  }
+}
+function ejemploP(){
+  // Datos editables: CONFIG.aleatorio.p
+  const c = CONFIG.aleatorio.p;
+  const d = ri(c.d[0], c.d[1]);
+  $('p_d').value = d;
+  $('p_sd').value = ri(c.sd[0], c.sd[1]);
+  $('p_P').value = rpick(c.P);
+  $('p_L').value = ri(c.L[0], c.L[1]);
+  $('p_ns').value = rpick(c.ns);
+  // inventario disponible: una fracción de lo que se consume en P
+  const P = +$('p_P').value;
+  $('p_inv').value = ri(Math.round(d*P*c.invFraccion[0]), Math.round(d*P*c.invFraccion[1]));
+}
+
+/* ============================================================
+   4) Stock de seguridad
+   ============================================================ */
+function calcSS(){
+  const d = {d:+$('ss_d').value, sd:+$('ss_sd').value, L:+$('ss_L').value, ns:+$('ss_ns').value};
+  const errs = validar(d,{
+    d:{label:'Demanda',min:0}, sd:{label:'σ_d',min:0},
+    L:{label:'Lead time',min:0}, ns:{label:'Nivel servicio',min:0.5,max:0.9999}
+  });
+  if(showErr('ss_err', errs)) return;
+  const Z = Zfor(d.ns);
+  const SS = Z*d.sd*Math.sqrt(d.L);
+  const ROP = d.d*d.L + SS;
+  $('ss_out').innerHTML = `
+    <div class="row"><span>Z</span><b>${fmt(Z,3)}</b></div>
+    <div class="row"><span>σ durante L</span><b>${fmt(d.sd*Math.sqrt(d.L),2)} ud</b></div>
+    <div class="row"><span>Stock de seguridad SS</span><b>${fmt(SS,2)} ud</b></div>
+    <div class="row"><span>ROP (referencia)</span><b>${fmt(ROP,2)} ud</b></div>
+  `;
+  dibujarSS(d.sd, d.L);
+}
+function dibujarSS(sd, L){
+  const cv = $('ss_chart'); const ctx = cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const margin={l:55,r:15,t:15,b:40};
+  const x0=margin.l, x1=W-margin.r, y0=H-margin.b, y1=margin.t;
+  const niveles=[0.50,0.60,0.70,0.80,0.84,0.90,0.95,0.975,0.99,0.998];
+  const valores = niveles.map(ns=> Zfor(ns)*sd*Math.sqrt(L));
+  const yMax = Math.max(...valores)*1.1;
+  // ejes
+  ctx.strokeStyle='#30363d';
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke();
+  ctx.fillStyle='#8b949e'; ctx.font='11px monospace';
+  ctx.fillText('Nivel de servicio', (x0+x1)/2-40, H-10);
+  ctx.save(); ctx.translate(12,(y0+y1)/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText('Stock de seguridad (ud)', -50, 0); ctx.restore();
+  // ticks
+  niveles.forEach((ns,k)=>{
+    const x = x0 + (x1-x0)*k/(niveles.length-1);
+    ctx.fillStyle='#8b949e';
+    ctx.fillText((ns*100).toFixed(1)+'%', x-15, y0+14);
+  });
+  for(let k=0;k<=4;k++){
+    const y = y0 - (y0-y1)*k/4;
+    ctx.fillStyle='#8b949e';
+    ctx.fillText(fmt(yMax*k/4,0), 8, y+3);
+  }
+  // curva
+  ctx.strokeStyle='#58a6ff'; ctx.lineWidth=2; ctx.beginPath();
+  valores.forEach((v,k)=>{
+    const x = x0 + (x1-x0)*k/(niveles.length-1);
+    const y = y0 - (y0-y1)*(v/yMax);
+    if(k===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // puntos
+  valores.forEach((v,k)=>{
+    const x = x0 + (x1-x0)*k/(niveles.length-1);
+    const y = y0 - (y0-y1)*(v/yMax);
+    ctx.fillStyle='#58a6ff'; ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+  });
+}
+
+/* ============================================================
+   5) Clasificación ABC
+   ============================================================ */
+function parseABC(){
+  const txt = $('abc_data').value.trim();
+  const lines = txt.split(/\n+/).filter(l=>l.trim());
+  const items = [];
+  for(const ln of lines){
+    const parts = ln.split(/[,;\t]/).map(s=>s.trim());
+    if(parts.length<3){ return {error:`Línea inválida: "${ln}"`}; }
+    const u = +parts[1], pr = +parts[2];
+    if(isNaN(u)||isNaN(pr)) return {error:`Datos no numéricos en "${ln}"`};
+    items.push({nombre:parts[0], u:u, pr:pr, val:u*pr});
+  }
+  return {items};
+}
+function calcABC(){
+  const res = parseABC();
+  if(res.error){ $('abc_err').innerHTML=`<div class="err">${res.error}</div>`; return; }
+  $('abc_err').innerHTML='';
+  const items = res.items.sort((a,b)=>b.val-a.val);
+  const total = items.reduce((s,x)=>s+x.val,0);
+  let acum = 0;
+  items.forEach(x=>{
+    x.pct = x.val/total*100;
+    acum += x.pct; x.acum = acum;
+    x.cat = acum<=80 ? 'A' : (acum<=95 ? 'B' : 'C');
+  });
+  // Tabla
+  let html = '<table><thead><tr><th>Producto</th><th>Uds</th><th>P.u. (€)</th><th>Valor (€)</th><th>%</th><th>% acum</th><th>Cat.</th></tr></thead><tbody>';
+  items.forEach(x=>{
+    html += `<tr class="cat${x.cat}"><td>${x.nombre}</td><td>${fmt(x.u,0)}</td><td>${fmt(x.pr,2)}</td><td>${fmt(x.val,2)}</td><td>${fmt(x.pct,2)}</td><td>${fmt(x.acum,2)}</td><td><span class="badge ${x.cat}">${x.cat}</span></td></tr>`;
+  });
+  html += '</tbody></table>';
+  // Resumen
+  const grupos = {A:[],B:[],C:[]};
+  items.forEach(x=>grupos[x.cat].push(x));
+  const resumen = ['A','B','C'].map(c=>{
+    const g = grupos[c];
+    const v = g.reduce((s,x)=>s+x.val,0);
+    return `${c}: ${g.length} prod. (${fmt(g.length/items.length*100,1)}%) — ${fmt(v/total*100,1)}% del valor`;
+  }).join(' · ');
+  html += `<div class="ok" style="margin-top:10px">${resumen}</div>`;
+  $('abc_out').innerHTML = html;
+  // Pareto
+  dibujarABC(items);
+}
+function dibujarABC(items){
+  const cv=$('abc_chart'); const ctx=cv.getContext('2d');
+  const W=cv.width, H=cv.height; ctx.clearRect(0,0,W,H);
+  const margin={l:55,r:55,t:20,b:50};
+  const x0=margin.l, x1=W-margin.r, y0=H-margin.b, y1=margin.t;
+  const valMax = items[0].val*1.1;
+  // ejes
+  ctx.strokeStyle='#30363d'; ctx.beginPath();
+  ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1);
+  ctx.moveTo(x1,y0); ctx.lineTo(x1,y1); ctx.stroke();
+  // barras
+  const bw = (x1-x0)/items.length * 0.8;
+  const gap = (x1-x0)/items.length * 0.2;
+  items.forEach((x,k)=>{
+    const bx = x0 + k*(bw+gap) + gap/2;
+    const bh = (y0-y1)*(x.val/valMax);
+    const col = x.cat==='A'?'#f85149':x.cat==='B'?'#d29922':'#8b949e';
+    ctx.fillStyle=col; ctx.fillRect(bx, y0-bh, bw, bh);
+    ctx.fillStyle='#8b949e'; ctx.font='10px monospace';
+    ctx.save(); ctx.translate(bx+bw/2, y0+12); ctx.rotate(-Math.PI/4);
+    ctx.fillText(x.nombre, 0, 0); ctx.restore();
+  });
+  // línea acumulada (eje derecho 0-100%)
+  ctx.strokeStyle='#58a6ff'; ctx.lineWidth=2; ctx.beginPath();
+  items.forEach((x,k)=>{
+    const bx = x0 + k*(bw+gap) + gap/2 + bw/2;
+    const y = y0 - (y0-y1)*(x.acum/100);
+    if(k===0) ctx.moveTo(bx,y); else ctx.lineTo(bx,y);
+  });
+  ctx.stroke();
+  items.forEach((x,k)=>{
+    const bx = x0 + k*(bw+gap) + gap/2 + bw/2;
+    const y = y0 - (y0-y1)*(x.acum/100);
+    ctx.fillStyle='#58a6ff'; ctx.beginPath(); ctx.arc(bx,y,3,0,Math.PI*2); ctx.fill();
+  });
+  // referencias 80% y 95%
+  [80,95].forEach(p=>{
+    const y = y0 - (y0-y1)*(p/100);
+    ctx.strokeStyle='#30363d'; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#8b949e'; ctx.font='10px monospace';
+    ctx.fillText(p+'%', x1+3, y+3);
+  });
+  // eje izquierdo (valor)
+  for(let k=0;k<=4;k++){
+    const y = y0 - (y0-y1)*k/4;
+    ctx.fillStyle='#8b949e'; ctx.font='10px monospace';
+    ctx.fillText(fmt(valMax*k/4,0), 8, y+3);
+  }
+  ctx.fillStyle='#8b949e';
+  ctx.fillText('Valor anual (€)', 8, y1-5);
+  ctx.fillText('% acumulado', x1-25, y1-5);
+}
+function generarABC(){
+  // Datos editables: CONFIG.aleatorio.abc
+  const c = CONFIG.aleatorio.abc;
+  const t = c.tramos;
+  const n = c.numProductos;
+  const lines = [];
+  for(let k=1;k<=n;k++){
+    const tipo = Math.random();
+    let u, pr;
+    if(tipo < t[0].prob){ u = ri(t[0].u[0], t[0].u[1]); pr = +r(t[0].pr[0], t[0].pr[1]).toFixed(2); }       // A potencial
+    else if(tipo < t[1].prob){ u = ri(t[1].u[0], t[1].u[1]); pr = +r(t[1].pr[0], t[1].pr[1]).toFixed(2); } // medio
+    else { u = ri(t[2].u[0], t[2].u[1]); pr = +r(t[2].pr[0], t[2].pr[1]).toFixed(2); }                     // C potencial
+    lines.push(`P${String(k).padStart(2,'0')}, ${u}, ${pr}`);
+  }
+  $('abc_data').value = lines.join('\n');
+}
+
+/* ============================================================
+   6) Risk pooling
+   ============================================================ */
+function calcPool(){
+  const d = {n:+$('rp_n').value, ss:+$('rp_ss').value, rho:+$('rp_rho').value};
+  const errs = validar(d,{
+    n:{label:'n',min:2,max:1000},
+    ss:{label:'SS por almacén',min:0},
+    rho:{label:'Correlación',min:-1,max:1}
+  });
+  if(showErr('rp_err', errs)) return;
+  const total = d.n*d.ss;
+  // Fórmula con correlación uniforme entre pares
+  // sigma_total = sigma_i * sqrt(n + n(n-1)*rho)
+  const factor = d.n + d.n*(d.n-1)*d.rho;
+  if(factor < 0){
+    $('rp_err').innerHTML='<div class="err">Combinación de n y ρ no válida (correlación demasiado negativa).</div>';
+    return;
+  }
+  const centr = d.ss*Math.sqrt(factor);
+  const ahorro = total - centr;
+  const ahorroPct = ahorro/total*100;
+  $('rp_out').innerHTML = `
+    <div class="row"><span>SS descentralizado total</span><b>${fmt(total,2)} ud</b></div>
+    <div class="row"><span>SS centralizado estimado</span><b>${fmt(centr,2)} ud</b></div>
+    <div class="row"><span>Ahorro absoluto</span><b>${fmt(ahorro,2)} ud</b></div>
+    <div class="row"><span>Ahorro relativo</span><b>${fmt(ahorroPct,2)} %</b></div>
+  `;
+  let txt = '';
+  if(d.rho >= 0.9) txt = 'Con correlación muy alta el pooling apenas reduce stock: los almacenes "fallan juntos".';
+  else if(d.rho >= 0.5) txt = 'Correlación moderada-alta: el beneficio del pooling es limitado.';
+  else if(d.rho >= 0.1) txt = 'Correlación baja: beneficio razonable del pooling.';
+  else if(d.rho >= -0.1) txt = 'Demandas prácticamente independientes: máximo beneficio del pooling (efecto raíz).';
+  else txt = 'Correlación negativa: el pooling reduce el stock más allá del efecto raíz (un mercado compensa al otro).';
+  $('rp_err').innerHTML = `<div class="note">${txt}</div>`;
+}
+function ejemploPool(){
+  // Datos editables: CONFIG.aleatorio.pool
+  const c = CONFIG.aleatorio.pool;
+  $('rp_n').value = ri(c.n[0], c.n[1]);
+  $('rp_ss').value = ri(c.ss[0], c.ss[1]);
+  // mayoría con ρ bajo, pero a veces correlacionado para que se vea el efecto
+  $('rp_rho').value = rpick(c.rho);
+}
+
+/* ============================================================
+   7) Comparador de escenarios
+   ============================================================ */
+const compFields = [
+  ['D','Demanda anual D',12000,12000],
+  ['S','Coste pedido S (€)',50,120],
+  ['C','Coste unitario C (€)',20,20],
+  ['i','Tasa mant. i (%)',25,25],
+  ['L','Lead time L (días)',5,9],
+  ['sd','σ demanda diaria',8,12],
+  ['ns','Nivel servicio (%)',95,99]
+];
+function pintarComp(){
+  ['A','B'].forEach(esc=>{
+    const cont = $('comp_'+esc);
+    let html='';
+    compFields.forEach(f=>{
+      html += `<label><span>${f[1]}</span><input type="number" id="comp_${esc}_${f[0]}" value="${esc==='A'?f[2]:(f[3]??f[2])}" step="any"></label>`;
+    });
+    cont.innerHTML = html;
+  });
+}
+pintarComp();
+function leerEsc(esc){
+  const o={};
+  compFields.forEach(f=> o[f[0]] = +$(`comp_${esc}_${f[0]}`).value);
+  o.i = o.i/100;
+  o.ns = o.ns/100;
+  return o;
+}
+function calcEscenario(o){
+  const Q = Math.sqrt(2*o.D*o.S/(o.i*o.C));
+  const CT = o.D*o.C + o.S*o.D/Q + o.i*o.C*Q/2;
+  const Z = Zfor(o.ns);
+  const dDia = o.D/250;
+  const SS = Z*o.sd*Math.sqrt(o.L);
+  const ROP = dDia*o.L + SS;
+  const N = o.D/Q;
+  return {Q,CT,Z,SS,ROP,N,dDia};
+}
+function calcComp(){
+  const A = leerEsc('A'), B = leerEsc('B');
+  const ra = calcEscenario(A), rb = calcEscenario(B);
+  const filas = [
+    ['EOQ Q* (ud)', ra.Q, rb.Q, 'menor'],
+    ['Coste total anual (€)', ra.CT, rb.CT, 'menor'],
+    ['Nº pedidos/año', ra.N, rb.N, '-'],
+    ['SS (ud)', ra.SS, rb.SS, 'menor'],
+    ['ROP (ud)', ra.ROP, rb.ROP, '-'],
+    ['Z aplicado', ra.Z, rb.Z, '-']
+  ];
+  let html = '<div class="panel"><h3>Comparativa</h3><table><thead><tr><th>Indicador</th><th>Base (A)</th><th>Alternativo (B)</th><th>Δ</th></tr></thead><tbody>';
+  filas.forEach(f=>{
+    const delta = f[2]-f[1];
+    const pct = f[1]!==0 ? delta/f[1]*100 : 0;
+    const color = (f[3]==='menor' ? (delta<0?'#3fb950':'#f85149') : '#e6edf3');
+    html += `<tr><td>${f[0]}</td><td>${fmt(f[1],2)}</td><td>${fmt(f[2],2)}</td><td style="color:${color}">${fmt(delta,2)} (${fmt(pct,1)}%)</td></tr>`;
+  });
+  html += '</tbody></table>';
+  // Diagnóstico
+  const diag = [];
+  if(rb.CT < ra.CT) diag.push('B reduce el coste total respecto a A.');
+  else if(rb.CT > ra.CT) diag.push('B aumenta el coste total respecto a A.');
+  if(rb.SS > ra.SS) diag.push('B exige más stock de seguridad (mayor nivel de servicio o mayor variabilidad).');
+  else if(rb.SS < ra.SS) diag.push('B reduce stock de seguridad, pero conviene revisar el riesgo de rotura.');
+  if(rb.N > ra.N) diag.push('B pide más veces al año (lotes más pequeños, más coste de pedido).');
+  else if(rb.N < ra.N) diag.push('B pide menos veces (lotes mayores, más coste de mantenimiento).');
+  if(B.ns > A.ns && rb.CT > ra.CT) diag.push('Trade-off: B mejora servicio pero a costa de coste.');
+  if(B.ns < A.ns && rb.CT < ra.CT) diag.push('Trade-off: B abarata pero asume más riesgo de rotura.');
+  html += `<div class="ok" style="margin-top:10px">${diag.join(' ')||'Escenarios equivalentes.'}</div></div>`;
+  $('comp_out').innerHTML = html;
+}
+function ejemploComp(){
+  // Datos editables: CONFIG.aleatorio.comp
+  // Genera un escenario A base y un B que difiere en 2-3 parámetros
+  // para que la comparación sea didáctica.
+  const c = CONFIG.aleatorio.comp;
+  const A = {
+    D:  ri(c.base.D[0],  c.base.D[1]),
+    S:  ri(c.base.S[0],  c.base.S[1]),
+    C:  +r(c.base.C[0],  c.base.C[1]).toFixed(2),
+    i:  rpick(c.base.i),
+    L:  ri(c.base.L[0],  c.base.L[1]),
+    sd: ri(c.base.sd[0], c.base.sd[1]),
+    ns: c.base.ns
+  };
+  // B = A modificado según uno de los "tipos de comparación"
+  const tipo = rpick(c.tipos);
+  const B = {...A};
+  if(tipo === 'servicio'){
+    B.ns = rpick(c.nsAlto);                                   // sube nivel de servicio
+  } else if(tipo === 'volumen'){
+    B.D = Math.round(A.D * r(c.volumen.factorD[0], c.volumen.factorD[1]));  // más demanda
+    B.S = Math.round(A.S * r(c.volumen.factorS[0], c.volumen.factorS[1]));  // y más coste de pedido
+  } else if(tipo === 'logistica'){
+    B.L  = A.L + ri(c.logistica.incrL[0], c.logistica.incrL[1]);            // lead time peor
+    B.sd = Math.round(A.sd * r(c.logistica.factorSd[0], c.logistica.factorSd[1])); // más variabilidad
+  } else {
+    B.ns = rpick(c.nsAlto);
+    B.L  = A.L + ri(c.mixto.incrL[0], c.mixto.incrL[1]);
+    B.S  = Math.round(A.S * r(c.mixto.factorS[0], c.mixto.factorS[1]));
+  }
+  ['A','B'].forEach((esc, idx) => {
+    const obj = idx === 0 ? A : B;
+    compFields.forEach(f => $(`comp_${esc}_${f[0]}`).value = obj[f[0]]);
+  });
+}
+
+/* ============================================================
+   8) Generador de ejercicios
+   ============================================================ */
+let ejActual = null; // {tipo, fmt, datos, respuestaCorrecta, tolerancia, pistas[], pasos[], enunciado, opciones[]}
+
+function generar(){
+  const tipo = $('gen_tipo').value;
+  const formato = $('gen_fmt').value;
+  let t = tipo;
+  if(t==='mix'){
+    t = rpick(['eoq','eoqf','q','ss','p','abc','rp']);
+  }
+  ejActual = construirEjercicio(t, formato);
+  pintarEjercicio();
+  $('btn_parecido').disabled = false;
+}
+function generarParecido(){
+  if(!ejActual) return;
+  ejActual = construirEjercicio(ejActual.tipo, ejActual.fmt);
+  pintarEjercicio();
+}
+function pintarEjercicio(){
+  $('gen_enunciado').innerHTML = `<div class="enunciado"><b>Enunciado.</b> ${ejActual.enunciado}</div>`;
+  // Respuesta
+  let html='';
+  if(ejActual.fmt==='test'){
+    html = '<div class="options">';
+    ejActual.opciones.forEach((op,i)=>{
+      html += `<label style="display:block"><input type="radio" name="op" value="${i}"> ${String.fromCharCode(97+i)}) ${op.txt}</label>`;
+    });
+    html += '</div>';
+  } else {
+    html = `<label><span>Tu respuesta numérica (${ejActual.unidad||''})</span><input type="number" id="gen_input" step="any"></label>`;
+  }
+  $('gen_resp').innerHTML = html;
+  $('gen_feedback').innerHTML = '';
+  $('gen_pistas').innerHTML = '';
+  $('gen_solucion').innerHTML = '';
+  $('gen_acciones').innerHTML = `
+    <div class="btnrow">
+      <button class="btn" onclick="comprobar()">Comprobar respuesta</button>
+      <button class="btn sec" onclick="pista()">Pedir pista</button>
+      <button class="btn sec" onclick="solucion()">Ver solución paso a paso</button>
+    </div>`;
+  ejActual._pista = 0;
+}
+function comprobar(){
+  if(!ejActual){ return; }
+  let mensaje='';
+  if(ejActual.fmt==='test'){
+    const sel = document.querySelector('input[name=op]:checked');
+    if(!sel){ $('gen_feedback').innerHTML='<div class="err">Selecciona una opción.</div>'; return; }
+    const i = +sel.value;
+    if(ejActual.opciones[i].ok){
+      mensaje = '<div class="ok">✓ Correcto. ' + (ejActual.opciones[i].expl||'') + '</div>';
+    } else {
+      mensaje = '<div class="err">✗ Incorrecto. ' + (ejActual.opciones[i].expl||'Revisa la fórmula que aplicas.') + '</div>';
+    }
+  } else {
+    const v = +$('gen_input').value;
+    if(isNaN(v) || $('gen_input').value===''){
+      $('gen_feedback').innerHTML='<div class="err">Introduce un número.</div>'; return;
+    }
+    if(v < 0){
+      $('gen_feedback').innerHTML='<div class="err">El resultado no puede ser negativo.</div>'; return;
+    }
+    const correct = ejActual.respuestaCorrecta;
+    const tol = ejActual.tolerancia || Math.max(0.01, Math.abs(correct)*0.02);
+    if(Math.abs(v-correct) <= tol){
+      mensaje = `<div class="ok">✓ Correcto (resp. esperada ≈ ${fmt(correct,2)}).</div>`;
+    } else {
+      // detectar errores típicos
+      let hint = '';
+      if(ejActual.tipo==='eoq' || ejActual.tipo==='eoqf'){
+        if(Math.abs(v-correct*Math.sqrt(12))<tol*4) hint=' Parece que has usado demanda mensual en lugar de anual.';
+        else if(Math.abs(v-correct/Math.sqrt(12))<tol*4) hint=' Parece que has multiplicado por 12 de más.';
+        else if(Math.abs(v-correct*Math.sqrt(365))<tol*10) hint=' Has confundido demanda diaria con anual.';
+      }
+      if(ejActual.tipo==='q' || ejActual.tipo==='ss'){
+        if(Math.abs(v-correct/ejActual.datos.d/ejActual.datos.L)<tol) hint=' Estás dando solo el stock de seguridad, no el ROP.';
+      }
+      mensaje = `<div class="err">✗ Incorrecto. Esperado ≈ ${fmt(correct,2)}.${hint}</div>`;
+    }
+  }
+  $('gen_feedback').innerHTML = mensaje;
+}
+function pista(){
+  if(!ejActual) return;
+  if(ejActual._pista >= ejActual.pistas.length){
+    $('gen_pistas').innerHTML += '<div class="hint">No hay más pistas. Prueba con "Ver solución".</div>';
+    return;
+  }
+  const p = ejActual.pistas[ejActual._pista++];
+  $('gen_pistas').innerHTML += `<div class="hint">💡 Pista ${ejActual._pista}: ${p}</div>`;
+}
+function solucion(){
+  if(!ejActual) return;
+  let html = '<details open><summary>Solución paso a paso</summary>';
+  ejActual.pasos.forEach((s,i)=>{
+    html += `<div class="step"><b>Paso ${i+1}.</b> ${s}</div>`;
+  });
+  if(ejActual.fmt!=='test'){
+    html += `<div class="step"><b>Resultado:</b> ${fmt(ejActual.respuestaCorrecta,2)} ${ejActual.unidad||''}</div>`;
+  } else {
+    const ok = ejActual.opciones.findIndex(o=>o.ok);
+    html += `<div class="step"><b>Respuesta correcta:</b> ${String.fromCharCode(97+ok)})</div>`;
+  }
+  html += '</details>';
+  $('gen_solucion').innerHTML = html;
+}
+
+/* ---------- Constructores de ejercicio ---------- */
+function construirEjercicio(tipo, formato){
+  switch(tipo){
+    case 'eoq':  return ejEOQ(formato, false);
+    case 'eoqf': return ejEOQ(formato, true);
+    case 'q':    return ejQ(formato);
+    case 'ss':   return ejSS(formato);
+    case 'p':    return ejP(formato);
+    case 'abc':  return ejABC(formato);
+    case 'rp':   return ejRP(formato);
+  }
+}
+
+function ejEOQ(formato, conFrec){
+  // Datos editables: CONFIG.generador.eoq y CONFIG.generador.productosEOQ
+  const c = CONFIG.generador.eoq;
+  const prod = rpick(CONFIG.generador.productosEOQ);
+  // A veces demanda mensual para forzar conversión
+  const presentaMensual = Math.random() < c.probMensual;
+  const D = ri(c.demanda[0], c.demanda[1]); // anual real
+  const Dmes = Math.round(D/12);
+  const S = ri(c.S[0], c.S[1]);
+  const C = +r(c.C[0], c.C[1]).toFixed(2);
+  const ipct = rpick(c.i);
+  const i = ipct/100;
+  const dias = c.dias;
+
+  const Q = Math.sqrt(2*D*S/(i*C));
+  const N = D/Q;
+  const T = dias/N;
+
+  const enun = presentaMensual
+    ? `Una empresa consume ${prod} a razón de <b>${Dmes} unidades al mes</b>. El coste de lanzamiento de pedido es <b>${S} €</b>, el coste unitario <b>${C} €/ud</b> y la tasa anual de mantenimiento <b>${ipct}%</b>. ${conFrec?'¿Cuántos pedidos al año conviene hacer aplicando EOQ?':'Calcula el lote económico Q*.'}`
+    : `Una empresa tiene una demanda anual de <b>${D} unidades</b> de ${prod}. Coste de pedido <b>${S} €</b>, coste unitario <b>${C} €/ud</b>, tasa de mantenimiento anual <b>${ipct}%</b>. ${conFrec?'¿Cuántos pedidos al año hace al aplicar EOQ?':'Calcula el lote económico Q*.'}`;
+
+  const respuesta = conFrec ? N : Q;
+  const unidad = conFrec ? 'pedidos/año' : 'unidades';
+  const tol = conFrec ? 0.2 : Math.max(1, Q*0.02);
+
+  const pistas = [
+    `Fórmula: Q* = √(2·D·S / (i·C)). ${conFrec?'Después: N = D / Q*.':''}`,
+    presentaMensual ? 'Cuidado: la demanda está en MESES. Multiplica por 12 antes de usarla en EOQ.' : 'Revisa unidades: D anual, S por pedido, C €/ud, i en decimal (no %).',
+    `Sustituyendo: 2 · D · S = 2·${D}·${S} = ${2*D*S}. i·C = ${i}·${C} = ${(i*C).toFixed(3)}.`
+  ];
+  const pasos = [
+    `Convertir demanda a anual: D = ${presentaMensual?Dmes+' × 12 = ':''}${D} ud/año.`,
+    `Pasar la tasa a decimal: i = ${ipct}% = ${i}.`,
+    `Aplicar Q* = √(2·D·S / (i·C)) = √(2·${D}·${S} / (${i}·${C})) = √(${(2*D*S).toFixed(0)} / ${(i*C).toFixed(3)}) = √${(2*D*S/(i*C)).toFixed(0)} = <b>${fmt(Q,2)} ud</b>.`,
+  ];
+  if(conFrec) pasos.push(`Frecuencia: N = D / Q* = ${D} / ${fmt(Q,2)} = <b>${fmt(N,2)} pedidos/año</b>.`);
+
+  let opciones;
+  if(formato==='test'){
+    // generar distractores plausibles
+    const distract = conFrec
+      ? [N*Math.sqrt(12), N/Math.sqrt(12), N*1.5]
+      : [Q*Math.sqrt(12), Q/Math.sqrt(12), Math.sqrt(2*D*S/i/C)*0.6]; // último es plausible mal
+    const todas = [
+      {val:respuesta, ok:true, expl:'Aplicación correcta de EOQ con demanda anual.'},
+      {val:distract[0], ok:false, expl:'Has usado la demanda mensual sin convertirla.'},
+      {val:distract[1], ok:false, expl:'Has dividido en lugar de multiplicar por 12.'},
+      {val:distract[2], ok:false, expl:'Has aplicado mal la fórmula o has confundido el coste de mantenimiento.'}
+    ];
+    // mezclar
+    todas.sort(()=>Math.random()-0.5);
+    opciones = todas.map(o=>({txt: fmt2(o.val)+' '+unidad, ok:o.ok, expl:o.expl}));
+  }
+
+  return {tipo:conFrec?'eoqf':'eoq', fmt: formato, enunciado:enun, respuestaCorrecta:respuesta, tolerancia:tol, unidad, pistas, pasos, opciones, datos:{D,S,C,i,Q}};
+}
+
+function ejQ(formato){
+  // Datos editables: CONFIG.generador.q
+  const c = CONFIG.generador.q;
+  const d_dia = ri(c.d[0], c.d[1]);
+  const sd = ri(c.sd[0], c.sd[1]);
+  const L = ri(c.L[0], c.L[1]);
+  const ns = rpick(c.ns);
+  const Z = Zfor(ns);
+  const SS = Z*sd*Math.sqrt(L);
+  const ROP = d_dia*L + SS;
+  const enun = `Una tienda tiene una demanda diaria media de <b>${d_dia} ud/día</b> con desviación típica <b>${sd} ud/día</b>. El plazo de entrega del proveedor es <b>${L} días</b>. Se desea un nivel de servicio del <b>${(ns*100).toFixed(1)}%</b> (Z=${fmt(Z,2)}). Calcula el punto de reorden (ROP).`;
+  const pistas = [
+    'Fórmula: ROP = d̄·L + SS. SS = Z · σ_d · √L (si σ_L=0).',
+    'No confundas: el ROP incluye la demanda media durante el lead time MÁS el stock de seguridad.',
+    `Demanda durante L = ${d_dia}·${L} = ${d_dia*L}. SS = ${fmt(Z,2)}·${sd}·√${L} = ${fmt(SS,2)}.`
+  ];
+  const pasos = [
+    `Buscar Z para ${(ns*100).toFixed(1)}% → Z = ${fmt(Z,2)}.`,
+    `Demanda media durante L: d̄·L = ${d_dia}·${L} = <b>${d_dia*L} ud</b>.`,
+    `Stock de seguridad: SS = Z·σ_d·√L = ${fmt(Z,2)}·${sd}·√${L} = <b>${fmt(SS,2)} ud</b>.`,
+    `ROP = ${d_dia*L} + ${fmt(SS,2)} = <b>${fmt(ROP,2)} ud</b>.`
+  ];
+  let opciones;
+  if(formato==='test'){
+    const todas = [
+      {val:ROP, ok:true, expl:'ROP = demanda durante L + SS.'},
+      {val:SS, ok:false, expl:'Eso es solo el stock de seguridad, falta sumar la demanda durante el lead time.'},
+      {val:d_dia*L, ok:false, expl:'Es la demanda durante L, pero ignoras el stock de seguridad.'},
+      {val:ROP*2, ok:false, expl:'Resultado desproporcionado, revisa la fórmula.'}
+    ].sort(()=>Math.random()-0.5);
+    opciones = todas.map(o=>({txt:fmt2(o.val)+' ud', ok:o.ok, expl:o.expl}));
+  }
+  return {tipo:'q', fmt: formato, enunciado:enun, respuestaCorrecta:ROP, tolerancia:Math.max(1,ROP*0.02), unidad:'ud', pistas, pasos, opciones, datos:{d:d_dia,sd,L,ns,Z,SS,ROP}};
+}
+
+function ejSS(formato){
+  // Datos editables: CONFIG.generador.ss
+  const c = CONFIG.generador.ss;
+  const d_dia = ri(c.d[0], c.d[1]);
+  const sd = ri(c.sd[0], c.sd[1]);
+  const L = ri(c.L[0], c.L[1]);
+  const ns = rpick(c.ns);
+  const Z = Zfor(ns);
+  const SS = Z*sd*Math.sqrt(L);
+  const enun = `Calcula el stock de seguridad con σ_d = <b>${sd} ud/día</b>, lead time <b>${L} días</b> y nivel de servicio <b>${(ns*100).toFixed(1)}%</b>.`;
+  const pistas = [
+    'Fórmula: SS = Z · σ_d · √L.',
+    `Para ${(ns*100).toFixed(1)}% → Z ≈ ${fmt(Z,2)}.`,
+    `Sustituye: SS = ${fmt(Z,2)} · ${sd} · √${L}.`
+  ];
+  const pasos = [
+    `Z para ${(ns*100).toFixed(1)}% = ${fmt(Z,2)}.`,
+    `√L = √${L} = ${fmt(Math.sqrt(L),3)}.`,
+    `SS = ${fmt(Z,2)} · ${sd} · ${fmt(Math.sqrt(L),3)} = <b>${fmt(SS,2)} ud</b>.`
+  ];
+  let opciones;
+  if(formato==='test'){
+    const todas=[
+      {val:SS,ok:true,expl:'Aplicación correcta.'},
+      {val:Z*sd*L,ok:false,expl:'Has usado L en lugar de √L.'},
+      {val:sd*Math.sqrt(L),ok:false,expl:'Has olvidado el factor Z (nivel de servicio).'},
+      {val:Z*sd,ok:false,expl:'Has olvidado √L.'}
+    ].sort(()=>Math.random()-0.5);
+    opciones = todas.map(o=>({txt:fmt2(o.val)+' ud', ok:o.ok, expl:o.expl}));
+  }
+  return {tipo:'ss', fmt: formato, enunciado:enun, respuestaCorrecta:SS, tolerancia:Math.max(0.5,SS*0.02), unidad:'ud', pistas, pasos, opciones, datos:{d:d_dia,sd,L,ns}};
+}
+
+function ejP(formato){
+  // Datos editables: CONFIG.generador.p
+  const c = CONFIG.generador.p;
+  const d_dia=ri(c.d[0], c.d[1]), sd=ri(c.sd[0], c.sd[1]), P=ri(c.P[0], c.P[1]), L=ri(c.L[0], c.L[1]);
+  const ns=rpick(c.ns); const Z=Zfor(ns);
+  const inv = ri(50, d_dia*P);
+  const PL=P+L;
+  const T = d_dia*PL + Z*sd*Math.sqrt(PL);
+  const pedir = Math.max(0, T-inv);
+  const enun = `Sistema P: revisión cada <b>${P} días</b>, lead time <b>${L} días</b>, d̄=<b>${d_dia} ud/día</b>, σ_d=<b>${sd} ud/día</b>, nivel servicio <b>${(ns*100).toFixed(1)}%</b>. Inventario disponible en la revisión: <b>${inv} ud</b>. ¿Cuántas unidades pedir?`;
+  const pistas=[
+    'Fórmula: T = d̄·(P+L) + Z·σ_d·√(P+L). Pedir = T − inventario disponible (≥0).',
+    `Periodo protegido = P+L = ${PL} días.`,
+    `T = ${d_dia}·${PL} + ${fmt(Z,2)}·${sd}·√${PL}.`
+  ];
+  const pasos=[
+    `Periodo protegido P+L = ${P}+${L} = ${PL} días.`,
+    `Demanda media en P+L = ${d_dia}·${PL} = ${d_dia*PL} ud.`,
+    `SS = ${fmt(Z,2)}·${sd}·√${PL} = ${fmt(Z*sd*Math.sqrt(PL),2)} ud.`,
+    `Nivel objetivo T = ${d_dia*PL} + ${fmt(Z*sd*Math.sqrt(PL),2)} = <b>${fmt(T,2)} ud</b>.`,
+    `Pedir = T − inv = ${fmt(T,2)} − ${inv} = <b>${fmt(pedir,2)} ud</b>.`
+  ];
+  let opciones;
+  if(formato==='test'){
+    const todas=[
+      {val:pedir,ok:true,expl:'Cantidad correcta.'},
+      {val:T,ok:false,expl:'Eso es el nivel objetivo T, falta restar el inventario disponible.'},
+      {val:d_dia*P-inv,ok:false,expl:'Has usado solo P en lugar de P+L y has olvidado el SS.'},
+      {val:Math.max(0,d_dia*PL-inv),ok:false,expl:'Te falta el stock de seguridad.'}
+    ].sort(()=>Math.random()-0.5);
+    opciones = todas.map(o=>({txt:fmt2(o.val)+' ud', ok:o.ok, expl:o.expl}));
+  }
+  return {tipo:'p', fmt: formato, enunciado:enun, respuestaCorrecta:pedir, tolerancia:Math.max(1,T*0.02), unidad:'ud', pistas, pasos, opciones, datos:{d:d_dia,sd,P,L,ns,inv}};
+}
+
+function ejABC(formato){
+  // pregunta: ¿qué % del valor representan los artículos A?
+  // Datos editables: CONFIG.generador.abc
+  const c = CONFIG.generador.abc;
+  const t = c.tramos;
+  const n = ri(c.numProductos[0], c.numProductos[1]);
+  const items=[];
+  for(let k=1;k<=n;k++){
+    const tipo=Math.random();
+    let u,pr;
+    if(tipo<t[0].prob){u=ri(t[0].u[0],t[0].u[1]);pr=+r(t[0].pr[0],t[0].pr[1]).toFixed(2);}
+    else if(tipo<t[1].prob){u=ri(t[1].u[0],t[1].u[1]);pr=+r(t[1].pr[0],t[1].pr[1]).toFixed(2);}
+    else{u=ri(t[2].u[0],t[2].u[1]);pr=+r(t[2].pr[0],t[2].pr[1]).toFixed(2);}
+    items.push({nombre:'P'+k, u, pr, val:u*pr});
+  }
+  items.sort((a,b)=>b.val-a.val);
+  const total = items.reduce((s,x)=>s+x.val,0);
+  let acum=0; let nA=0; let valA=0;
+  items.forEach(x=>{ x.pct=x.val/total*100; acum+=x.pct; x.acum=acum;
+    x.cat = acum<=80?'A':(acum<=95?'B':'C');
+    if(x.cat==='A'){nA++; valA+=x.val;}
+  });
+  const pctValA = valA/total*100;
+  const pctNumA = nA/n*100;
+  const tabla = '<table><thead><tr><th>Prod</th><th>Uds</th><th>P.u.</th><th>Valor</th></tr></thead><tbody>' +
+    items.map(x=>`<tr><td>${x.nombre}</td><td>${x.u}</td><td>${fmt(x.pr,2)}</td><td>${fmt(x.val,2)}</td></tr>`).join('') +
+    '</tbody></table>';
+  const enun = `Se tiene la siguiente cartera de productos. Aplica clasificación ABC (A≤80% del valor acumulado) e indica <b>cuántos productos quedan clasificados como A</b>.${tabla}`;
+  const pistas=[
+    'Ordena los productos por valor anual descendente (valor = uds × precio).',
+    'Calcula el % acumulado del valor. Mientras ≤80% son A.',
+    `Valor total ≈ ${fmt(total,2)} €.`
+  ];
+  const pasos=[
+    'Calcular valor anual = uds × precio para cada producto.',
+    `Sumar todos: total = ${fmt(total,2)} €.`,
+    'Ordenar descendente y calcular % acumulado.',
+    `Asignar A hasta 80% acumulado → resultan ${nA} productos A (${fmt(pctNumA,1)}% de los artículos) que concentran ${fmt(pctValA,1)}% del valor.`
+  ];
+  let opciones;
+  if(formato==='test'){
+    const todas=[
+      {val:nA,ok:true,expl:'Recuento correcto aplicando regla A≤80%.'},
+      {val:Math.max(1,nA-1),ok:false,expl:'Te has quedado corto; sigue acumulando hasta superar el 80%.'},
+      {val:nA+1,ok:false,expl:'Te has pasado del 80% acumulado.'},
+      {val:n-nA,ok:false,expl:'Has contado los productos NO A.'}
+    ].sort(()=>Math.random()-0.5);
+    opciones = todas.map(o=>({txt:o.val+' productos', ok:o.ok, expl:o.expl}));
+  }
+  return {tipo:'abc', fmt: formato, enunciado:enun, respuestaCorrecta:nA, tolerancia:0.5, unidad:'productos A', pistas, pasos, opciones, datos:{items,total}};
+}
+
+function ejRP(formato){
+  // Datos editables: CONFIG.generador.rp
+  const c = CONFIG.generador.rp;
+  const n=ri(c.n[0], c.n[1]); const ssi=ri(c.ssi[0], c.ssi[1]);
+  const total = n*ssi; const centr = ssi*Math.sqrt(n);
+  const ahorro = total-centr; const pct = ahorro/total*100;
+  const enun = `Una cadena opera con <b>${n} almacenes</b> independientes, cada uno con un stock de seguridad de <b>${ssi} ud</b>. Se plantea centralizar en un único almacén. Suponiendo demandas independientes (ρ=0), ¿cuánto se ahorra en stock de seguridad respecto al total descentralizado?`;
+  const pistas=[
+    'Fórmula simplificada: SS_centralizado ≈ SS_i · √n (con ρ=0).',
+    `SS descentralizado total = n · SS_i = ${n}·${ssi} = ${total}.`,
+    `SS centralizado = ${ssi}·√${n} = ${fmt(centr,2)}. Ahorro = total − centralizado.`
+  ];
+  const pasos=[
+    `SS descentralizado total = ${n} · ${ssi} = <b>${total} ud</b>.`,
+    `SS centralizado = ${ssi} · √${n} = ${ssi} · ${fmt(Math.sqrt(n),3)} = <b>${fmt(centr,2)} ud</b>.`,
+    `Ahorro = ${total} − ${fmt(centr,2)} = <b>${fmt(ahorro,2)} ud</b> (≈ ${fmt(pct,1)}%).`
+  ];
+  let opciones;
+  if(formato==='test'){
+    const todas=[
+      {val:ahorro,ok:true,expl:'Aplicación correcta del efecto raíz.'},
+      {val:total/n,ok:false,expl:'Has dividido el total entre n; no es la fórmula del pooling.'},
+      {val:total/2,ok:false,expl:'Has supuesto un ahorro fijo del 50%, lo cual no es general.'},
+      {val:centr,ok:false,expl:'Has dado el stock centralizado, no el ahorro.'}
+    ].sort(()=>Math.random()-0.5);
+    opciones = todas.map(o=>({txt:fmt2(o.val)+' ud', ok:o.ok, expl:o.expl}));
+  }
+  return {tipo:'rp', fmt: formato, enunciado:enun, respuestaCorrecta:ahorro, tolerancia:Math.max(2,ahorro*0.02), unidad:'ud', pistas, pasos, opciones, datos:{n,ssi}};
+}
+
+function fmt2(n){ return fmt(n, n%1===0 ? 0 : 2); }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,2519 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Laboratorio inteligente de pronósticos de demanda</title>
+<style>
+/* ============================================================
+   TIPOGRAFÍA Y VARIABLES
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Fraunces:ital,wght@0,400;0,600;0,800;1,400&family=Inter+Tight:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #0a0e14;
+  --bg-2: #0f141c;
+  --panel: #131923;
+  --panel-2: #1a212d;
+  --border: #232c3b;
+  --border-light: #2e3a4d;
+  --text: #e6edf3;
+  --text-dim: #8b96a8;
+  --text-muted: #5c6677;
+  --cyan: #5ce1e6;
+  --cyan-dim: #2a8a8e;
+  --amber: #f5c451;
+  --blue: #5b8def;
+  --green: #6dd99a;
+  --red: #ec6363;
+  --magenta: #d472d0;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Fraunces', serif;
+  --body: 'Inter Tight', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-image:
+    radial-gradient(ellipse 800px 400px at 10% 0%, rgba(92, 225, 230, 0.04), transparent 60%),
+    radial-gradient(ellipse 600px 400px at 90% 100%, rgba(245, 196, 81, 0.03), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* ============================================================
+   LAYOUT GENERAL
+   ============================================================ */
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px 32px 80px;
+}
+
+header.brand {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.brand h1 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 32px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.brand h1 .accent { color: var(--cyan); font-style: italic; font-weight: 400; }
+
+.brand .subtitle {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: 6px;
+  max-width: 600px;
+}
+
+.brand .meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.brand .meta .dot { color: var(--green); }
+
+/* ============================================================
+   PESTAÑAS
+   ============================================================ */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,0.2));
+}
+
+.tab {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--body);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 12px 18px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease;
+  position: relative;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--text); background: rgba(255,255,255,0.02); }
+.tab.active {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+  background: linear-gradient(180deg, rgba(92,225,230,0.08), transparent);
+}
+.tab .num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-right: 6px;
+}
+.tab.active .num { color: var(--cyan-dim); }
+
+.panel { display: none; animation: fade 0.2s ease; }
+.panel.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ============================================================
+   COMPONENTES UI
+   ============================================================ */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.card h2, .card h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+.card h2 { font-size: 20px; }
+.card h3 { font-size: 16px; }
+.card .lead {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 900px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.field label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+.field input, .field select, .field textarea {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--cyan);
+}
+.field textarea { min-height: 80px; resize: vertical; line-height: 1.4; }
+.field .hint { font-size: 11px; color: var(--text-muted); }
+
+button.btn {
+  background: var(--cyan);
+  color: #04141a;
+  border: none;
+  padding: 9px 16px;
+  border-radius: 4px;
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  letter-spacing: 0.01em;
+}
+button.btn:hover { background: #7fe9ed; transform: translateY(-1px); }
+button.btn:active { transform: none; }
+button.btn.secondary {
+  background: transparent;
+  color: var(--cyan);
+  border: 1px solid var(--cyan-dim);
+}
+button.btn.secondary:hover { background: rgba(92,225,230,0.08); }
+button.btn.ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border-light);
+}
+button.btn.ghost:hover { color: var(--text); border-color: var(--text-dim); }
+button.btn.amber { background: var(--amber); color: #2d1f00; }
+button.btn.amber:hover { background: #f7d175; }
+button.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ============================================================
+   TABLAS
+   ============================================================ */
+.tbl-wrap { overflow-x: auto; margin-top: 12px; border: 1px solid var(--border); border-radius: 4px; }
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+table.data th, table.data td {
+  padding: 7px 10px;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.data th {
+  background: var(--bg-2);
+  color: var(--text-dim);
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  position: sticky;
+  top: 0;
+}
+table.data th:first-child, table.data td:first-child { text-align: left; }
+table.data tr:last-child td { border-bottom: none; }
+table.data tr:hover td { background: rgba(255,255,255,0.02); }
+table.data td.editable { background: rgba(92,225,230,0.04); }
+table.data td.editable input {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  width: 100%;
+  text-align: right;
+  outline: none;
+  padding: 0;
+}
+table.data td.editable input:focus { color: var(--cyan); }
+table.data td.text-left { text-align: left; }
+
+.num-pos { color: var(--green); }
+.num-neg { color: var(--red); }
+.num-dim { color: var(--text-muted); }
+
+/* ============================================================
+   STATS / KPIs
+   ============================================================ */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.stat {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+.stat .lbl {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  margin-bottom: 4px;
+}
+.stat .val {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text);
+}
+.stat .val.cy { color: var(--cyan); }
+.stat .val.am { color: var(--amber); }
+.stat .val.gr { color: var(--green); }
+.stat .val.rd { color: var(--red); }
+.stat .sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+/* ============================================================
+   ALERTAS Y EXPLICACIONES
+   ============================================================ */
+.alert {
+  border-left: 3px solid var(--cyan);
+  background: rgba(92,225,230,0.06);
+  padding: 10px 14px;
+  border-radius: 0 4px 4px 0;
+  margin: 12px 0;
+  font-size: 13px;
+  color: var(--text);
+}
+.alert.warn { border-color: var(--amber); background: rgba(245,196,81,0.06); }
+.alert.error { border-color: var(--red); background: rgba(236,99,99,0.06); }
+.alert.success { border-color: var(--green); background: rgba(109,217,154,0.06); }
+.alert b { color: var(--text); }
+.alert .ti {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.formula {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--amber);
+  margin: 12px 0;
+  overflow-x: auto;
+}
+.formula .lbl {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* ============================================================
+   GRÁFICOS
+   ============================================================ */
+.chart-wrap {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 12px;
+  margin: 12px 0;
+}
+.chart-wrap .chart-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+}
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+}
+.chart-legend .lg {
+  display: flex; align-items: center; gap: 6px;
+}
+.chart-legend .sw {
+  width: 12px; height: 3px; border-radius: 1px;
+}
+svg.chart { width: 100%; display: block; }
+
+/* ============================================================
+   EJERCICIOS
+   ============================================================ */
+.exercise {
+  background: var(--panel-2);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.exercise .ex-tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--amber);
+  background: rgba(245,196,81,0.1);
+  padding: 3px 8px;
+  border-radius: 3px;
+  margin-bottom: 10px;
+}
+.exercise .statement {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.exercise .opts label {
+  display: block;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.exercise .opts label:hover { border-color: var(--cyan-dim); background: rgba(92,225,230,0.04); }
+.exercise .opts input { margin-right: 8px; }
+.exercise .answer-input {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+}
+.exercise .answer-input input {
+  background: var(--bg-2);
+  border: 1px solid var(--border-light);
+  color: var(--cyan);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 14px;
+  width: 140px;
+}
+.exercise .actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.exercise .feedback {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  display: none;
+}
+.exercise .feedback.show { display: block; }
+.exercise .hint-box {
+  background: rgba(245,196,81,0.08);
+  border-left: 3px solid var(--amber);
+  padding: 10px 12px;
+  margin-top: 10px;
+  font-size: 13px;
+  border-radius: 0 4px 4px 0;
+  display: none;
+}
+.exercise .hint-box.show { display: block; }
+.exercise .hint-box .h-step {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.exercise .solution {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+  margin-top: 12px;
+  display: none;
+}
+.exercise .solution.show { display: block; }
+.exercise .solution .step {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border);
+  color: var(--text-dim);
+}
+.exercise .solution .step:last-child { border-bottom: none; }
+.exercise .solution .step b { color: var(--cyan); }
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 3px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-light);
+  color: var(--text-dim);
+}
+.badge.cy { color: var(--cyan); border-color: var(--cyan-dim); background: rgba(92,225,230,0.06); }
+.badge.am { color: var(--amber); border-color: rgba(245,196,81,0.3); background: rgba(245,196,81,0.06); }
+.badge.gr { color: var(--green); border-color: rgba(109,217,154,0.3); background: rgba(109,217,154,0.06); }
+.badge.rd { color: var(--red); border-color: rgba(236,99,99,0.3); background: rgba(236,99,99,0.06); }
+
+.split-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) { .split-row { grid-template-columns: 1fr; } }
+
+.recommend-card {
+  background: linear-gradient(135deg, rgba(92,225,230,0.08), rgba(91,141,239,0.06));
+  border: 1px solid var(--cyan-dim);
+  padding: 14px 16px;
+  border-radius: 6px;
+  margin: 12px 0;
+}
+.recommend-card .lbl {
+  font-family: var(--mono); font-size: 10px; color: var(--cyan);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.recommend-card .method {
+  font-family: var(--display); font-size: 22px; font-weight: 600;
+  color: var(--text); margin: 4px 0;
+}
+
+.diagnostics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.diag-item {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.diag-item .lbl { color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); }
+.diag-item .val { font-weight: 600; margin-top: 3px; }
+.diag-item.yes .val { color: var(--green); }
+.diag-item.no .val { color: var(--text-dim); }
+.diag-item.warn .val { color: var(--amber); }
+
+footer.foot {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+.sm-text { font-size: 12px; color: var(--text-dim); }
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="brand">
+  <div>
+    <h1>Laboratorio <span class="accent">inteligente</span> de pronósticos de demanda</h1>
+    <p class="subtitle">Herramienta educativa para practicar series temporales, métodos de pronóstico y medidas de error en Logística. Cada cálculo es real; cada pista guía sin dar la respuesta.</p>
+  </div>
+  <div class="meta">
+    <div><span class="dot">●</span> Sesión activa</div>
+    <div id="metaSerie">Serie: — | n=0</div>
+  </div>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="datos"><span class="num">01</span>Datos de demanda</button>
+  <button class="tab" data-tab="analisis"><span class="num">02</span>Análisis de la serie</button>
+  <button class="tab" data-tab="pm"><span class="num">03</span>Promedio móvil</button>
+  <button class="tab" data-tab="ses"><span class="num">04</span>Suavizado exponencial</button>
+  <button class="tab" data-tab="holt"><span class="num">05</span>Holt</button>
+  <button class="tab" data-tab="winter"><span class="num">06</span>Winter</button>
+  <button class="tab" data-tab="estatico"><span class="num">07</span>Método estático</button>
+  <button class="tab" data-tab="comparador"><span class="num">08</span>Comparador</button>
+  <button class="tab" data-tab="ejercicios"><span class="num">09</span>Generador de ejercicios</button>
+</nav>
+
+<!-- ========================================================
+     PANEL 1: DATOS DE DEMANDA
+     ======================================================== -->
+<section class="panel active" id="p-datos">
+  <div class="grid grid-2">
+    <div class="card">
+      <h2>Generador de serie</h2>
+      <p class="lead">Crea una serie temporal de demanda realista. Elige la frecuencia, el patrón y el horizonte.</p>
+
+      <div class="row">
+        <div class="field" style="flex:1; min-width:140px;">
+          <label>Frecuencia</label>
+          <select id="genFreq">
+            <option value="mensual">Mensual</option>
+            <option value="semanal">Semanal</option>
+            <option value="diaria">Diaria</option>
+            <option value="anual">Anual</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1; min-width:140px;">
+          <label>Patrón</label>
+          <select id="genPattern">
+            <option value="estable">Demanda estable</option>
+            <option value="creciente">Tendencia creciente</option>
+            <option value="decreciente">Tendencia decreciente</option>
+            <option value="estacional">Estacionalidad</option>
+            <option value="tend_est">Tendencia + estacionalidad</option>
+            <option value="ruido">Ruido alto</option>
+            <option value="brusco">Cambio brusco</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1; min-width:100px;">
+          <label>Períodos</label>
+          <input type="number" id="genN" value="24" min="4" max="120">
+        </div>
+        <div class="field" style="flex:1; min-width:100px;">
+          <label>Nivel base</label>
+          <input type="number" id="genLvl" value="100" min="1">
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <button class="btn" onclick="generarSerie()">Generar serie</button>
+        <button class="btn secondary" onclick="cargarEjemplo('granos')">Granos en puerto</button>
+        <button class="btn secondary" onclick="cargarEjemplo('crecimiento')">Producto en crecimiento</button>
+        <button class="btn secondary" onclick="cargarEjemplo('alimentario')">Estacional alimentario</button>
+        <button class="btn secondary" onclick="cargarEjemplo('tahoe')">Caso Tahoe Salt</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Entrada manual</h2>
+      <p class="lead">Pega o escribe valores separados por comas o saltos de línea. Se asignarán como períodos 1, 2, 3…</p>
+      <div class="field">
+        <label>Valores de demanda</label>
+        <textarea id="manualInput" placeholder="120, 135, 128, 142, 156, 168, ..."></textarea>
+        <span class="hint">Acepta números separados por comas, espacios o saltos de línea. No se permiten valores negativos.</span>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1; min-width:140px;">
+          <label>Frecuencia</label>
+          <select id="manualFreq">
+            <option value="mensual">Mensual</option>
+            <option value="semanal">Semanal</option>
+            <option value="diaria">Diaria</option>
+            <option value="anual">Anual</option>
+          </select>
+        </div>
+        <button class="btn" onclick="cargarManual()" style="margin-top:18px;">Cargar serie</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;">
+      <h2>Serie cargada</h2>
+      <div class="row">
+        <span class="badge cy" id="badgeFreq">—</span>
+        <span class="badge" id="badgeN">n=0</span>
+        <button class="btn ghost" onclick="añadirPeriodo()">+ Añadir período</button>
+        <button class="btn ghost" onclick="quitarPeriodo()">− Quitar último</button>
+      </div>
+    </div>
+    <p class="lead">Las celdas de demanda son editables. Cambia un valor y todos los cálculos se recalcularán al volver a esa pestaña.</p>
+    <div class="tbl-wrap" id="serieTabla"></div>
+    <div class="chart-wrap" style="margin-top:16px;">
+      <div class="chart-title"><span>Visualización · Demanda real</span><span id="chartRange">—</span></div>
+      <div id="chartDatos"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     PANEL 2: ANÁLISIS
+     ======================================================== -->
+<section class="panel" id="p-analisis">
+  <div class="card">
+    <h2>Diagnóstico automático de la serie</h2>
+    <p class="lead">Análisis estadístico básico y detección de patrones (nivel, tendencia, estacionalidad, ruido). El diagnóstico determina qué método se recomienda inicialmente.</p>
+
+    <div class="stats" id="analisisStats"></div>
+    <div class="diagnostics" id="analisisDiag"></div>
+    <div id="analisisRec"></div>
+    <div id="analisisExpl"></div>
+
+    <div class="chart-wrap">
+      <div class="chart-title"><span>Demanda real con media y tendencia</span></div>
+      <div id="chartAnalisis"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     PANEL 3: PROMEDIO MÓVIL
+     ======================================================== -->
+<section class="panel" id="p-pm">
+  <div class="card">
+    <h2>Promedio móvil</h2>
+    <p class="lead">Usa los últimos N períodos para pronosticar el siguiente. Recomendado cuando la serie es estable, sin tendencia ni estacionalidad fuertes.</p>
+
+    <div class="formula">
+      <span class="lbl">Fórmula</span>
+      F<sub>t+1</sub> = ( D<sub>t</sub> + D<sub>t−1</sub> + … + D<sub>t−N+1</sub> ) / N
+    </div>
+
+    <div class="row">
+      <div class="field" style="width:140px;">
+        <label>N (ventana)</label>
+        <input type="number" id="pmN" value="3" min="2" max="24">
+      </div>
+      <button class="btn" onclick="calcularPM()" style="margin-top:18px;">Calcular</button>
+      <button class="btn secondary" onclick="optimizarPM()" style="margin-top:18px;">Buscar mejor N</button>
+    </div>
+
+    <div id="pmAlertas"></div>
+    <div class="stats" id="pmStats"></div>
+    <div class="tbl-wrap" id="pmTabla"></div>
+    <div class="chart-wrap">
+      <div class="chart-title"><span>Demanda real vs Pronóstico (PM)</span></div>
+      <div id="chartPM"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     PANEL 4: SUAVIZADO EXPONENCIAL
+     ======================================================== -->
+<section class="panel" id="p-ses">
+  <div class="card">
+    <h2>Suavizado exponencial simple</h2>
+    <p class="lead">Pondera cada observación con un peso decreciente exponencial. α controla la rapidez de adaptación: bajo suaviza, alto reacciona.</p>
+
+    <div class="formula">
+      <span class="lbl">Fórmula</span>
+      F<sub>t+1</sub> = α · D<sub>t</sub> + (1 − α) · F<sub>t</sub>
+    </div>
+
+    <div class="row">
+      <div class="field" style="width:140px;">
+        <label>α (alfa)</label>
+        <input type="number" id="sesAlpha" value="0.30" min="0" max="1" step="0.05">
+      </div>
+      <div class="field" style="width:200px;">
+        <label>F<sub>1</sub> inicial</label>
+        <select id="sesInit">
+          <option value="auto">Auto (media primeros 3)</option>
+          <option value="primero">Primer valor de la serie</option>
+          <option value="manual">Manual</option>
+        </select>
+      </div>
+      <div class="field" style="width:120px;">
+        <label>F inicial manual</label>
+        <input type="number" id="sesF0" value="100">
+      </div>
+      <button class="btn" onclick="calcularSES()" style="margin-top:18px;">Calcular</button>
+    </div>
+
+    <div id="sesAlertas"></div>
+    <div class="stats" id="sesStats"></div>
+    <div class="tbl-wrap" id="sesTabla"></div>
+    <div class="chart-wrap">
+      <div class="chart-title"><span>Demanda real vs Pronóstico (SES)</span></div>
+      <div id="chartSES"></div>
+    </div>
+
+    <div class="divider"></div>
+    <h3>Comparador de α</h3>
+    <p class="lead">Aplica varios valores de α a la misma serie y compara su error. El menor MAPE marca el α más eficaz históricamente.</p>
+    <button class="btn amber" onclick="compararAlphas()">Comparar α = 0.10, 0.30, 0.50, 0.80</button>
+    <div class="tbl-wrap" id="sesCompTabla" style="margin-top:12px;"></div>
+  </div>
+</section>
+
+<!-- ========================================================
+     PANEL 5: HOLT
+     ======================================================== -->
+<section class="panel" id="p-holt">
+  <div class="card">
+    <h2>Modelo de Holt — suavizado doble</h2>
+    <p class="lead">Estima nivel y tendencia simultáneamente. Recomendado cuando la serie tiene tendencia y poca estacionalidad. La inicialización usa regresión lineal sobre los primeros valores.</p>
+
+    <div class="formula">
+      <span class="lbl">Fórmulas</span>
+      L<sub>t</sub> = α · D<sub>t</sub> + (1 − α)(L<sub>t−1</sub> + T<sub>t−1</sub>)<br>
+      T<sub>t</sub> = β · (L<sub>t</sub> − L<sub>t−1</sub>) + (1 − β) · T<sub>t−1</sub><br>
+      F<sub>t+n</sub> = L<sub>t</sub> + n · T<sub>t</sub>
+    </div>
+
+    <div class="row">
+      <div class="field" style="width:120px;">
+        <label>α (nivel)</label>
+        <input type="number" id="holtAlpha" value="0.3" min="0" max="1" step="0.05">
+      </div>
+      <div class="field" style="width:120px;">
+        <label>β (tendencia)</label>
+        <input type="number" id="holtBeta" value="0.2" min="0" max="1" step="0.05">
+      </div>
+      <div class="field" style="width:120px;">
+        <label>Horizonte</label>
+        <input type="number" id="holtH" value="4" min="1" max="24">
+      </div>
+      <button class="btn" onclick="calcularHolt()" style="margin-top:18px;">Calcular</button>
+      <button class="btn secondary" onclick="optimizarHolt()" style="margin-top:18px;">Buscar α, β óptimos</button>
+    </div>
+
+    <div id="holtAlertas"></div>
+    <div class="stats" id="holtStats"></div>
+    <div class="tbl-wrap" id="holtTabla"></div>
+    <div class="chart-wrap">
+      <div class="chart-title"><span>Demanda real vs Pronóstico Holt (con horizonte futuro)</span></div>
+      <div id="chartHolt"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     PANEL 6: WINTER
+     ======================================================== -->
+<section class="panel" id="p-winter">
+  <div class="card">
+    <h2>Modelo de Winter — multiplicativo</h2>
+    <p class="lead">Estima nivel, tendencia y factor estacional. Requiere al menos dos ciclos estacionales completos para inicializar correctamente.</p>
+
+    <div class="formula">
+      <span class="lbl">Fórmulas (modelo multiplicativo)</span>
+      L<sub>t</sub> = α · (D<sub>t</sub> / S<sub>t−p</sub>) + (1 − α)(L<sub>t−1</sub> + T<sub>t−1</sub>)<br>
+      T<sub>t</sub> = β · (L<sub>t</sub> − L<sub>t−1</sub>) + (1 − β) · T<sub>t−1</sub><br>
+      S<sub>t</sub> = γ · (D<sub>t</sub> / L<sub>t</sub>) + (1 − γ) · S<sub>t−p</sub><br>
+      F<sub>t+n</sub> = (L<sub>t</sub> + n · T<sub>t</sub>) · S<sub>t+n−p</sub>
+    </div>
+
+    <div class="row">
+      <div class="field" style="width:120px;">
+        <label>p (ciclo)</label>
+        <input type="number" id="winP" value="12" min="2" max="52">
+      </div>
+      <div class="field" style="width:100px;">
+        <label>α</label>
+        <input type="number" id="winAlpha" value="0.3" min="0" max="1" step="0.05">
+      </div>
+      <div class="field" style="width:100px;">
+        <label>β</label>
+        <input type="number" id="winBeta" value="0.1" min="0" max="1" step="0.05">
+      </div>
+      <div class="field" style="width:100px;">
+        <label>γ</label>
+        <input type="number" id="winGamma" value="0.2" min="0" max="1" step="0.05">
+      </div>
+      <div class="field" style="width:120px;">
+        <label>Horizonte</label>
+        <input type="number" id="winH" value="6" min="1" max="24">
+      </div>
+      <button class="btn" onclick="calcularWinter()" style="margin-top:18px;">Calcular</button>
+    </div>
+
+    <div id="winAlertas"></div>
+    <div class="stats" id="winStats"></div>
+    <div class="tbl-wrap" id="winTabla"></div>
+    <div class="chart-wrap">
+      <div class="chart-title"><span>Demanda real vs Pronóstico Winter</span></div>
+      <div id="chartWinter"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     PANEL 7: MÉTODO ESTÁTICO
+     ======================================================== -->
+<section class="panel" id="p-estatico">
+  <div class="card">
+    <h2>Método estático con tendencia y estacionalidad</h2>
+    <p class="lead">Procedimiento clásico de cinco pasos: desestacionalizar, ajustar tendencia lineal, estimar nivel y pendiente, recalcular factores estacionales y pronosticar.</p>
+
+    <div class="formula">
+      <span class="lbl">Procedimiento</span>
+      1. Desestacionalizar D<sub>t</sub> con media móvil centrada de p períodos.<br>
+      2. Ajustar regresión lineal: D̃<sub>t</sub> = L + T · t.<br>
+      3. Factor estacional: S<sub>t</sub> = D<sub>t</sub> / D̃<sub>t</sub>, promediado por posición del ciclo.<br>
+      4. Pronóstico: F<sub>t</sub> = (L + T · t) · S<sub>(t mod p)</sub>.
+    </div>
+
+    <div class="row">
+      <div class="field" style="width:140px;">
+        <label>p (ciclo)</label>
+        <input type="number" id="estP" value="12" min="2" max="52">
+      </div>
+      <div class="field" style="width:140px;">
+        <label>Horizonte</label>
+        <input type="number" id="estH" value="6" min="1" max="24">
+      </div>
+      <button class="btn" onclick="calcularEstatico()" style="margin-top:18px;">Calcular</button>
+    </div>
+
+    <div id="estAlertas"></div>
+    <div class="stats" id="estStats"></div>
+    <div class="tbl-wrap" id="estTabla"></div>
+    <div class="chart-wrap">
+      <div class="chart-title"><span>Demanda real, desestacionalizada, tendencia y pronóstico</span></div>
+      <div id="chartEst"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     PANEL 8: COMPARADOR
+     ======================================================== -->
+<section class="panel" id="p-comparador">
+  <div class="card">
+    <h2>Comparador de métodos</h2>
+    <p class="lead">Aplica simultáneamente todos los métodos compatibles con la serie y compara sus errores. El que minimiza el MAPE histórico no siempre será el mejor para pronosticar el futuro.</p>
+
+    <div class="row">
+      <button class="btn" onclick="compararTodo()">Ejecutar comparación</button>
+      <button class="btn ghost" onclick="document.getElementById('compChart').innerHTML=''; document.getElementById('compTabla').innerHTML=''; document.getElementById('compRec').innerHTML='';">Limpiar</button>
+    </div>
+
+    <div id="compRec"></div>
+    <div class="tbl-wrap" id="compTabla"></div>
+    <div class="chart-wrap">
+      <div class="chart-title"><span>Comparación gráfica · Demanda real vs Pronósticos</span></div>
+      <div id="compChart"></div>
+      <div class="chart-legend" id="compLegend"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================
+     PANEL 9: EJERCICIOS
+     ======================================================== -->
+<section class="panel" id="p-ejercicios">
+  <div class="card">
+    <h2>Generador de ejercicios</h2>
+    <p class="lead">Practica con ejercicios automáticos. Pide pistas progresivas si te atascas; sólo recurre a la solución paso a paso cuando hayas intentado responder.</p>
+
+    <div class="row">
+      <div class="field" style="min-width:240px; flex:1;">
+        <label>Tipo de ejercicio</label>
+        <select id="exTipo">
+          <option value="pm">Calcular promedio móvil</option>
+          <option value="ses">Calcular suavizado exponencial simple</option>
+          <option value="alpha">Comparar α = 0.10 vs α = 0.50</option>
+          <option value="holt">Calcular Holt (serie con tendencia)</option>
+          <option value="elegir">Elegir método según patrón (test)</option>
+          <option value="interp">Interpretar MAPE / MAD / sesgo (test)</option>
+          <option value="patron">Detectar tendencia o estacionalidad (test)</option>
+          <option value="siguiente">Calcular pronóstico del siguiente período</option>
+          <option value="mixto">Ejercicio mixto aleatorio</option>
+        </select>
+      </div>
+      <div class="field" style="width:140px;">
+        <label>Dificultad</label>
+        <select id="exDif">
+          <option value="facil">Fácil</option>
+          <option value="medio" selected>Medio</option>
+          <option value="dificil">Difícil</option>
+        </select>
+      </div>
+      <button class="btn amber" onclick="generarEjercicio()" style="margin-top:18px;">Generar ejercicio</button>
+    </div>
+
+    <div id="exContenedor"></div>
+  </div>
+
+  <div class="card">
+    <h3>Errores típicos detectados en esta sesión</h3>
+    <p class="lead">Lista de avisos didácticos generados por la herramienta a partir de tus interacciones.</p>
+    <div id="erroresList"><div class="sm-text">Aún no se han registrado avisos.</div></div>
+  </div>
+</section>
+
+<footer class="foot">
+  Laboratorio inteligente de pronósticos de demanda · Logística · v1.0 · Diseñado para apoyar el razonamiento, no para sustituirlo.
+</footer>
+
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN — DATOS EDITABLES DEL LABORATORIO
+   ------------------------------------------------------------
+   Aquí está centralizada la "pila de datos" del prototipo:
+   los parámetros del generador de series y las series de ejemplo
+   precargadas. Para cambiarlos se edita SOLO este bloque; la
+   lógica de pronóstico y las métricas de error no hay que tocarlas.
+
+   Mapa de datos editables:
+     • generador .... parámetros de las series sintéticas         [aquí]
+     • ejemplos ..... series precargadas (datos fijos)            [aquí]
+   Nota: los parámetros de los métodos (α, β, γ, períodos, etc.)
+   los introduce el usuario en pantalla. La paleta de colores de
+   las gráficas está justo debajo, en la constante COLORS.
+   ============================================================ */
+const CONFIG = {
+
+  /* --- PILA DE DATOS ALEATORIOS: generador de series sintéticas --- */
+  generador: {
+    // estacionalidad (nº de períodos por ciclo) según la frecuencia
+    estacionalidadPorFrecuencia: { mensual:12, semanal:12, diaria:7, trimestral:4, anual:4 },
+    ruidoBase:   0.05,  // ±5% sobre el nivel base (patrones "estable" y "brusco")
+    ruidoSuave:  0.04,  // ±4% (creciente, decreciente, estacional, tend+est)
+    ruidoFuerte: 0.30,  // ±30% (patrón "ruido")
+    pendienteCreciente:    0.03,  // +3% del nivel base por período
+    pendienteDecreciente:  0.02,  // −2% del nivel base por período
+    sueloDecreciente:      0.30,  // la serie decreciente no baja del 30% del nivel base
+    ampEstacional:  0.25,         // amplitud estacional (patrón "estacional")
+    ampTendEst:     0.22,         // amplitud estacional (patrón "tendencia+estacional")
+    pendienteTendEst: 0.025,      // pendiente del patrón "tendencia+estacional"
+    saltoBrusco:    1.5           // factor del salto (patrón "brusco")
+  },
+
+  /* --- DATOS FIJOS: series de ejemplo precargadas --- */
+  // notas:null → las etiquetas se generan solas como T1, T2, ...
+  ejemplos: {
+    granos: {
+      freq:'mensual',
+      serie:[4200,4350,4180,4420,4310,4280,4390,4420,4150,4480,4220,4350],
+      notas:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+    },
+    crecimiento: {
+      freq:'mensual',
+      serie:[120,135,142,158,165,178,192,205,218,232,248,265,280,295],
+      notas:null
+    },
+    alimentario: {
+      freq:'mensual',
+      serie:[180,210,260,320,380,360,290,240,210,195,200,220,
+             185,215,270,330,385,365,295,245,215,200,205,225],
+      notas:['Ene1','Feb1','Mar1','Abr1','May1','Jun1','Jul1','Ago1','Sep1','Oct1','Nov1','Dic1',
+             'Ene2','Feb2','Mar2','Abr2','May2','Jun2','Jul2','Ago2','Sep2','Oct2','Nov2','Dic2']
+    },
+    tahoe: {
+      freq:'trimestral',
+      serie:[8000,13000,23000,34000,10000,18000,23000,38000,12000,13000,32000,41000],
+      notas:['Q1 A1','Q2 A1','Q3 A1','Q4 A1','Q1 A2','Q2 A2','Q3 A2','Q4 A2','Q1 A3','Q2 A3','Q3 A3','Q4 A3']
+    }
+  }
+
+};
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+const state = {
+  serie: [],         // array de números (demanda real)
+  notas: [],         // notas por período (string)
+  freq: 'mensual',   // mensual | semanal | diaria | anual
+  errores: [],       // lista de avisos didácticos
+  ejActual: null     // ejercicio activo
+};
+
+const COLORS = {
+  real: '#5ce1e6',
+  pm: '#f5c451',
+  ses: '#5b8def',
+  holt: '#6dd99a',
+  winter: '#d472d0',
+  est: '#ec6363'
+};
+
+/* ============================================================
+   UTILIDADES MATEMÁTICAS
+   ============================================================ */
+function media(arr) { return arr.reduce((a,b)=>a+b,0) / arr.length; }
+function sum(arr) { return arr.reduce((a,b)=>a+b,0); }
+function stdDev(arr) {
+  const m = media(arr);
+  return Math.sqrt(arr.reduce((s,x)=>s + (x-m)**2, 0) / arr.length);
+}
+function regLineal(y) {
+  const n = y.length;
+  let sx=0, sy=0, sxy=0, sxx=0;
+  for (let i=0; i<n; i++) {
+    const x = i+1;
+    sx += x; sy += y[i]; sxy += x*y[i]; sxx += x*x;
+  }
+  const T = (n*sxy - sx*sy) / (n*sxx - sx*sx);
+  const L = (sy - T*sx) / n;
+  return { L, T };
+}
+function fmt(n, d=2) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return Number(n).toLocaleString('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function fmtPct(n, d=1) {
+  if (n === null || isNaN(n)) return '—';
+  return (n*100).toFixed(d) + '%';
+}
+
+/* ============================================================
+   MÉTRICAS DE ERROR
+   ============================================================ */
+// Convención del temario: Error = Pronóstico − Demanda
+function calcularErrores(reales, pronos) {
+  const errs = [], abs = [], pct = [], sq = [];
+  for (let i=0; i<reales.length; i++) {
+    if (pronos[i] === null || pronos[i] === undefined || isNaN(pronos[i])) continue;
+    const e = pronos[i] - reales[i];
+    errs.push(e);
+    abs.push(Math.abs(e));
+    sq.push(e*e);
+    if (reales[i] !== 0) pct.push(Math.abs(e/reales[i]));
+  }
+  if (errs.length === 0) return null;
+  const MAD = media(abs);
+  const MSE = media(sq);
+  const RMSE = Math.sqrt(MSE);
+  const MAPE = pct.length ? media(pct) : null;
+  const sesgo = media(errs);
+  return { MAD, MSE, RMSE, MAPE, sesgo, n: errs.length };
+}
+
+/* ============================================================
+   AVISOS DIDÁCTICOS
+   ============================================================ */
+function avisar(msg, tipo='warn') {
+  const ts = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  state.errores.unshift({ msg, tipo, ts });
+  if (state.errores.length > 30) state.errores.pop();
+  renderErrores();
+}
+function renderErrores() {
+  const c = document.getElementById('erroresList');
+  if (!c) return;
+  if (state.errores.length === 0) {
+    c.innerHTML = '<div class="sm-text">Aún no se han registrado avisos.</div>';
+    return;
+  }
+  c.innerHTML = state.errores.map(e => `
+    <div class="alert ${e.tipo}">
+      <span class="ti">${e.ts} · aviso didáctico</span>
+      ${e.msg}
+    </div>
+  `).join('');
+}
+
+/* ============================================================
+   PESTAÑAS
+   ============================================================ */
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  const id = 'p-' + btn.dataset.tab;
+  document.getElementById(id).classList.add('active');
+  // refrescos automáticos al cambiar de pestaña
+  if (btn.dataset.tab === 'analisis') renderAnalisis();
+  if (btn.dataset.tab === 'datos') renderTablaSerie();
+});
+
+/* ============================================================
+   GENERADOR DE SERIES
+   ============================================================ */
+function generarSerie() {
+  const freq = document.getElementById('genFreq').value;
+  const patron = document.getElementById('genPattern').value;
+  const n = parseInt(document.getElementById('genN').value);
+  const base = parseFloat(document.getElementById('genLvl').value);
+
+  if (!n || n < 4 || n > 120) { avisar('El número de períodos debe estar entre 4 y 120.', 'error'); return; }
+  if (!base || base <= 0) { avisar('El nivel base debe ser positivo.', 'error'); return; }
+
+  const g = CONFIG.generador; // parámetros editables del generador
+  const arr = [];
+  const p = g.estacionalidadPorFrecuencia[freq] ?? 4;
+
+  for (let t=1; t<=n; t++) {
+    let v = base;
+    if (patron === 'estable') {
+      v = base + rnd(-g.ruidoBase, g.ruidoBase) * base;
+    } else if (patron === 'creciente') {
+      v = base + (base * g.pendienteCreciente * t) + rnd(-g.ruidoSuave, g.ruidoSuave) * base;
+    } else if (patron === 'decreciente') {
+      v = base * (1 - g.pendienteDecreciente*t) + rnd(-g.ruidoSuave, g.ruidoSuave) * base;
+      if (v < base*g.sueloDecreciente) v = base*g.sueloDecreciente + rnd(-g.ruidoSuave,g.ruidoSuave)*base;
+    } else if (patron === 'estacional') {
+      const s = 1 + g.ampEstacional * Math.sin((t-1) * 2 * Math.PI / p);
+      v = base * s + rnd(-g.ruidoSuave, g.ruidoSuave) * base;
+    } else if (patron === 'tend_est') {
+      const s = 1 + g.ampTendEst * Math.sin((t-1) * 2 * Math.PI / p);
+      v = (base + base*g.pendienteTendEst*t) * s + rnd(-g.ruidoSuave,g.ruidoSuave) * base;
+    } else if (patron === 'ruido') {
+      v = base + rnd(-g.ruidoFuerte, g.ruidoFuerte) * base;
+    } else if (patron === 'brusco') {
+      const cut = Math.floor(n/2);
+      v = (t <= cut ? base : base * g.saltoBrusco) + rnd(-g.ruidoBase, g.ruidoBase) * base;
+    }
+    arr.push(Math.max(0, Math.round(v)));
+  }
+
+  state.serie = arr;
+  state.notas = new Array(n).fill('');
+  state.freq = freq;
+  refrescarSerie();
+}
+
+function rnd(a, b) { return a + Math.random() * (b-a); }
+
+/* ============================================================
+   EJEMPLOS PRECARGADOS
+   ============================================================ */
+function cargarEjemplo(tipo) {
+  const ej = CONFIG.ejemplos[tipo]; // series editables en CONFIG.ejemplos
+  if (!ej) return;
+  const serie = ej.serie;
+  const notas = ej.notas ? ej.notas.slice() : serie.map((_,i)=>'T'+(i+1));
+  state.serie = serie.slice();
+  state.notas = notas;
+  state.freq = ej.freq;
+  // ajustar el periodo estacional de los paneles al del ejemplo (p. ej. Tahoe Salt = trimestral → p=4)
+  const pEj = CONFIG.generador.estacionalidadPorFrecuencia[ej.freq] || 4;
+  const eP = document.getElementById('estP'), wP = document.getElementById('winP');
+  if (eP) eP.value = pEj;
+  if (wP) wP.value = pEj;
+  refrescarSerie();
+  avisar('Ejemplo cargado: ' + tipo + '. Ve a "Análisis de la serie" para ver el diagnóstico recomendado.', 'success');
+}
+
+/* ============================================================
+   CARGA MANUAL
+   ============================================================ */
+function cargarManual() {
+  const txt = document.getElementById('manualInput').value.trim();
+  if (!txt) { avisar('No has introducido ningún valor.', 'error'); return; }
+  const partes = txt.split(/[\s,;]+/).filter(x=>x.length);
+  const nums = partes.map(x => parseFloat(x.replace(',', '.')));
+  if (nums.some(x => isNaN(x))) { avisar('Algunos valores no son numéricos. Revisa la entrada.', 'error'); return; }
+  if (nums.some(x => x < 0)) { avisar('La demanda no puede ser negativa. Recuerda que en logística la demanda es ≥ 0.', 'error'); return; }
+  if (nums.length < 4) { avisar('Se necesitan al menos 4 períodos para hacer pronósticos útiles.', 'error'); return; }
+  state.serie = nums;
+  state.notas = new Array(nums.length).fill('');
+  state.freq = document.getElementById('manualFreq').value;
+  refrescarSerie();
+}
+
+/* ============================================================
+   EDICIÓN DE SERIE
+   ============================================================ */
+function añadirPeriodo() {
+  if (state.serie.length === 0) { avisar('Genera o introduce una serie primero.', 'warn'); return; }
+  const last = state.serie[state.serie.length-1];
+  state.serie.push(Math.round(last + rnd(-0.05,0.05)*last));
+  state.notas.push('');
+  refrescarSerie();
+}
+function quitarPeriodo() {
+  if (state.serie.length <= 4) { avisar('Necesitas al menos 4 períodos.', 'warn'); return; }
+  state.serie.pop();
+  state.notas.pop();
+  refrescarSerie();
+}
+
+function refrescarSerie() {
+  document.getElementById('badgeFreq').textContent = state.freq;
+  document.getElementById('badgeN').textContent = 'n=' + state.serie.length;
+  document.getElementById('metaSerie').textContent = `Serie: ${state.freq} | n=${state.serie.length}`;
+  document.getElementById('chartRange').textContent = state.serie.length ? `t=1…${state.serie.length}` : '—';
+  renderTablaSerie();
+  drawChart('chartDatos', state.serie, null, null, { label: 'Demanda' });
+}
+
+function renderTablaSerie() {
+  const c = document.getElementById('serieTabla');
+  if (state.serie.length === 0) {
+    c.innerHTML = '<div style="padding:30px; text-align:center; color:var(--text-muted);">No hay serie cargada. Genera una o introduce datos manualmente.</div>';
+    return;
+  }
+  let html = '<table class="data"><thead><tr><th>Período</th><th>Demanda real</th><th>Nota / etiqueta</th></tr></thead><tbody>';
+  state.serie.forEach((v,i) => {
+    html += `<tr>
+      <td class="text-left">t = ${i+1}</td>
+      <td class="editable"><input type="number" min="0" step="any" value="${v}" data-idx="${i}" onchange="editarSerie(this)"></td>
+      <td class="text-left editable"><input type="text" value="${state.notas[i]||''}" data-idx="${i}" onchange="editarNota(this)" style="text-align:left;"></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  c.innerHTML = html;
+}
+function editarSerie(inp) {
+  const i = parseInt(inp.dataset.idx);
+  const v = parseFloat(inp.value);
+  if (isNaN(v) || v < 0) { avisar('Demanda inválida en t=' + (i+1) + ': debe ser ≥ 0.', 'error'); inp.value = state.serie[i]; return; }
+  state.serie[i] = v;
+  drawChart('chartDatos', state.serie, null, null, { label: 'Demanda' });
+}
+function editarNota(inp) {
+  state.notas[parseInt(inp.dataset.idx)] = inp.value;
+}
+
+/* ============================================================
+   GRAPH ENGINE (SVG)
+   ============================================================ */
+function drawChart(containerId, real, pron, future, opts = {}) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  if (!real || real.length === 0) {
+    c.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:12px;">— sin datos —</div>';
+    return;
+  }
+  const W = 800, H = 280, pad = { l: 50, r: 20, t: 16, b: 30 };
+  const allY = [...real];
+  if (pron) pron.forEach(v => { if (v !== null && !isNaN(v)) allY.push(v); });
+  if (future) future.forEach(v => { if (v !== null && !isNaN(v)) allY.push(v); });
+  const yMin = Math.min(...allY, 0);
+  const yMax = Math.max(...allY) * 1.05;
+  const n = real.length + (future ? future.length : 0);
+
+  const sx = i => pad.l + (i) * (W - pad.l - pad.r) / Math.max(n-1, 1);
+  const sy = v => H - pad.b - (v - yMin) / (yMax - yMin || 1) * (H - pad.t - pad.b);
+
+  // Ticks Y
+  let ticks = '';
+  for (let k=0; k<=4; k++) {
+    const yv = yMin + (yMax - yMin) * k/4;
+    const y = sy(yv);
+    ticks += `<line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#232c3b" stroke-width="0.5"/>`;
+    ticks += `<text x="${pad.l-6}" y="${y+3}" font-size="9" fill="#5c6677" text-anchor="end" font-family="JetBrains Mono">${fmt(yv,0)}</text>`;
+  }
+  // Ticks X (cada ~6)
+  const xStep = Math.max(1, Math.ceil(n/10));
+  for (let i=0; i<n; i+=xStep) {
+    const x = sx(i);
+    ticks += `<text x="${x}" y="${H-pad.b+14}" font-size="9" fill="#5c6677" text-anchor="middle" font-family="JetBrains Mono">t${i+1}</text>`;
+  }
+
+  // Real
+  let pathReal = '';
+  real.forEach((v,i) => {
+    pathReal += (i===0?'M':'L') + sx(i) + ',' + sy(v) + ' ';
+  });
+  const realColor = opts.realColor || COLORS.real;
+
+  let pathPron = '';
+  if (pron) {
+    let started = false;
+    pron.forEach((v,i) => {
+      if (v === null || isNaN(v)) { started = false; return; }
+      pathPron += (started?'L':'M') + sx(i) + ',' + sy(v) + ' ';
+      started = true;
+    });
+  }
+  const pronColor = opts.pronColor || COLORS.pm;
+
+  let pathFuture = '';
+  let futurePoints = '';
+  if (future) {
+    // El futuro arranca tras los reales
+    const startIdx = real.length;
+    // conexión: empezamos en el último real
+    pathFuture = 'M' + sx(startIdx - 1) + ',' + sy(real[real.length-1]) + ' ';
+    future.forEach((v,i) => {
+      const x = sx(startIdx + i);
+      const y = sy(v);
+      pathFuture += 'L' + x + ',' + y + ' ';
+      futurePoints += `<circle cx="${x}" cy="${y}" r="3" fill="${pronColor}" stroke="${pronColor}"/>`;
+    });
+  }
+
+  // Puntos serie real
+  let pts = '';
+  real.forEach((v,i) => {
+    pts += `<circle cx="${sx(i)}" cy="${sy(v)}" r="2.5" fill="${realColor}"/>`;
+  });
+
+  const svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+    ${ticks}
+    ${pathPron ? `<path d="${pathPron}" stroke="${pronColor}" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>` : ''}
+    <path d="${pathReal}" stroke="${realColor}" stroke-width="2" fill="none"/>
+    ${pathFuture ? `<path d="${pathFuture}" stroke="${pronColor}" stroke-width="2" fill="none" stroke-dasharray="2,3" opacity="0.85"/>` : ''}
+    ${futurePoints}
+    ${pts}
+  </svg>`;
+
+  // Leyenda
+  const legend = `<div class="chart-legend">
+    <div class="lg"><span class="sw" style="background:${realColor}"></span>Demanda real</div>
+    ${pron ? `<div class="lg"><span class="sw" style="background:${pronColor}; ${future ? '' : 'border:1px dashed '+pronColor+';background:transparent;'}"></span>${opts.pronLabel || 'Pronóstico'}</div>` : ''}
+    ${future ? `<div class="lg"><span class="sw" style="background:${pronColor}; opacity:0.85;"></span>Pronóstico futuro</div>` : ''}
+  </div>`;
+
+  c.innerHTML = svg + legend;
+}
+
+/* Múltiples series para comparador */
+function drawChartMulti(containerId, real, series) {
+  // series: [{ name, data, color }]
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  if (!real || real.length === 0) { c.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">— sin datos —</div>'; return; }
+
+  const W=800, H=320, pad={l:50,r:20,t:16,b:30};
+  let allY = [...real];
+  series.forEach(s => s.data.forEach(v => { if (v !== null && !isNaN(v)) allY.push(v); }));
+  const yMin = Math.min(...allY, 0);
+  const yMax = Math.max(...allY) * 1.05;
+  const n = real.length;
+  const sx = i => pad.l + i * (W-pad.l-pad.r) / Math.max(n-1,1);
+  const sy = v => H-pad.b - (v-yMin)/(yMax-yMin||1)*(H-pad.t-pad.b);
+
+  let svg = '';
+  for (let k=0; k<=4; k++) {
+    const yv = yMin + (yMax-yMin)*k/4;
+    svg += `<line x1="${pad.l}" y1="${sy(yv)}" x2="${W-pad.r}" y2="${sy(yv)}" stroke="#232c3b" stroke-width="0.5"/>`;
+    svg += `<text x="${pad.l-6}" y="${sy(yv)+3}" font-size="9" fill="#5c6677" text-anchor="end" font-family="JetBrains Mono">${fmt(yv,0)}</text>`;
+  }
+  const xStep = Math.max(1, Math.ceil(n/10));
+  for (let i=0; i<n; i+=xStep) {
+    svg += `<text x="${sx(i)}" y="${H-pad.b+14}" font-size="9" fill="#5c6677" text-anchor="middle" font-family="JetBrains Mono">t${i+1}</text>`;
+  }
+
+  series.forEach(s => {
+    let path = '';
+    let started = false;
+    s.data.forEach((v,i) => {
+      if (v === null || isNaN(v)) { started = false; return; }
+      path += (started?'L':'M')+sx(i)+','+sy(v)+' ';
+      started = true;
+    });
+    svg += `<path d="${path}" stroke="${s.color}" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>`;
+  });
+
+  let pathReal = '';
+  real.forEach((v,i) => { pathReal += (i===0?'M':'L')+sx(i)+','+sy(v)+' '; });
+  svg += `<path d="${pathReal}" stroke="${COLORS.real}" stroke-width="2" fill="none"/>`;
+  real.forEach((v,i) => { svg += `<circle cx="${sx(i)}" cy="${sy(v)}" r="2" fill="${COLORS.real}"/>`; });
+
+  c.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}">${svg}</svg>`;
+
+  let leg = `<div class="lg"><span class="sw" style="background:${COLORS.real}"></span>Demanda real</div>`;
+  series.forEach(s => { leg += `<div class="lg"><span class="sw" style="background:${s.color}"></span>${s.name}</div>`; });
+  document.getElementById('compLegend').innerHTML = leg;
+}
+
+/* ============================================================
+   ANÁLISIS DE LA SERIE
+   ============================================================ */
+function renderAnalisis() {
+  const sc = document.getElementById('analisisStats');
+  const dc = document.getElementById('analisisDiag');
+  const rc = document.getElementById('analisisRec');
+  const ec = document.getElementById('analisisExpl');
+  if (state.serie.length === 0) {
+    sc.innerHTML = '<div class="stat"><div class="lbl">Sin datos</div><div class="val">—</div></div>';
+    dc.innerHTML = ''; rc.innerHTML = ''; ec.innerHTML = '';
+    document.getElementById('chartAnalisis').innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted);">— sin datos —</div>';
+    return;
+  }
+  const s = state.serie;
+  const m = media(s), sd = stdDev(s);
+  const cv = sd / m;
+  const min = Math.min(...s), max = Math.max(...s);
+
+  // Tendencia: regresión lineal
+  const reg = regLineal(s);
+  const tendRel = reg.T / m;   // pendiente relativa al nivel
+  const hayTendencia = Math.abs(tendRel) > 0.005;  // >0.5% por período
+  const tipoTend = reg.T > 0 ? 'creciente' : 'decreciente';
+
+  // Estacionalidad: autocorrelación a varios lags
+  const p = detectarEstacionalidad(s);
+  const hayEstacionalidad = p !== null;
+
+  // Ruido: CV alto sin tendencia clara
+  const ruidoAlto = cv > 0.25 && !hayTendencia;
+
+  sc.innerHTML = `
+    <div class="stat"><div class="lbl">Media</div><div class="val">${fmt(m)}</div></div>
+    <div class="stat"><div class="lbl">Mínimo</div><div class="val">${fmt(min)}</div></div>
+    <div class="stat"><div class="lbl">Máximo</div><div class="val">${fmt(max)}</div></div>
+    <div class="stat"><div class="lbl">Desv. típica</div><div class="val">${fmt(sd)}</div></div>
+    <div class="stat"><div class="lbl">CV (variabilidad)</div><div class="val ${cv>0.25?'am':'cy'}">${fmtPct(cv)}</div></div>
+    <div class="stat"><div class="lbl">Pendiente</div><div class="val ${hayTendencia?'gr':''}">${fmt(reg.T,3)}/per</div></div>
+  `;
+
+  dc.innerHTML = `
+    <div class="diag-item ${!hayTendencia && !hayEstacionalidad && !ruidoAlto?'yes':'no'}">
+      <div class="lbl">Parece estable</div>
+      <div class="val">${!hayTendencia && !hayEstacionalidad && !ruidoAlto?'Sí':'No claramente'}</div>
+    </div>
+    <div class="diag-item ${hayTendencia?'yes':'no'}">
+      <div class="lbl">Tendencia</div>
+      <div class="val">${hayTendencia?('Sí ('+tipoTend+')'):'No detectada'}</div>
+    </div>
+    <div class="diag-item ${hayEstacionalidad?'yes':'no'}">
+      <div class="lbl">Estacionalidad</div>
+      <div class="val">${hayEstacionalidad?('Sí, p≈'+p):'No detectada'}</div>
+    </div>
+    <div class="diag-item ${ruidoAlto?'warn':'no'}">
+      <div class="lbl">Ruido alto</div>
+      <div class="val">${ruidoAlto?'Sí':'No'}</div>
+    </div>
+  `;
+
+  // Recomendación
+  let metodo, razon;
+  if (hayTendencia && hayEstacionalidad) {
+    metodo = 'Winter o Método estático';
+    razon = 'La serie muestra tendencia y estacionalidad: ambos métodos modelan los tres componentes (nivel, tendencia, estacionalidad).';
+  } else if (hayTendencia) {
+    metodo = 'Holt';
+    razon = 'La serie muestra tendencia clara y poca estacionalidad: el suavizado doble de Holt modela nivel y tendencia simultáneamente.';
+  } else if (hayEstacionalidad) {
+    metodo = 'Winter o Método estático';
+    razon = 'Hay estacionalidad sin tendencia clara: Winter o el método estático permitirán capturar el patrón cíclico.';
+  } else if (ruidoAlto) {
+    metodo = 'Promedio móvil amplio o SES con α bajo';
+    razon = 'La serie tiene ruido alto. Métodos suavizadores (PM con N grande o SES con α pequeño) reducirán el impacto del ruido.';
+  } else {
+    metodo = 'Promedio móvil o Suavizado exponencial simple';
+    razon = 'La serie parece estable: conviene empezar con métodos sencillos y comparar errores.';
+  }
+
+  rc.innerHTML = `
+    <div class="recommend-card">
+      <div class="lbl">Método recomendado inicialmente</div>
+      <div class="method">${metodo}</div>
+      <div class="sm-text">${razon}</div>
+    </div>
+  `;
+
+  // Explicaciones adicionales
+  let expl = '<div class="alert"><span class="ti">Interpretación</span>';
+  if (!hayTendencia && !hayEstacionalidad) expl += 'La serie parece estable: conviene empezar con promedio móvil o suavizado exponencial simple.';
+  else if (hayTendencia && !hayEstacionalidad) expl += 'La serie muestra tendencia: conviene probar Holt.';
+  else if (hayEstacionalidad) expl += 'La serie muestra estacionalidad' + (hayTendencia ? ' y tendencia' : '') + ': conviene probar Winter o método estático.';
+  expl += '</div>';
+  ec.innerHTML = expl;
+
+  // Gráfico con tendencia
+  const tendLine = s.map((_,i) => reg.L + reg.T*(i+1));
+  drawChart('chartAnalisis', s, tendLine, null, {
+    label: 'Tendencia',
+    pronLabel: 'Línea de tendencia (reg. lineal)',
+    pronColor: COLORS.amber
+  });
+}
+
+function detectarEstacionalidad(s) {
+  // Prueba lags candidatos típicos
+  const candidatos = [2, 3, 4, 6, 7, 12, 52];
+  const n = s.length;
+  const m = media(s);
+  const denom = sum(s.map(v => (v-m)**2));
+  if (denom === 0) return null;
+  let mejor = null, mejorR = 0;
+  for (const lag of candidatos) {
+    if (lag*2 > n) continue;
+    let num = 0;
+    for (let i=lag; i<n; i++) num += (s[i]-m) * (s[i-lag]-m);
+    const r = num / denom;
+    if (r > 0.4 && r > mejorR) { mejorR = r; mejor = lag; }
+  }
+  return mejor;
+}
+
+/* ============================================================
+   PROMEDIO MÓVIL
+   ============================================================ */
+function calcularPM() {
+  if (!validarSerie()) return;
+  const N = parseInt(document.getElementById('pmN').value);
+  if (!N || N < 2 || N > state.serie.length-1) {
+    avisar('El valor de N debe estar entre 2 y ' + (state.serie.length-1) + '.', 'error');
+    return;
+  }
+  const { pron, siguiente, tabla } = pmCalcular(state.serie, N);
+  const errs = calcularErrores(state.serie, pron);
+
+  // Avisos didácticos
+  const reg = regLineal(state.serie);
+  const hayT = Math.abs(reg.T/media(state.serie)) > 0.01;
+  let alertas = '';
+  if (hayT) alertas += `<div class="alert warn"><span class="ti">Aviso didáctico</span>La serie tiene tendencia (${fmt(reg.T,3)}/per). El promedio móvil tiende a quedarse "por detrás" en series con tendencia: considera Holt.</div>`;
+
+  document.getElementById('pmAlertas').innerHTML = alertas;
+
+  document.getElementById('pmStats').innerHTML = renderErrStats(errs, siguiente, 'Próx. F<sub>t+1</sub>');
+
+  // Tabla
+  let html = '<table class="data"><thead><tr><th>t</th><th>Demanda</th><th>F<sub>t</sub></th><th>Error</th><th>|Error|</th><th>|Error|/D</th></tr></thead><tbody>';
+  state.serie.forEach((d,i) => {
+    const f = pron[i];
+    const e = f===null ? null : f-d;
+    html += `<tr>
+      <td class="text-left">t = ${i+1}</td>
+      <td>${fmt(d,1)}</td>
+      <td>${f===null?'<span class="num-dim">—</span>':fmt(f,2)}</td>
+      <td>${e===null?'<span class="num-dim">—</span>':`<span class="${e>=0?'num-pos':'num-neg'}">${fmt(e,2)}</span>`}</td>
+      <td>${e===null?'—':fmt(Math.abs(e),2)}</td>
+      <td>${e===null||d===0?'—':fmtPct(Math.abs(e)/d)}</td>
+    </tr>`;
+  });
+  html += `<tr style="background:rgba(245,196,81,0.06);"><td class="text-left"><b>t = ${state.serie.length+1}</b></td><td colspan="5"><b>Pronóstico siguiente:</b> ${fmt(siguiente,2)}</td></tr>`;
+  html += '</tbody></table>';
+  document.getElementById('pmTabla').innerHTML = html;
+
+  drawChart('chartPM', state.serie, pron, [siguiente], { pronLabel: `PM (N=${N})`, pronColor: COLORS.pm });
+}
+function pmCalcular(serie, N) {
+  const pron = new Array(serie.length).fill(null);
+  // F_{t+1} corresponde a la posición t+1 en el array (índice t en 0-base)
+  // Más útil: para cada índice i (a partir de N), pronóstico = media de últimos N
+  for (let i=N; i<serie.length; i++) {
+    pron[i] = media(serie.slice(i-N, i));
+  }
+  const siguiente = media(serie.slice(serie.length-N));
+  return { pron, siguiente, tabla: pron };
+}
+function optimizarPM() {
+  if (!validarSerie()) return;
+  let mejor = null, mejorMAPE = Infinity;
+  for (let N=2; N<=Math.min(12, state.serie.length-1); N++) {
+    const { pron } = pmCalcular(state.serie, N);
+    const e = calcularErrores(state.serie, pron);
+    if (e && e.MAPE !== null && e.MAPE < mejorMAPE) { mejorMAPE = e.MAPE; mejor = N; }
+  }
+  if (mejor !== null) {
+    document.getElementById('pmN').value = mejor;
+    avisar(`N óptimo encontrado: ${mejor} (MAPE = ${fmtPct(mejorMAPE)}). Se ha actualizado el campo; pulsa Calcular para ver resultados.`, 'success');
+  }
+}
+function renderErrStats(errs, sig, sigLabel) {
+  if (!errs) return '<div class="stat"><div class="lbl">Sin datos suficientes</div><div class="val">—</div></div>';
+  return `
+    <div class="stat"><div class="lbl">MAD</div><div class="val cy">${fmt(errs.MAD)}</div><div class="sub">media |error|</div></div>
+    <div class="stat"><div class="lbl">MSE</div><div class="val">${fmt(errs.MSE)}</div><div class="sub">media error²</div></div>
+    <div class="stat"><div class="lbl">RMSE</div><div class="val">${fmt(errs.RMSE)}</div><div class="sub">√MSE</div></div>
+    <div class="stat"><div class="lbl">MAPE</div><div class="val am">${fmtPct(errs.MAPE)}</div><div class="sub">% medio</div></div>
+    <div class="stat"><div class="lbl">Sesgo medio</div><div class="val ${errs.sesgo>0?'rd':'gr'}">${fmt(errs.sesgo)}</div><div class="sub">${errs.sesgo>0?'sobrestima':'subestima'}</div></div>
+    ${sig!==undefined?`<div class="stat"><div class="lbl">${sigLabel}</div><div class="val cy">${fmt(sig,2)}</div></div>`:''}
+  `;
+}
+
+/* ============================================================
+   SUAVIZADO EXPONENCIAL SIMPLE
+   ============================================================ */
+function calcularSES() {
+  if (!validarSerie()) return;
+  const a = parseFloat(document.getElementById('sesAlpha').value);
+  if (isNaN(a) || a < 0 || a > 1) {
+    avisar('α debe estar en el intervalo [0, 1].', 'error');
+    return;
+  }
+  const initMode = document.getElementById('sesInit').value;
+  let F0;
+  if (initMode === 'auto') F0 = media(state.serie.slice(0, Math.min(3, state.serie.length)));
+  else if (initMode === 'primero') F0 = state.serie[0];
+  else F0 = parseFloat(document.getElementById('sesF0').value);
+  if (isNaN(F0)) { avisar('F inicial inválido.', 'error'); return; }
+
+  const { pron, siguiente } = sesCalcular(state.serie, a, F0);
+  const errs = calcularErrores(state.serie, pron);
+
+  let alertas = '';
+  const reg = regLineal(state.serie);
+  if (Math.abs(reg.T/media(state.serie)) > 0.02)
+    alertas += `<div class="alert warn"><span class="ti">Aviso</span>La serie tiene tendencia. SES no modela tendencia: sus pronósticos siempre quedarán "rezagados". Considera Holt.</div>`;
+
+  document.getElementById('sesAlertas').innerHTML = alertas;
+  document.getElementById('sesStats').innerHTML = renderErrStats(errs, siguiente, 'Próx. F<sub>t+1</sub>');
+
+  let html = '<table class="data"><thead><tr><th>t</th><th>Demanda</th><th>F<sub>t</sub></th><th>Error</th><th>|Error|/D</th></tr></thead><tbody>';
+  state.serie.forEach((d,i) => {
+    const f = pron[i];
+    const e = f-d;
+    html += `<tr>
+      <td class="text-left">t = ${i+1}</td>
+      <td>${fmt(d,1)}</td>
+      <td>${fmt(f,2)}</td>
+      <td><span class="${e>=0?'num-pos':'num-neg'}">${fmt(e,2)}</span></td>
+      <td>${d===0?'—':fmtPct(Math.abs(e)/d)}</td>
+    </tr>`;
+  });
+  html += `<tr style="background:rgba(245,196,81,0.06);"><td class="text-left"><b>t = ${state.serie.length+1}</b></td><td colspan="4"><b>Pronóstico siguiente:</b> ${fmt(siguiente,2)}</td></tr>`;
+  html += '</tbody></table>';
+  document.getElementById('sesTabla').innerHTML = html;
+
+  drawChart('chartSES', state.serie, pron, [siguiente], { pronLabel: `SES α=${a}`, pronColor: COLORS.ses });
+}
+function sesCalcular(serie, a, F0) {
+  const pron = [];
+  let F = F0;
+  for (let i=0; i<serie.length; i++) {
+    pron.push(F);
+    F = a * serie[i] + (1-a) * F;
+  }
+  return { pron, siguiente: F };
+}
+function compararAlphas() {
+  if (!validarSerie()) return;
+  const F0 = media(state.serie.slice(0, Math.min(3, state.serie.length)));
+  const alphas = [0.10, 0.30, 0.50, 0.80];
+  let html = '<table class="data"><thead><tr><th>α</th><th>MAD</th><th>MSE</th><th>RMSE</th><th>MAPE</th><th>Sesgo</th><th>F<sub>siguiente</sub></th></tr></thead><tbody>';
+  let mejorA, mejorMAPE = Infinity;
+  const rows = [];
+  alphas.forEach(a => {
+    const { pron, siguiente } = sesCalcular(state.serie, a, F0);
+    const e = calcularErrores(state.serie, pron);
+    rows.push({ a, e, siguiente });
+    if (e.MAPE !== null && e.MAPE < mejorMAPE) { mejorMAPE = e.MAPE; mejorA = a; }
+  });
+  rows.forEach(r => {
+    const best = r.a === mejorA;
+    html += `<tr ${best?'style="background:rgba(109,217,154,0.08);"':''}>
+      <td class="text-left">${r.a}${best?' <span class="badge gr">mejor</span>':''}</td>
+      <td>${fmt(r.e.MAD)}</td>
+      <td>${fmt(r.e.MSE)}</td>
+      <td>${fmt(r.e.RMSE)}</td>
+      <td>${fmtPct(r.e.MAPE)}</td>
+      <td>${fmt(r.e.sesgo)}</td>
+      <td>${fmt(r.siguiente)}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('sesCompTabla').innerHTML = html;
+}
+
+/* ============================================================
+   HOLT
+   ============================================================ */
+function calcularHolt() {
+  if (!validarSerie()) return;
+  const a = parseFloat(document.getElementById('holtAlpha').value);
+  const b = parseFloat(document.getElementById('holtBeta').value);
+  const H = parseInt(document.getElementById('holtH').value);
+  if (isNaN(a)||a<0||a>1) { avisar('α debe estar en [0,1].', 'error'); return; }
+  if (isNaN(b)||b<0||b>1) { avisar('β debe estar en [0,1].', 'error'); return; }
+  if (!H||H<1) { avisar('Horizonte debe ser ≥ 1.', 'error'); return; }
+
+  const r = holtCalcular(state.serie, a, b, H);
+  const errs = calcularErrores(state.serie, r.pron);
+
+  // Aviso: hay estacionalidad
+  let alertas = '';
+  const p = detectarEstacionalidad(state.serie);
+  if (p) alertas += `<div class="alert warn"><span class="ti">Aviso</span>Se detecta posible estacionalidad (lag ≈ ${p}). Holt no modela estacionalidad: el pronóstico ignorará ese patrón cíclico. Considera Winter.</div>`;
+
+  document.getElementById('holtAlertas').innerHTML = alertas;
+  document.getElementById('holtStats').innerHTML = renderErrStats(errs);
+
+  let html = '<table class="data"><thead><tr><th>t</th><th>Demanda</th><th>L<sub>t</sub></th><th>T<sub>t</sub></th><th>F<sub>t</sub></th><th>Error</th></tr></thead><tbody>';
+  state.serie.forEach((d,i) => {
+    const e = r.pron[i] - d;
+    html += `<tr>
+      <td class="text-left">t = ${i+1}</td>
+      <td>${fmt(d,1)}</td>
+      <td>${fmt(r.L[i],2)}</td>
+      <td>${fmt(r.T[i],3)}</td>
+      <td>${fmt(r.pron[i],2)}</td>
+      <td><span class="${e>=0?'num-pos':'num-neg'}">${fmt(e,2)}</span></td>
+    </tr>`;
+  });
+  for (let h=0; h<H; h++) {
+    html += `<tr style="background:rgba(109,217,154,0.06);">
+      <td class="text-left"><b>t = ${state.serie.length+h+1}</b></td>
+      <td colspan="3"><span class="num-dim">— horizonte —</span></td>
+      <td><b>${fmt(r.futuro[h],2)}</b></td>
+      <td></td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('holtTabla').innerHTML = html;
+
+  drawChart('chartHolt', state.serie, r.pron, r.futuro, { pronLabel: `Holt α=${a} β=${b}`, pronColor: COLORS.holt });
+}
+function holtCalcular(serie, a, b, H) {
+  // Inicialización por regresión lineal sobre los primeros min(n,5) períodos
+  const k = Math.min(serie.length, 5);
+  const reg = regLineal(serie.slice(0,k));
+  let L = reg.L + reg.T;  // L1
+  let T = reg.T;
+  const Ls=[], Ts=[], pron=[];
+  for (let i=0; i<serie.length; i++) {
+    const F = L + T;
+    pron.push(F);
+    const Lnew = a*serie[i] + (1-a)*(L+T);
+    const Tnew = b*(Lnew-L) + (1-b)*T;
+    L = Lnew; T = Tnew;
+    Ls.push(L); Ts.push(T);
+  }
+  const futuro = [];
+  for (let h=1; h<=H; h++) futuro.push(L + h*T);
+  return { L:Ls, T:Ts, pron, futuro };
+}
+function optimizarHolt() {
+  if (!validarSerie()) return;
+  let mejor = { a:0.3, b:0.2, mape: Infinity };
+  for (let a=0.1; a<=0.9; a+=0.1) {
+    for (let b=0.05; b<=0.9; b+=0.05) {
+      const r = holtCalcular(state.serie, a, b, 1);
+      const e = calcularErrores(state.serie, r.pron);
+      if (e && e.MAPE !== null && e.MAPE < mejor.mape) mejor = { a:+a.toFixed(2), b:+b.toFixed(2), mape:e.MAPE };
+    }
+  }
+  document.getElementById('holtAlpha').value = mejor.a;
+  document.getElementById('holtBeta').value = mejor.b;
+  avisar(`Combinación óptima encontrada: α=${mejor.a}, β=${mejor.b} (MAPE=${fmtPct(mejor.mape)}). Pulsa Calcular para ver resultados.`, 'success');
+}
+
+/* ============================================================
+   WINTER
+   ============================================================ */
+function calcularWinter() {
+  if (!validarSerie()) return;
+  const p = parseInt(document.getElementById('winP').value);
+  const a = parseFloat(document.getElementById('winAlpha').value);
+  const b = parseFloat(document.getElementById('winBeta').value);
+  const g = parseFloat(document.getElementById('winGamma').value);
+  const H = parseInt(document.getElementById('winH').value);
+
+  if (!p||p<2) { avisar('p debe ser ≥ 2.', 'error'); return; }
+  if (isNaN(a)||a<0||a>1) { avisar('α debe estar en [0,1].', 'error'); return; }
+  if (isNaN(b)||b<0||b>1) { avisar('β debe estar en [0,1].', 'error'); return; }
+  if (isNaN(g)||g<0||g>1) { avisar('γ debe estar en [0,1].', 'error'); return; }
+
+  if (state.serie.length < 2*p) {
+    document.getElementById('winAlertas').innerHTML = `<div class="alert error"><span class="ti">No es posible aplicar Winter</span>No hay suficientes períodos para estimar estacionalidad de forma fiable. Se requieren al menos 2·p = ${2*p} períodos, y la serie tiene ${state.serie.length}.</div>`;
+    document.getElementById('winStats').innerHTML = '';
+    document.getElementById('winTabla').innerHTML = '';
+    document.getElementById('chartWinter').innerHTML = '';
+    return;
+  }
+
+  if (state.serie.some(v => v <= 0)) {
+    document.getElementById('winAlertas').innerHTML = `<div class="alert warn"><span class="ti">Aviso</span>El modelo multiplicativo requiere valores estrictamente positivos. Hay valores ≤ 0 en la serie.</div>`;
+    return;
+  }
+
+  const r = winterCalcular(state.serie, p, a, b, g, H);
+  const errs = calcularErrores(state.serie, r.pron);
+
+  document.getElementById('winAlertas').innerHTML = '';
+  document.getElementById('winStats').innerHTML = renderErrStats(errs);
+
+  let html = '<table class="data"><thead><tr><th>t</th><th>D</th><th>L</th><th>T</th><th>S</th><th>F</th><th>Error</th></tr></thead><tbody>';
+  state.serie.forEach((d,i) => {
+    const e = r.pron[i] - d;
+    html += `<tr>
+      <td class="text-left">t = ${i+1}</td>
+      <td>${fmt(d,1)}</td>
+      <td>${fmt(r.L[i],2)}</td>
+      <td>${fmt(r.T[i],3)}</td>
+      <td>${fmt(r.S[i],3)}</td>
+      <td>${fmt(r.pron[i],2)}</td>
+      <td><span class="${e>=0?'num-pos':'num-neg'}">${fmt(e,2)}</span></td>
+    </tr>`;
+  });
+  for (let h=0; h<H; h++) {
+    html += `<tr style="background:rgba(212,114,208,0.06);">
+      <td class="text-left"><b>t = ${state.serie.length+h+1}</b></td>
+      <td colspan="4"><span class="num-dim">— horizonte —</span></td>
+      <td><b>${fmt(r.futuro[h],2)}</b></td>
+      <td></td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('winTabla').innerHTML = html;
+
+  drawChart('chartWinter', state.serie, r.pron, r.futuro, { pronLabel: `Winter p=${p}`, pronColor: COLORS.winter });
+}
+function winterCalcular(serie, p, a, b, g, H) {
+  const n = serie.length;
+  // Inicialización: nivel = media del primer ciclo, tendencia = (media segundo ciclo - media primer ciclo) / p
+  const m1 = media(serie.slice(0,p));
+  const m2 = media(serie.slice(p, 2*p));
+  let L = m1;
+  let T = (m2 - m1) / p;
+  // Factores estacionales iniciales: D_i / m1
+  const S = new Array(n + H).fill(1);
+  for (let i=0; i<p; i++) S[i] = serie[i] / m1;
+
+  const Ls = [], Ts = [], pron = [];
+  for (let t=0; t<n; t++) {
+    const F = (L + T) * S[t];
+    pron.push(F);
+    const Lnew = a * (serie[t] / S[t]) + (1-a) * (L + T);
+    const Tnew = b * (Lnew - L) + (1-b) * T;
+    const Snew = g * (serie[t] / Lnew) + (1-g) * S[t];
+    // S_{t+p} = Snew (para futuro)
+    if (t + p < S.length) S[t+p] = Snew;
+    L = Lnew; T = Tnew;
+    Ls.push(L); Ts.push(T);
+  }
+  // Construir array S alineado con t
+  const Sout = [];
+  for (let t=0; t<n; t++) Sout.push(S[t]);
+
+  const futuro = [];
+  for (let h=1; h<=H; h++) {
+    const sIdx = n - p + ((h-1) % p);
+    futuro.push((L + h*T) * (S[n + h - p] || S[sIdx]));
+  }
+  return { L: Ls, T: Ts, S: Sout, pron, futuro };
+}
+
+/* ============================================================
+   MÉTODO ESTÁTICO
+   ============================================================ */
+function calcularEstatico() {
+  if (!validarSerie()) return;
+  const p = parseInt(document.getElementById('estP').value);
+  const H = parseInt(document.getElementById('estH').value);
+  if (!p||p<2) { avisar('p debe ser ≥ 2.', 'error'); return; }
+  if (state.serie.length < 2*p) {
+    document.getElementById('estAlertas').innerHTML = `<div class="alert error"><span class="ti">No es posible aplicar el método estático</span>Se necesitan al menos 2·p = ${2*p} períodos. La serie tiene ${state.serie.length}.</div>`;
+    document.getElementById('estStats').innerHTML = '';
+    document.getElementById('estTabla').innerHTML = '';
+    document.getElementById('chartEst').innerHTML = '';
+    return;
+  }
+
+  const r = estaticoCalcular(state.serie, p, H);
+  const errs = calcularErrores(state.serie, r.pron);
+
+  document.getElementById('estAlertas').innerHTML = `<div class="alert"><span class="ti">Resultado</span>Nivel estimado L = <b>${fmt(r.L,2)}</b>, tendencia T = <b>${fmt(r.T,3)}</b> por período. Factores estacionales medios: ${r.S.map(s=>fmt(s,2)).join(', ')}.</div>`;
+  document.getElementById('estStats').innerHTML = renderErrStats(errs);
+
+  let html = '<table class="data"><thead><tr><th>t</th><th>D real</th><th>D desestacionalizada</th><th>Tendencia</th><th>S<sub>t</sub></th><th>F<sub>t</sub></th><th>Error</th></tr></thead><tbody>';
+  state.serie.forEach((d,i) => {
+    const e = r.pron[i] - d;
+    html += `<tr>
+      <td class="text-left">t = ${i+1}</td>
+      <td>${fmt(d,1)}</td>
+      <td>${r.deses[i]===null?'<span class="num-dim">—</span>':fmt(r.deses[i],2)}</td>
+      <td>${fmt(r.tend[i],2)}</td>
+      <td>${fmt(r.Sarr[i],3)}</td>
+      <td>${fmt(r.pron[i],2)}</td>
+      <td><span class="${e>=0?'num-pos':'num-neg'}">${fmt(e,2)}</span></td>
+    </tr>`;
+  });
+  for (let h=0; h<H; h++) {
+    html += `<tr style="background:rgba(236,99,99,0.06);">
+      <td class="text-left"><b>t = ${state.serie.length+h+1}</b></td>
+      <td colspan="4"><span class="num-dim">— horizonte —</span></td>
+      <td><b>${fmt(r.futuro[h],2)}</b></td>
+      <td></td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('estTabla').innerHTML = html;
+
+  drawChart('chartEst', state.serie, r.pron, r.futuro, { pronLabel: `Estático p=${p}`, pronColor: COLORS.est });
+}
+function estaticoCalcular(serie, p, H) {
+  const n = serie.length;
+  // 1. Desestacionalizar con media móvil centrada de p
+  const deses = new Array(n).fill(null);
+  const half = Math.floor(p/2);
+  for (let t=half; t<n-half; t++) {
+    let suma = 0, cnt = 0;
+    if (p % 2 === 0) {
+      // media móvil centrada para p par: 0.5*D_{t-p/2} + ... + 0.5*D_{t+p/2}
+      suma = 0.5*serie[t-half] + 0.5*serie[t+half];
+      for (let k=t-half+1; k<=t+half-1; k++) suma += serie[k];
+      deses[t] = suma / p;
+    } else {
+      for (let k=t-half; k<=t+half; k++) suma += serie[k];
+      deses[t] = suma / p;
+    }
+  }
+  // 2. Regresión lineal sobre los puntos desestacionalizados disponibles
+  const xs=[], ys=[];
+  deses.forEach((v,i) => { if (v !== null) { xs.push(i+1); ys.push(v); } });
+  let sx=0, sy=0, sxy=0, sxx=0;
+  for (let k=0; k<xs.length; k++) { sx+=xs[k]; sy+=ys[k]; sxy+=xs[k]*ys[k]; sxx+=xs[k]*xs[k]; }
+  const T = (xs.length*sxy - sx*sy) / (xs.length*sxx - sx*sx);
+  const L = (sy - T*sx) / xs.length;
+  // 3. Tendencia para cada t
+  const tend = serie.map((_,i) => L + T*(i+1));
+  // 4. Factores estacionales por posición del ciclo
+  const factores = new Array(p).fill(0);
+  const cuentas = new Array(p).fill(0);
+  serie.forEach((d,i) => {
+    const f = d / tend[i];
+    const pos = i % p;
+    factores[pos] += f;
+    cuentas[pos] += 1;
+  });
+  for (let i=0; i<p; i++) factores[i] = cuentas[i] ? factores[i]/cuentas[i] : 1;
+  // Normalizar factores (media = 1)
+  const mF = media(factores);
+  for (let i=0; i<p; i++) factores[i] /= mF;
+
+  // 5. Pronóstico
+  const Sarr = serie.map((_,i) => factores[i % p]);
+  const pron = serie.map((_,i) => tend[i] * Sarr[i]);
+  const futuro = [];
+  for (let h=1; h<=H; h++) {
+    const t = n + h;
+    futuro.push((L + T*t) * factores[(t-1) % p]);
+  }
+  return { deses, tend, Sarr, S: factores, L, T, pron, futuro };
+}
+
+/* ============================================================
+   COMPARADOR
+   ============================================================ */
+function compararTodo() {
+  if (!validarSerie()) return;
+  const s = state.serie;
+  const resultados = [];
+  // PM con N=3 y N=optimo
+  for (const N of [3, 6]) {
+    if (N >= s.length) continue;
+    const { pron, siguiente } = pmCalcular(s, N);
+    const e = calcularErrores(s, pron);
+    resultados.push({ metodo: 'Promedio móvil', params: `N=${N}`, e, sig: siguiente, pron, color: COLORS.pm });
+  }
+  // SES
+  const F0 = media(s.slice(0, Math.min(3, s.length)));
+  for (const a of [0.2, 0.5]) {
+    const r = sesCalcular(s, a, F0);
+    const e = calcularErrores(s, r.pron);
+    resultados.push({ metodo: 'Suavizado exponencial', params: `α=${a}`, e, sig: r.siguiente, pron: r.pron, color: COLORS.ses });
+  }
+  // Holt
+  const rH = holtCalcular(s, 0.3, 0.2, 1);
+  const eH = calcularErrores(s, rH.pron);
+  resultados.push({ metodo: 'Holt', params: 'α=0.3, β=0.2', e: eH, sig: rH.futuro[0], pron: rH.pron, color: COLORS.holt });
+  // Winter (si hay datos)
+  const p = detectarEstacionalidad(s) || 12;
+  if (s.length >= 2*p && s.every(v => v>0)) {
+    const rW = winterCalcular(s, p, 0.3, 0.1, 0.2, 1);
+    const eW = calcularErrores(s, rW.pron);
+    resultados.push({ metodo: 'Winter', params: `p=${p}, α=0.3, β=0.1, γ=0.2`, e: eW, sig: rW.futuro[0], pron: rW.pron, color: COLORS.winter });
+  }
+  // Estático (si hay datos)
+  if (s.length >= 2*p) {
+    const rE = estaticoCalcular(s, p, 1);
+    const eE = calcularErrores(s, rE.pron);
+    resultados.push({ metodo: 'Estático', params: `p=${p}`, e: eE, sig: rE.futuro[0], pron: rE.pron, color: COLORS.est });
+  }
+
+  // Mejor por MAPE
+  let mejor = null, mejorMAPE = Infinity;
+  resultados.forEach(r => { if (r.e && r.e.MAPE !== null && r.e.MAPE < mejorMAPE) { mejorMAPE = r.e.MAPE; mejor = r; } });
+
+  let html = '<table class="data"><thead><tr><th>Método</th><th>Parámetros</th><th>MAD</th><th>MSE</th><th>RMSE</th><th>MAPE</th><th>Sesgo</th><th>F<sub>siguiente</sub></th></tr></thead><tbody>';
+  resultados.forEach(r => {
+    const best = r === mejor;
+    html += `<tr ${best?'style="background:rgba(109,217,154,0.08);"':''}>
+      <td class="text-left">${r.metodo}${best?' <span class="badge gr">menor MAPE</span>':''}</td>
+      <td class="text-left"><span class="num-dim">${r.params}</span></td>
+      <td>${fmt(r.e.MAD)}</td>
+      <td>${fmt(r.e.MSE)}</td>
+      <td>${fmt(r.e.RMSE)}</td>
+      <td>${fmtPct(r.e.MAPE)}</td>
+      <td>${fmt(r.e.sesgo)}</td>
+      <td>${fmt(r.sig)}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  document.getElementById('compTabla').innerHTML = html;
+
+  // Recomendación según patrón
+  const reg = regLineal(s);
+  const hayT = Math.abs(reg.T/media(s)) > 0.01;
+  const hayE = detectarEstacionalidad(s) !== null;
+  let rec;
+  if (hayT && hayE) rec = 'Winter o Método estático (modelan los tres componentes)';
+  else if (hayT) rec = 'Holt (modela nivel y tendencia)';
+  else if (hayE) rec = 'Winter o Método estático (modelan estacionalidad)';
+  else rec = 'Promedio móvil o Suavizado exponencial simple (series estables)';
+
+  document.getElementById('compRec').innerHTML = `
+    <div class="recommend-card">
+      <div class="lbl">Recomendación según patrón detectado</div>
+      <div class="method">${rec}</div>
+      <div class="sm-text">Mejor por MAPE histórico: <b style="color:var(--green);">${mejor?mejor.metodo+' ('+mejor.params+')':'—'}</b></div>
+    </div>
+    <div class="alert warn"><span class="ti">Recuerda</span>El menor error histórico no siempre garantiza el mejor pronóstico futuro. Considera también la robustez del método y la cantidad de datos disponibles.</div>
+  `;
+
+  drawChartMulti('compChart', s, resultados.map(r => ({ name: r.metodo+' ('+r.params+')', data: r.pron, color: r.color })));
+}
+
+/* ============================================================
+   VALIDACIÓN DE SERIE
+   ============================================================ */
+function validarSerie() {
+  if (!state.serie || state.serie.length < 4) {
+    avisar('Necesitas una serie con al menos 4 períodos. Genérala o introdúcela en la pestaña "Datos de demanda".', 'error');
+    return false;
+  }
+  return true;
+}
+
+/* ============================================================
+   EJERCICIOS
+   ============================================================ */
+function generarEjercicio() {
+  const tipo = document.getElementById('exTipo').value;
+  const dif = document.getElementById('exDif').value;
+  let tipoReal = tipo;
+  if (tipo === 'mixto') {
+    const lista = ['pm','ses','alpha','holt','elegir','interp','patron','siguiente'];
+    tipoReal = lista[Math.floor(Math.random()*lista.length)];
+  }
+  let ej;
+  switch (tipoReal) {
+    case 'pm': ej = ejPM(dif); break;
+    case 'ses': ej = ejSES(dif); break;
+    case 'alpha': ej = ejAlpha(dif); break;
+    case 'holt': ej = ejHolt(dif); break;
+    case 'elegir': ej = ejElegir(dif); break;
+    case 'interp': ej = ejInterp(dif); break;
+    case 'patron': ej = ejPatron(dif); break;
+    case 'siguiente': ej = ejSiguiente(dif); break;
+  }
+  state.ejActual = ej;
+  renderEjercicio();
+}
+function genSerie(patron, n, base) {
+  const arr = [];
+  for (let t=1; t<=n; t++) {
+    let v;
+    if (patron === 'estable') v = base + rnd(-0.05,0.05)*base;
+    else if (patron === 'creciente') v = base + base*0.04*t + rnd(-0.03,0.03)*base;
+    else if (patron === 'estacional') v = base * (1 + 0.3*Math.sin((t-1)*2*Math.PI/4)) + rnd(-0.03,0.03)*base;
+    else v = base + rnd(-0.05,0.05)*base;
+    arr.push(Math.round(v));
+  }
+  return arr;
+}
+
+function ejPM(dif) {
+  const n = dif==='facil'?5:(dif==='medio'?7:10);
+  const N = dif==='facil'?3:(dif==='medio'?3:4);
+  const serie = genSerie('estable', n, 100+Math.floor(Math.random()*50));
+  const sig = media(serie.slice(serie.length-N));
+  return {
+    tipo: 'pm', kind: 'numeric',
+    enunciado: `Dada la siguiente serie de demanda, calcula el pronóstico del período t = ${n+1} usando un <b>promedio móvil de N = ${N}</b> períodos. Redondea a 2 decimales.`,
+    serie, sig, N,
+    correcta: +sig.toFixed(2),
+    tolerancia: 0.5,
+    formula: `F${n+1} = (D${n-N+1} + D${n-N+2} + … + D${n}) / ${N}`,
+    pistas: [
+      'Para el promedio móvil simple, sólo necesitas los últimos N valores de la serie.',
+      `La fórmula es F = (D${n-N+1} + D${n-N+2} + … + D${n}) / ${N}.`,
+      `Suma los últimos ${N} valores: ${serie.slice(serie.length-N).join(' + ')}.`,
+      `Suma = ${sum(serie.slice(serie.length-N))}. Divide entre ${N}.`
+    ],
+    solucion: [
+      `Fórmula: F = (suma de últimos ${N} valores) / ${N}.`,
+      `Últimos ${N} valores: ${serie.slice(serie.length-N).join(', ')}.`,
+      `Suma = ${sum(serie.slice(serie.length-N))}.`,
+      `División: ${sum(serie.slice(serie.length-N))} / ${N} = <b>${fmt(sig,2)}</b>.`,
+      `Interpretación: este sería el pronóstico para t = ${n+1} si asumimos demanda estable.`
+    ]
+  };
+}
+
+function ejSES(dif) {
+  const n = dif==='facil'?5:7;
+  const a = dif==='facil'?0.3:(Math.random()<0.5?0.2:0.4);
+  const serie = genSerie('estable', n, 100+Math.floor(Math.random()*40));
+  const F0 = serie[0];
+  const { siguiente } = sesCalcular(serie, a, F0);
+  return {
+    tipo: 'ses', kind: 'numeric',
+    enunciado: `Aplica <b>suavizado exponencial simple</b> con α = ${a} y F<sub>1</sub> = D<sub>1</sub> = ${F0}. Calcula el pronóstico del período t = ${n+1}.`,
+    serie, sig: siguiente, alpha: a, F0,
+    correcta: +siguiente.toFixed(2),
+    tolerancia: 0.5,
+    formula: 'F<sub>t+1</sub> = α · D<sub>t</sub> + (1 − α) · F<sub>t</sub>',
+    pistas: [
+      'Aplica la fórmula recursivamente desde F1 hasta llegar a F' + (n+1) + '.',
+      `Empieza con F1 = ${F0}. Para t=1: F2 = ${a}·${serie[0]} + ${1-a}·${F0}.`,
+      'Calcula paso a paso hasta F' + (n+1) + '.',
+      `Pista final: el resultado debe estar cerca de la media reciente, ya que α=${a} ${a<0.5?'da poco peso al dato actual':'da bastante peso al dato actual'}.`
+    ],
+    solucion: (() => {
+      const pasos = [];
+      let F = F0;
+      pasos.push(`F1 = ${F0} (valor inicial).`);
+      for (let i=0; i<n; i++) {
+        const Fn = a*serie[i] + (1-a)*F;
+        pasos.push(`F${i+2} = ${a} · ${serie[i]} + ${(1-a).toFixed(2)} · ${fmt(F,2)} = <b>${fmt(Fn,2)}</b>`);
+        F = Fn;
+      }
+      pasos.push(`Resultado final: F${n+1} = <b>${fmt(F,2)}</b>.`);
+      return pasos;
+    })()
+  };
+}
+
+function ejAlpha(dif) {
+  const n = 6;
+  const serie = genSerie('estable', n, 100+Math.floor(Math.random()*40));
+  const F0 = serie[0];
+  const r1 = sesCalcular(serie, 0.10, F0);
+  const r5 = sesCalcular(serie, 0.50, F0);
+  const e1 = calcularErrores(serie, r1.pron);
+  const e5 = calcularErrores(serie, r5.pron);
+  const ganador = e1.MAD < e5.MAD ? 'α = 0.10' : 'α = 0.50';
+  return {
+    tipo: 'alpha', kind: 'choice',
+    enunciado: `Aplica SES a la siguiente serie con F<sub>1</sub> = ${F0} y compara α = 0.10 con α = 0.50. ¿Qué α obtiene menor MAD?`,
+    serie,
+    opciones: ['α = 0.10', 'α = 0.50'],
+    correcta: ganador,
+    formula: 'MAD = media de |F<sub>t</sub> − D<sub>t</sub>|',
+    pistas: [
+      'Calcula los pronósticos con cada α y luego mide los errores en valor absoluto.',
+      'Un α bajo suaviza más; un α alto reacciona más a cambios recientes.',
+      `MAD con α=0.10: ${fmt(e1.MAD,2)}. MAD con α=0.50: ${fmt(e5.MAD,2)}.`,
+      `Menor MAD ⇒ ${ganador}.`
+    ],
+    solucion: [
+      `Con α = 0.10: MAD = ${fmt(e1.MAD,2)}, MAPE = ${fmtPct(e1.MAPE)}.`,
+      `Con α = 0.50: MAD = ${fmt(e5.MAD,2)}, MAPE = ${fmtPct(e5.MAPE)}.`,
+      `Comparación: el menor MAD lo obtiene <b>${ganador}</b>.`,
+      `Interpretación: en series ${e1.MAD<e5.MAD?'estables o ruidosas, α bajo':'con cambios reales, α alto'} suele funcionar mejor.`
+    ]
+  };
+}
+
+function ejHolt(dif) {
+  const n = 6;
+  const base = 100+Math.floor(Math.random()*30);
+  const serie = genSerie('creciente', n, base);
+  const r = holtCalcular(serie, 0.3, 0.2, 1);
+  return {
+    tipo: 'holt', kind: 'numeric',
+    enunciado: `La siguiente serie tiene tendencia creciente. Aplica <b>Holt</b> con α = 0.3 y β = 0.2 (inicialización por regresión lineal). Calcula el pronóstico del período t = ${n+1}.`,
+    serie, sig: r.futuro[0],
+    correcta: +r.futuro[0].toFixed(2),
+    tolerancia: 2,
+    formula: 'F<sub>t+n</sub> = L<sub>t</sub> + n · T<sub>t</sub>',
+    pistas: [
+      'Holt actualiza nivel y tendencia en cada paso. Inicializa con regresión lineal sobre los primeros valores.',
+      'Aplica L<sub>t</sub> = α·D<sub>t</sub> + (1−α)(L<sub>t−1</sub>+T<sub>t−1</sub>) y T<sub>t</sub> = β(L<sub>t</sub>−L<sub>t−1</sub>) + (1−β)T<sub>t−1</sub>.',
+      `Tras el último período, L = ${fmt(r.L[n-1],2)} y T = ${fmt(r.T[n-1],3)}.`,
+      `F<sub>${n+1}</sub> = L + 1·T = ${fmt(r.L[n-1],2)} + ${fmt(r.T[n-1],3)} = <b>${fmt(r.futuro[0],2)}</b>.`
+    ],
+    solucion: [
+      `Inicialización por regresión lineal sobre los primeros 5 valores.`,
+      `Tras aplicar Holt en los ${n} períodos: L<sub>${n}</sub> = ${fmt(r.L[n-1],2)}, T<sub>${n}</sub> = ${fmt(r.T[n-1],3)}.`,
+      `F<sub>${n+1}</sub> = L<sub>${n}</sub> + 1 · T<sub>${n}</sub> = <b>${fmt(r.futuro[0],2)}</b>.`,
+      `Holt es adecuado aquí: la serie tiene tendencia clara y el pronóstico la sigue.`
+    ]
+  };
+}
+
+function ejElegir(dif) {
+  const escenarios = [
+    { patron: 'demanda mensual sin tendencia ni estacionalidad, valores entre 95 y 110', correcta: 'Promedio móvil o SES', opciones: ['Promedio móvil o SES','Holt','Winter','No se puede pronosticar'] },
+    { patron: 'demanda trimestral que crece de forma sostenida (10, 14, 18, 22, 27, 31, 36)', correcta: 'Holt', opciones: ['Promedio móvil','Holt','Winter','SES con α=0.05'] },
+    { patron: 'demanda mensual con picos cada diciembre y valles cada agosto durante 3 años', correcta: 'Winter o Método estático', opciones: ['SES','Holt','Winter o Método estático','Promedio móvil de N=3'] },
+    { patron: 'serie de sólo 3 datos sin patrón claro', correcta: 'Promedio simple o no pronosticar', opciones: ['Winter','Holt','Promedio simple o no pronosticar','SES con α=0.99'] }
+  ];
+  const ex = escenarios[Math.floor(Math.random()*escenarios.length)];
+  return {
+    tipo: 'elegir', kind: 'choice',
+    enunciado: `Tenemos la siguiente serie: <b>${ex.patron}</b>. ¿Qué método es más adecuado?`,
+    opciones: ex.opciones,
+    correcta: ex.correcta,
+    pistas: [
+      'Identifica primero si hay nivel estable, tendencia, estacionalidad o pocos datos.',
+      'Sin tendencia ni estacionalidad → métodos simples. Con tendencia → Holt. Con tendencia + estacionalidad → Winter o método estático.',
+      'Si los datos son muy pocos, métodos complejos no son fiables.',
+      `La respuesta correcta es: <b>${ex.correcta}</b>.`
+    ],
+    solucion: [
+      `Análisis del patrón: ${ex.patron}.`,
+      `Criterio de elección: estable → PM/SES, tendencia → Holt, tendencia + estacionalidad → Winter/Estático, datos escasos → métodos simples.`,
+      `Respuesta correcta: <b>${ex.correcta}</b>.`
+    ]
+  };
+}
+
+function ejInterp(dif) {
+  const opts = [
+    {
+      pregunta: 'Si el MAPE de un método es 3% y el de otro es 18%, ¿qué significa?',
+      opciones: [
+        'El primero predice peor porque su número es menor',
+        'El primero predice mejor porque su error porcentual es menor',
+        'Son equivalentes',
+        'El MAPE no compara métodos'
+      ],
+      correcta: 'El primero predice mejor porque su error porcentual es menor'
+    },
+    {
+      pregunta: 'Un sesgo medio positivo indica que el pronóstico…',
+      opciones: [
+        'subestima sistemáticamente la demanda',
+        'sobrestima sistemáticamente la demanda',
+        'es perfecto',
+        'tiene varianza alta'
+      ],
+      correcta: 'sobrestima sistemáticamente la demanda'
+    },
+    {
+      pregunta: 'MAD = 20 y MAPE = 10% sobre demanda media 200. ¿Es coherente?',
+      opciones: [
+        'Sí: MAD/media = 20/200 = 10% ≈ MAPE',
+        'No, MAD debería ser igual a MAPE',
+        'No, MAPE debería ser mayor que MAD siempre',
+        'Faltan datos para saberlo'
+      ],
+      correcta: 'Sí: MAD/media = 20/200 = 10% ≈ MAPE'
+    }
+  ];
+  const ex = opts[Math.floor(Math.random()*opts.length)];
+  return {
+    tipo: 'interp', kind: 'choice',
+    enunciado: ex.pregunta,
+    opciones: ex.opciones,
+    correcta: ex.correcta,
+    pistas: [
+      'Recuerda que MAD mide el error absoluto medio y MAPE el porcentual.',
+      'El sesgo medio (Error medio = media de F − D) indica si el método sobre o subestima.',
+      'Compara siempre métricas con la misma convención de signo (Error = F − D).',
+      `La respuesta correcta es: <b>${ex.correcta}</b>.`
+    ],
+    solucion: [
+      `Pregunta: ${ex.pregunta}`,
+      `Análisis de cada métrica.`,
+      `Respuesta correcta: <b>${ex.correcta}</b>.`
+    ]
+  };
+}
+
+function ejPatron(dif) {
+  const tipos = [
+    { serie: [100,103,98,101,99,102,98,100,101,99], correcta: 'Estable (sin tendencia ni estacionalidad)' },
+    { serie: [80,90,100,110,120,130,140,150,160,170], correcta: 'Tendencia creciente' },
+    { serie: [50,90,140,80,55,95,142,85,60,100,145,90], correcta: 'Estacionalidad (ciclo ~4)' },
+    { serie: [60,80,120,75,65,90,135,82,72,100,150,90], correcta: 'Tendencia + estacionalidad' }
+  ];
+  const ex = tipos[Math.floor(Math.random()*tipos.length)];
+  const opciones = tipos.map(t => t.correcta);
+  return {
+    tipo: 'patron', kind: 'choice',
+    enunciado: 'Observa la serie de demanda. ¿Qué patrón presenta?',
+    serie: ex.serie,
+    opciones,
+    correcta: ex.correcta,
+    pistas: [
+      'Mira si los valores crecen o decrecen en promedio (tendencia).',
+      'Mira si hay un patrón cíclico que se repite cada cierto número de períodos.',
+      'Compara los primeros valores con los últimos: ¿hay subida sostenida?',
+      `La respuesta correcta es: <b>${ex.correcta}</b>.`
+    ],
+    solucion: [
+      `Serie: ${ex.serie.join(', ')}.`,
+      `Análisis visual: ${ex.correcta.includes('Tendencia')?'los valores crecen/decrecen de forma sostenida':'sin dirección clara'}; ${ex.correcta.includes('Estacionalidad')?'se observa repetición cíclica':'sin ciclos claros'}.`,
+      `Patrón: <b>${ex.correcta}</b>.`
+    ]
+  };
+}
+
+function ejSiguiente(dif) {
+  // Pronóstico del siguiente usando PM3 sobre una serie corta
+  const n = 5;
+  const serie = genSerie('estable', n, 100);
+  const sig = media(serie.slice(serie.length-3));
+  return {
+    tipo: 'siguiente', kind: 'numeric',
+    enunciado: `Para la serie ${serie.join(', ')}, calcula el pronóstico del próximo período usando promedio móvil de 3.`,
+    serie, sig,
+    correcta: +sig.toFixed(2),
+    tolerancia: 0.5,
+    formula: 'F = (D<sub>n-2</sub> + D<sub>n-1</sub> + D<sub>n</sub>) / 3',
+    pistas: [
+      'Identifica los últimos 3 valores de la serie.',
+      `Últimos 3: ${serie.slice(-3).join(', ')}.`,
+      `Suma = ${sum(serie.slice(-3))}.`,
+      `Resultado = ${sum(serie.slice(-3))} / 3 = ${fmt(sig,2)}.`
+    ],
+    solucion: [
+      `Últimos 3 valores: ${serie.slice(-3).join(', ')}.`,
+      `Suma = ${sum(serie.slice(-3))}.`,
+      `División: ${sum(serie.slice(-3))} / 3 = <b>${fmt(sig,2)}</b>.`
+    ]
+  };
+}
+
+function renderEjercicio() {
+  const ej = state.ejActual;
+  if (!ej) return;
+  let html = `<div class="exercise">
+    <span class="ex-tag">${tipoLabel(ej.tipo)}</span>
+    <div class="statement">${ej.enunciado}</div>`;
+
+  if (ej.serie) {
+    html += '<div class="tag-list">' + ej.serie.map((v,i) => `<span class="badge">t${i+1}: ${v}</span>`).join('') + '</div>';
+  }
+
+  if (ej.kind === 'numeric') {
+    html += `<div class="answer-input">
+      <span class="sm-text">Tu respuesta:</span>
+      <input type="number" step="any" id="exResp" placeholder="—">
+    </div>`;
+  } else {
+    html += '<div class="opts">';
+    ej.opciones.forEach((o,i) => {
+      html += `<label><input type="radio" name="exOpt" value="${o}"> ${o}</label>`;
+    });
+    html += '</div>';
+  }
+
+  html += `<div class="actions">
+    <button class="btn" onclick="comprobarEjercicio()">Comprobar respuesta</button>
+    <button class="btn ghost" onclick="pedirPista()">Pedir pista</button>
+    <button class="btn ghost" onclick="verSolucion()">Ver solución paso a paso</button>
+    <button class="btn secondary" onclick="generarEjercicio()">Generar otro parecido</button>
+  </div>
+  <div class="feedback" id="exFeedback"></div>
+  <div class="hint-box" id="exHint"></div>
+  <div class="solution" id="exSolucion"></div>
+  </div>`;
+
+  document.getElementById('exContenedor').innerHTML = html;
+  ej.pistaIdx = 0;
+}
+
+function tipoLabel(t) {
+  const m = { pm:'Promedio móvil', ses:'Suavizado exponencial', alpha:'Comparación de α', holt:'Modelo de Holt', elegir:'Elección de método', interp:'Interpretación de errores', patron:'Detección de patrón', siguiente:'Pronóstico siguiente período' };
+  return m[t] || t;
+}
+
+function comprobarEjercicio() {
+  const ej = state.ejActual;
+  if (!ej) return;
+  const fb = document.getElementById('exFeedback');
+  if (ej.kind === 'numeric') {
+    const v = parseFloat(document.getElementById('exResp').value);
+    if (isNaN(v)) { fb.className='feedback show'; fb.style.background='rgba(245,196,81,0.1)'; fb.style.borderLeft='3px solid var(--amber)'; fb.innerHTML='Introduce un número antes de comprobar.'; return; }
+    const diff = Math.abs(v - ej.correcta);
+    if (diff <= (ej.tolerancia||0.5)) {
+      fb.className='feedback show'; fb.style.background='rgba(109,217,154,0.1)'; fb.style.borderLeft='3px solid var(--green)';
+      fb.innerHTML = `✓ <b>Correcto.</b> La respuesta es ${fmt(ej.correcta,2)} (tu respuesta: ${fmt(v,2)}).`;
+    } else {
+      fb.className='feedback show'; fb.style.background='rgba(236,99,99,0.1)'; fb.style.borderLeft='3px solid var(--red)';
+      fb.innerHTML = `✗ <b>No es correcto.</b> Has respondido ${fmt(v,2)}, pero la respuesta esperada es <b>${fmt(ej.correcta,2)}</b>. Diferencia: ${fmt(diff,2)}.`;
+      // detección de error típico
+      if (Math.abs(v - (-ej.correcta)) < 0.5) avisar('Posible confusión de signo en el cálculo del error. Recuerda: Error = Pronóstico − Demanda.', 'warn');
+    }
+  } else {
+    const sel = document.querySelector('input[name=exOpt]:checked');
+    if (!sel) { fb.className='feedback show'; fb.style.background='rgba(245,196,81,0.1)'; fb.style.borderLeft='3px solid var(--amber)'; fb.innerHTML='Selecciona una opción antes de comprobar.'; return; }
+    if (sel.value === ej.correcta) {
+      fb.className='feedback show'; fb.style.background='rgba(109,217,154,0.1)'; fb.style.borderLeft='3px solid var(--green)';
+      fb.innerHTML = `✓ <b>Correcto.</b> ${ej.correcta}`;
+    } else {
+      fb.className='feedback show'; fb.style.background='rgba(236,99,99,0.1)'; fb.style.borderLeft='3px solid var(--red)';
+      fb.innerHTML = `✗ <b>No es correcto.</b> Has elegido "${sel.value}". La respuesta correcta es: <b>${ej.correcta}</b>.`;
+    }
+  }
+}
+function pedirPista() {
+  const ej = state.ejActual;
+  if (!ej) return;
+  if (ej.pistaIdx >= ej.pistas.length) { avisar('Ya no hay más pistas. Consulta la solución paso a paso.', 'warn'); return; }
+  const box = document.getElementById('exHint');
+  box.classList.add('show');
+  const pistasActuales = ej.pistas.slice(0, ej.pistaIdx+1);
+  box.innerHTML = pistasActuales.map((p,i) => `<div style="margin-bottom:6px;"><span class="h-step">Pista ${i+1}</span> · ${p}</div>`).join('');
+  ej.pistaIdx++;
+}
+function verSolucion() {
+  const ej = state.ejActual;
+  if (!ej) return;
+  const box = document.getElementById('exSolucion');
+  box.classList.add('show');
+  let html = '<div style="margin-bottom:8px;"><b>Solución paso a paso</b></div>';
+  if (ej.formula) html += `<div class="formula" style="margin:8px 0;"><span class="lbl">Fórmula</span>${ej.formula}</div>`;
+  ej.solucion.forEach((s,i) => {
+    html += `<div class="step"><b>Paso ${i+1}:</b> ${s}</div>`;
+  });
+  box.innerHTML = html;
+}
+
+/* ============================================================
+   INICIALIZACIÓN
+   ============================================================ */
+window.addEventListener('load', () => {
+  // Cargar un ejemplo inicial para que la app esté lista
+  cargarEjemplo('alimentario');
+});
+</script>
+</body>
+</html>
